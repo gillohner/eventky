@@ -1,3 +1,8 @@
+"use client"
+
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+
 export default function Home() {
   return (
     <div className="flex-1 p-8">
@@ -9,6 +14,14 @@ export default function Home() {
           <p className="text-muted-foreground text-lg">
             Your calendar and event management platform
           </p>
+          <div className="mt-4 flex gap-2">
+            <Button onClick={() => toast.success("Toast is working perfectly!")}>
+              Test Toast
+            </Button>
+            <Button variant="outline" onClick={() => toast.error("This is an error toast")}>
+              Test Error
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
