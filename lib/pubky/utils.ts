@@ -3,29 +3,17 @@
  */
 
 import { config } from "@/lib/config";
+import { imageVariant } from "@/types/image";
 
-/**
- * Parse a Pubky image URL and return a usable HTTP URL
- * Converts pubky:// URLs to HTTP URLs via a gateway
- * 
- * Gateway is configured via config.gateway.url
- */
-export function getPubkyImageUrl(imageUrl: string | null | undefined): string | null {
-  if (!imageUrl) return null;
+export function getPubkyAvatarUrl(pubkyUrl: string): string {
+    return `${config.gateway.url}${config.gateway.baseAvatarPath}/${pubkyUrl.replace("pubky://", "")}`;
+}
 
-  // If it's already an HTTP URL, return as-is
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-
-  // If it's a pubky:// URL, convert to HTTP gateway URL
-  if (imageUrl.startsWith("pubky://")) {
-    // Remove pubky:// prefix
-    const path = imageUrl.replace("pubky://", "");
-    return `${config.gateway.url}/${path}`;
-  }
-
-  return null;
+export function getPubkyFileUrl(pubkyUrl: string): string {
+    return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}`;
+}
+export function getPubkyImageUrl(pubkyUrl: string, variant: imageVariant): string {
+    return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}/${variant}`;
 }
 
 /**
