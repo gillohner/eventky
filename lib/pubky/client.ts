@@ -1,5 +1,5 @@
 import { Pubky, Keypair, PublicKey, Session } from "@synonymdev/pubky";
-import { PubkyAppUser } from "pubky-app-specs";
+import { PubkyAppUser, userUriBuilder } from "pubky-app-specs";
 import { UserProfile } from "@/types/profile";
 import { config } from "@/lib/config";
 
@@ -32,10 +32,24 @@ export class PubkyClient {
   /**
    * Retrieve user profile from Pubky storage (read-only)
    * Profiles are managed in pubky.app, we only read them here
+   * 
+   * Can use either session.storage (when available) or publicStorage (when reading any user)
    */
-  async getProfile(session: Session): Promise<UserProfile | null> {
+  async getProfile(publicKey: string, session?: Session): Promise<UserProfile | null> {
     try {
-      const profileData = await session.storage.getJson(config.profile.path as `/pub/${string}`);
+      const pubky = new Pubky();
+      let profileData;
+
+      if (session) {
+        // Use session storage for authenticated user
+        profileData = await session.storage.getJson(config.profile.path as `/pub/${string}`);
+      } else {
+        // Use public storage for any user
+        const url = userUriBuilder(publicKey);
+        // Type cast needed: SDK expects Address type but userUriBuilder returns string
+        profileData = await pubky.publicStorage.getJson(url as any);
+      }
+
       if (profileData && typeof profileData === "object") {
         // Convert to PubkyAppUser class to validate and sanitize
         const userClass = PubkyAppUser.fromJson(profileData);

@@ -73,7 +73,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem("pubky_profile");
     } catch (error) {
       console.error("Error removing auth from localStorage:", error);
     }
