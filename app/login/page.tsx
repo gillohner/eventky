@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { useProfile } from "@/components/auth/profile-provider";
-import { pubkyClient, PubkyClient } from "@/lib/pubky/client";
+import { PubkyClient } from "@/lib/pubky/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -15,7 +14,6 @@ import { PubkyAuthWidget } from "@/components/ui/pubky-auth-widget";
 export default function LoginPage() {
   const router = useRouter();
   const { signin, signinWithSession } = useAuth();
-  const { setProfile } = useProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -45,18 +43,8 @@ export default function LoginPage() {
     try {
       // If we have a session, use it directly
       if (session) {
-        // Try to load the user's profile from storage
-        try {
-          const profile = await pubkyClient.getProfile(session);
-          if (profile) {
-            setProfile(profile);
-          }
-        } catch (profileError) {
-          console.warn("Could not load profile from storage:", profileError);
-          // Continue with signin even if profile loading fails
-        }
-
         // Sign in with the session (QR auth doesn't provide keypair access)
+        // The useProfile hook will automatically fetch the profile after signin
         signinWithSession(publicKey, session);
         toast.success("Successfully logged in!");
         router.push("/");
@@ -107,18 +95,8 @@ export default function LoginPage() {
       
       const session = await signer.signin();
 
-      // Try to load the user's profile from storage
-      try {
-        const profile = await pubkyClient.getProfile(session);
-        if (profile) {
-          setProfile(profile);
-        }
-      } catch (profileError) {
-        console.warn("Could not load profile from storage:", profileError);
-        // Continue with signin even if profile loading fails
-      }
-
       // Sign in with the restored credentials
+      // The useProfile hook will automatically fetch the profile after signin
       signin(publicKey, keypair, session);
 
       toast.success("Successfully logged in!");

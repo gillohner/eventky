@@ -24,7 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth/auth-provider"
-import { useProfile } from "@/components/auth/profile-provider"
+import { useProfile } from "@/hooks/use-profile"
 import { getPubkyImageUrl, getInitials, truncatePublicKey } from "@/lib/pubky/utils"
 import { toast } from "sonner"
 

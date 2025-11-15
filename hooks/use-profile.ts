@@ -4,6 +4,7 @@ import { pubkyClient } from "@/lib/pubky/client";
 
 /**
  * Hook to fetch user profile from Pubky storage (read-only)
+ * Works with or without an active session by using public storage
  */
 export function useProfile() {
   const { auth } = useAuth();
@@ -11,12 +12,12 @@ export function useProfile() {
   const profileQuery = useQuery({
     queryKey: ["profile", auth.publicKey],
     queryFn: async () => {
-      if (!auth.session) {
-        throw new Error("No active session");
+      if (!auth.publicKey) {
+        throw new Error("No public key available");
       }
-      return await pubkyClient.getProfile(auth.session);
+      return await pubkyClient.getProfile(auth.publicKey, auth.session || undefined);
     },
-    enabled: !!auth.session && !!auth.publicKey,
+    enabled: !!auth.publicKey,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 

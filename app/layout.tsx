@@ -5,7 +5,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import { ProfileProvider } from "@/components/auth/profile-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 const geistSans = Geist({
@@ -35,16 +34,14 @@ export default function RootLayout({
       >
         <QueryProvider>
           <AuthProvider>
-            <ProfileProvider>
-              <SidebarProvider>
-                <AppSidebar />
-                <main className="w-full">
-                  <SidebarTrigger className="m-4" />
-                  {children}
-                </main>
-              </SidebarProvider>
-              <Toaster />
-            </ProfileProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <main className="w-full">
+                <SidebarTrigger className="m-4" />
+                {children}
+              </main>
+            </SidebarProvider>
+            <Toaster />
           </AuthProvider>
         </QueryProvider>
       </body>

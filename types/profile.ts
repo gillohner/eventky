@@ -7,9 +7,3 @@ export interface UserProfile {
   links?: Array<{ title: string; url: string }>;
   status?: string;
 }
-
-export interface ProfileContextType {
-  profile: UserProfile | null;
-  setProfile: (profile: UserProfile) => void;
-  clearProfile: () => void;
-}
