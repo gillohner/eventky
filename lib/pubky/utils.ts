@@ -2,11 +2,13 @@
  * Pubky utility functions for common operations
  */
 
+import { config } from "@/lib/config";
+
 /**
  * Parse a Pubky image URL and return a usable HTTP URL
  * Converts pubky:// URLs to HTTP URLs via a gateway
  * 
- * Gateway can be configured via NEXT_PUBLIC_PUBKY_GATEWAY env variable
+ * Gateway is configured via config.gateway.url
  */
 export function getPubkyImageUrl(imageUrl: string | null | undefined): string | null {
   if (!imageUrl) return null;
@@ -20,10 +22,7 @@ export function getPubkyImageUrl(imageUrl: string | null | undefined): string | 
   if (imageUrl.startsWith("pubky://")) {
     // Remove pubky:// prefix
     const path = imageUrl.replace("pubky://", "");
-    
-    // Use configurable gateway (defaults to staging)
-    const gateway = process.env.NEXT_PUBLIC_PUBKY_GATEWAY || "https://gateway.staging.pubky.app";
-    return `${gateway}/${path}`;
+    return `${config.gateway.url}/${path}`;
   }
 
   return null;
@@ -54,30 +53,4 @@ export function truncatePublicKey(publicKey: string | null, length: number = 8):
   }
 
   return `${publicKey.slice(0, length)}...${publicKey.slice(-length)}`;
-}
-
-/**
- * Format a Pubky profile for storage (minimal version)
- * This ensures profile data matches the PubkyAppUser structure
- */
-export function formatProfileForStorage(profile: {
-  name?: string;
-  bio?: string;
-  image?: string;
-  links?: Array<{ title: string; url: string }>;
-  status?: string;
-}): {
-  name: string;
-  bio?: string;
-  image?: string;
-  links?: Array<{ title: string; url: string }>;
-  status?: string;
-} {
-  return {
-    name: profile.name || "Anonymous",
-    bio: profile.bio,
-    image: profile.image,
-    links: profile.links,
-    status: profile.status,
-  };
 }

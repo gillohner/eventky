@@ -29,12 +29,16 @@ npm install
 
 This automatically links both `eventky` and `pubky-app-specs/pkg` as workspaces.
 
-2. **Configure environment** (optional):
+2. **Configure environment**:
 ```bash
 cd eventky
 cp .env.example .env.local
-# Edit NEXT_PUBLIC_PUBKY_ENV (testnet/staging/live)
 ```
+
+Edit `.env.local` to configure your environment:
+- `NEXT_PUBLIC_PUBKY_ENV`: Choose `testnet`, `staging`, or `production`
+- Optionally override specific URLs for homeserver, relay, or gateway
+- See `.env.example` for detailed documentation of all settings
 
 3. **Run the development server**:
 ```bash
@@ -80,6 +84,18 @@ See [docs/PUBKY_AUTH.md](docs/PUBKY_AUTH.md) for detailed documentation.
 - **Types**: pubky-app-specs (local workspace package)
 
 ## Development Notes
+
+### Configuration
+
+All Pubky-related configuration is centralized in `/lib/config.ts`, which reads from environment variables. Configuration includes:
+
+- **Environment Selection**: `testnet`, `staging`, or `production`
+- **Homeserver**: Public key for the Pubky homeserver
+- **HTTP Relay**: URL for QR code authentication relay
+- **Gateway**: URL for resolving `pubky://` URLs to HTTP
+- **Profile Path**: Storage path for user profiles
+
+See `.env.example` for detailed documentation and default values for each environment.
 
 ### Monorepo Workspace Setup
 

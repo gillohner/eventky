@@ -3,15 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import QRCode from "qrcode";
 import * as pubky from "@synonymdev/pubky";
-
-const DEFAULT_HTTP_RELAY = "https://httprelay.staging.pubky.app/link/";
-const TESTNET_HTTP_RELAY = "http://localhost:15412/link";
+import { config } from "@/lib/config";
 
 interface PubkyAuthWidgetProps {
   relay?: string;
   caps?: string;
   open?: boolean;
-  testnet?: boolean;
   onSuccess?: (publicKey: string, session?: pubky.Session, token?: pubky.AuthToken) => void;
   onError?: (error: Error) => void;
   className?: string;
@@ -21,7 +18,6 @@ export function PubkyAuthWidget({
   relay,
   caps = "",
   open = false,
-  testnet = false,
   onSuccess,
   onError,
   className = "",
@@ -56,7 +52,7 @@ export function PubkyAuthWidget({
     setAuthUrl("");
 
     try {
-      const relayUrl = relay || (testnet ? TESTNET_HTTP_RELAY : DEFAULT_HTTP_RELAY);
+      const relayUrl = relay || config.relay.url;
       
       // Start the flow with the SDK's client
       const flow = sdkRef.current.startAuthFlow(caps as pubky.Capabilities, relayUrl);
@@ -89,12 +85,12 @@ export function PubkyAuthWidget({
       console.error("Auth flow failed:", error);
       onError?.(error as Error);
     }
-  }, [relay, caps, testnet, onSuccess, onError, updateQr]);
+  }, [relay, caps, onSuccess, onError, updateQr]);
 
   // Initialize SDK
   useEffect(() => {
-    sdkRef.current = testnet ? pubky.Pubky.testnet() : new pubky.Pubky();
-  }, [testnet]);
+    sdkRef.current = new pubky.Pubky();
+  }, []);
 
   // Auto-generate flow if open prop is true
   useEffect(() => {

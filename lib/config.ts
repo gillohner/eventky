@@ -1,0 +1,119 @@
+/**
+ * Centralized configuration for Pubky services
+ * All environment-specific settings are managed here
+ */
+
+export type PubkyEnvironment = "testnet" | "staging" | "production";
+
+interface PubkyConfig {
+  // Environment
+  environment: PubkyEnvironment;
+  
+  // Homeserver Configuration
+  homeserver: {
+    publicKey: string;
+  };
+  
+  // HTTP Relay Configuration (for QR code authentication)
+  relay: {
+    url: string;
+  };
+  
+  // Gateway Configuration (for resolving pubky:// URLs)
+  gateway: {
+    url: string;
+  };
+  
+  // Profile Configuration
+  profile: {
+    path: string;
+  };
+}
+
+/**
+ * Default homeserver public keys for each environment
+ */
+const DEFAULT_HOMESERVERS: Record<PubkyEnvironment, string> = {
+  testnet: "8pinxxgqs41n4aididenw5apqp1urfmzdztr8jt4abrkdn435ewo", // Testnet homeserver
+  staging: "ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy", // Staging homeserver
+  production: "ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy", // Production homeserver (same as staging for now)
+};
+
+/**
+ * Default HTTP relay URLs for each environment
+ */
+const DEFAULT_RELAYS: Record<PubkyEnvironment, string> = {
+  testnet: "http://localhost:15412/link",
+  staging: "https://httprelay.staging.pubky.app/link/",
+  production: "https://httprelay.pubky.app/link/",
+};
+
+/**
+ * Default gateway URLs for each environment
+ */
+const DEFAULT_GATEWAYS: Record<PubkyEnvironment, string> = {
+  testnet: "http://localhost:8080",
+  staging: "https://gateway.staging.pubky.app",
+  production: "https://gateway.pubky.app",
+};
+
+/**
+ * Get the current environment from env variables
+ */
+function getEnvironment(): PubkyEnvironment {
+  const env = process.env.NEXT_PUBLIC_PUBKY_ENV?.toLowerCase();
+  
+  if (env === "testnet" || env === "staging" || env === "production") {
+    return env;
+  }
+  
+  // Default to staging
+  return "staging";
+}
+
+/**
+ * Build the configuration from environment variables
+ */
+function buildConfig(): PubkyConfig {
+  const environment = getEnvironment();
+  
+  return {
+    environment,
+    
+    homeserver: {
+      publicKey: process.env.NEXT_PUBLIC_PUBKY_HOMESERVER || DEFAULT_HOMESERVERS[environment],
+    },
+    
+    relay: {
+      url: process.env.NEXT_PUBLIC_PUBKY_RELAY || DEFAULT_RELAYS[environment],
+    },
+    
+    gateway: {
+      url: process.env.NEXT_PUBLIC_PUBKY_GATEWAY || DEFAULT_GATEWAYS[environment],
+    },
+    
+    profile: {
+      path: process.env.NEXT_PUBLIC_PUBKY_PROFILE_PATH || "/pub/pubky.app/profile.json",
+    },
+  };
+}
+
+/**
+ * Singleton configuration instance
+ */
+export const config: PubkyConfig = buildConfig();
+
+/**
+ * Helper to check if running in testnet mode
+ */
+export const isTestnet = config.environment === "testnet";
+
+/**
+ * Helper to check if running in production mode
+ */
+export const isProduction = config.environment === "production";
+
+/**
+ * Helper to check if running in staging mode
+ */
+export const isStaging = config.environment === "staging";
