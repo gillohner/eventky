@@ -6,6 +6,13 @@
 export type PubkyEnvironment = "testnet" | "staging" | "production";
 
 interface PubkyConfig {
+  // App Configuration
+  app: {
+    name: string;
+    version: string;
+    githubRepo?: string;
+  };
+  
   // Environment
   environment: PubkyEnvironment;
   
@@ -80,6 +87,12 @@ function buildConfig(): PubkyConfig {
   const environment = getEnvironment();
   
   return {
+    app: {
+      name: process.env.NEXT_PUBLIC_APP_NAME || "Eventky",
+      version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
+      githubRepo: process.env.NEXT_PUBLIC_GITHUB_REPO,
+    },
+    
     environment,
     
     homeserver: {
