@@ -1,9 +1,33 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/components/auth/auth-provider"
+import { useProfile } from "@/hooks/use-profile"
 
 export default function Home() {
+  const router = useRouter()
+  const { isAuthenticated, auth, logout } = useAuth()
+  const { profile, isLoading } = useProfile()
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login")
+    }
+  }, [isAuthenticated, router])
+
+  if (!isAuthenticated) {
+    return null
+  }
+
+  const handleLogout = () => {
+    logout()
+    toast.success("Logged out successfully")
+    router.push("/login")
+  }
+
   return (
     <div className="flex-1 p-8">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -21,7 +45,35 @@ export default function Home() {
             <Button variant="outline" onClick={() => toast.error("This is an error toast")}>
               Test Error
             </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              Logout
+            </Button>
           </div>
+        </div>
+
+        {/* User Info Card */}
+        <div className="p-6 border rounded-lg bg-card">
+          <h3 className="text-lg font-semibold mb-4">Your Pubky Profile</h3>
+          {isLoading ? (
+            <p className="text-muted-foreground">Loading profile...</p>
+          ) : profile ? (
+            <div className="space-y-2">
+              <p className="text-sm">
+                <strong>Name:</strong> {profile.name || "Not set"}
+              </p>
+              <p className="text-sm">
+                <strong>Bio:</strong> {profile.bio || "Not set"}
+              </p>
+              <p className="text-sm">
+                <strong>Public Key:</strong>{" "}
+                <code className="text-xs bg-muted px-2 py-1 rounded">
+                  {auth.publicKey}
+                </code>
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No profile found</p>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
