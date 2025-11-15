@@ -1,6 +1,5 @@
 import { Pubky, Keypair, PublicKey, Session } from "@synonymdev/pubky";
 import { PubkyAppUser, userUriBuilder } from "pubky-app-specs";
-import { UserProfile } from "@/types/profile";
 import { config } from "@/lib/config";
 
 export class PubkyClient {
@@ -35,7 +34,7 @@ export class PubkyClient {
    * 
    * Can use either session.storage (when available) or publicStorage (when reading any user)
    */
-  async getProfile(publicKey: string, session?: Session): Promise<UserProfile | null> {
+  async getProfile(publicKey: string, session?: Session): Promise<ReturnType<PubkyAppUser["toJson"]> | null> {
     try {
       const pubky = new Pubky();
       let profileData;
@@ -54,7 +53,7 @@ export class PubkyClient {
         // Convert to PubkyAppUser class to validate and sanitize
         const userClass = PubkyAppUser.fromJson(profileData);
         // Return the JSON representation
-        return userClass.toJson() as UserProfile;
+        return userClass.toJson();
       }
       return null;
     } catch (error) {
