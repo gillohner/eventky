@@ -22,6 +22,8 @@ interface PubkyConfig {
   // Gateway Configuration (for resolving pubky:// URLs)
   gateway: {
     url: string;
+    baseFilePath: string;
+    baseAvatarPath: string;
   };
   
   // Profile Configuration
@@ -53,8 +55,8 @@ const DEFAULT_RELAYS: Record<PubkyEnvironment, string> = {
  */
 const DEFAULT_GATEWAYS: Record<PubkyEnvironment, string> = {
   testnet: "http://localhost:8080",
-  staging: "https://gateway.staging.pubky.app",
-  production: "https://gateway.pubky.app",
+  staging: "https://nexus.staging.pubky.app",
+  production: "https://nexus.pubky.app",
 };
 
 /**
@@ -90,6 +92,8 @@ function buildConfig(): PubkyConfig {
     
     gateway: {
       url: process.env.NEXT_PUBLIC_PUBKY_GATEWAY || DEFAULT_GATEWAYS[environment],
+      baseFilePath: process.env.NEXT_PUBLIC_PUBKY_GATEWAY_BASE_FILE_PATH || "/static/files",
+      baseAvatarPath: process.env.NEXT_PUBLIC_PUBKY_GATEWAY_BASE_AVATAR_PATH || "/static/avatar",
     },
     
     profile: {

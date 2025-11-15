@@ -25,7 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useProfile } from "@/hooks/use-profile"
-import { getPubkyImageUrl, getInitials, truncatePublicKey } from "@/lib/pubky/utils"
+import { getPubkyAvatarUrl, getInitials, truncatePublicKey } from "@/lib/pubky/utils"
 import { toast } from "sonner"
 
 // Navigation items
@@ -67,7 +67,8 @@ export function AppSidebar() {
     router.push("/login")
   }
 
-  const avatarUrl = profile?.image ? getPubkyImageUrl(profile.image) : null;
+  const avatarUrl = profile?.image && auth?.publicKey ? getPubkyAvatarUrl(auth.publicKey) : null;
+  console.log("Avatar URL:", avatarUrl);
   const initials = getInitials(profile?.name)
   const displayName = profile?.name || truncatePublicKey(auth.publicKey, 6)
 
