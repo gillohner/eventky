@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, ReactNode } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { AuthContextType } from "@/types/auth";
 
@@ -13,7 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Hydrate auth state from localStorage on mount (only once)
   useEffect(() => {
     authStore.hydrate();
-  }, []); // Empty deps - only run once on mount
+  }, [authStore]); // Include authStore in deps
 
   // Don't render children until hydrated to avoid SSR mismatch
   if (!isHydrated) {

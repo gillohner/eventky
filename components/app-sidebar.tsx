@@ -56,7 +56,10 @@ export function AppSidebar() {
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    setIsHydrated(true)
+    // Use a microtask to avoid synchronous setState within effect
+    Promise.resolve().then(() => {
+      setIsHydrated(true)
+    })
   }, [])
 
   const handleLogout = () => {

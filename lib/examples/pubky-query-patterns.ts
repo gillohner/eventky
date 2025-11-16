@@ -8,6 +8,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/auth/auth-provider";
 
+// Types
+interface CalendarData {
+  events: string[];
+  metadata?: Record<string, unknown>;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface CreateEventInput {
+  title: string;
+  date: string;
+  description?: string;
+}
+
 // Example: Calendar Hook
 export function useCalendar() {
   const { auth } = useAuth();
@@ -21,7 +42,7 @@ export function useCalendar() {
       // Example: Fetch calendar data from Pubky homeserver
       const calendarData = await auth.session.storage.getJson(
         "/pub/pubky.app/calendar/calendar.json"
-      );
+      ) as CalendarData | null;
       
       return calendarData;
     },
@@ -29,17 +50,23 @@ export function useCalendar() {
   });
 
   const addEventMutation = useMutation({
-    mutationFn: async (event: any) => {
+    mutationFn: async (event: CreateEventInput) => {
       if (!auth.session) throw new Error("No active session");
       
       // Store event data
       const eventId = generateEventId();
+      const newEvent: Event = {
+        id: eventId,
+        ...event,
+        createdAt: new Date().toISOString(),
+      };
+      
       await auth.session.storage.putJson(
         `/pub/pubky.app/calendar/events/${eventId}.json`,
-        event
+        newEvent
       );
       
-      return { eventId, ...event };
+      return newEvent;
     },
     onSuccess: () => {
       // Refetch calendar after adding event
@@ -68,7 +95,7 @@ export function useEvents() {
       // Fetch all events
       const events = await auth.session.storage.getJson(
         "/pub/pubky.app/events/list.json"
-      );
+      ) as Event[] | null;
       
       return events || [];
     },
@@ -77,16 +104,22 @@ export function useEvents() {
   });
 
   const createEventMutation = useMutation({
-    mutationFn: async (event: any) => {
+    mutationFn: async (event: CreateEventInput) => {
       if (!auth.session) throw new Error("No active session");
       
       const eventId = generateEventId();
+      const newEvent: Event = {
+        id: eventId,
+        ...event,
+        createdAt: new Date().toISOString(),
+      };
+      
       await auth.session.storage.putJson(
         `/pub/pubky.app/events/${eventId}.json`,
-        { ...event, id: eventId, createdAt: new Date().toISOString() }
+        newEvent
       );
       
-      return { eventId, ...event };
+      return newEvent;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events", auth.publicKey] });
@@ -130,7 +163,7 @@ export function useEvent(eventId: string) {
       
       const event = await auth.session.storage.getJson(
         `/pub/pubky.app/events/${eventId}.json`
-      );
+      ) as Event | null;
       
       return event;
     },
@@ -138,11 +171,17 @@ export function useEvent(eventId: string) {
   });
 
   const updateEventMutation = useMutation({
-    mutationFn: async (updates: Partial<any>) => {
+    mutationFn: async (updates: Partial<Omit<Event, 'id' | 'createdAt'>>) => {
       if (!auth.session) throw new Error("No active session");
       
       const currentEvent = eventQuery.data;
-      const updatedEvent = { ...currentEvent, ...updates };
+      if (!currentEvent) throw new Error("Event not found");
+      
+      const updatedEvent: Event = {
+        ...currentEvent,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
       
       await auth.session.storage.putJson(
         `/pub/pubky.app/events/${eventId}.json`,
