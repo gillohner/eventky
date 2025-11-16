@@ -1,4 +1,4 @@
-import { Pubky, Keypair, PublicKey, Session } from "@synonymdev/pubky";
+import { Pubky, Keypair, PublicKey, Session, Address } from "@synonymdev/pubky";
 import { PubkyAppUser, userUriBuilder } from "pubky-app-specs";
 import { config } from "@/lib/config";
 
@@ -46,7 +46,7 @@ export class PubkyClient {
         // Use public storage for any user
         const url = userUriBuilder(publicKey);
         // Type cast needed: SDK expects Address type but userUriBuilder returns string
-        profileData = await pubky.publicStorage.getJson(url as any);
+        profileData = await pubky.publicStorage.getJson(url as Address);
       }
 
       if (profileData && typeof profileData === "object") {
