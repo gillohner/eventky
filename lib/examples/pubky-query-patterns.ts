@@ -38,12 +38,12 @@ export function useCalendar() {
     queryKey: ["calendar", auth.publicKey],
     queryFn: async () => {
       if (!auth.session) throw new Error("No active session");
-      
+
       // Example: Fetch calendar data from Pubky homeserver
       const calendarData = await auth.session.storage.getJson(
         "/pub/pubky.app/calendar/calendar.json"
       ) as CalendarData | null;
-      
+
       return calendarData;
     },
     enabled: !!auth.session && !!auth.publicKey,
@@ -52,7 +52,7 @@ export function useCalendar() {
   const addEventMutation = useMutation({
     mutationFn: async (event: CreateEventInput) => {
       if (!auth.session) throw new Error("No active session");
-      
+
       // Store event data
       const eventId = generateEventId();
       const newEvent: Event = {
@@ -60,12 +60,12 @@ export function useCalendar() {
         ...event,
         createdAt: new Date().toISOString(),
       };
-      
+
       await auth.session.storage.putJson(
         `/pub/pubky.app/calendar/events/${eventId}.json`,
         newEvent
       );
-      
+
       return newEvent;
     },
     onSuccess: () => {
@@ -91,12 +91,12 @@ export function useEvents() {
     queryKey: ["events", auth.publicKey],
     queryFn: async () => {
       if (!auth.session) throw new Error("No active session");
-      
+
       // Fetch all events
       const events = await auth.session.storage.getJson(
         "/pub/pubky.app/events/list.json"
       ) as Event[] | null;
-      
+
       return events || [];
     },
     enabled: !!auth.session && !!auth.publicKey,
@@ -106,19 +106,19 @@ export function useEvents() {
   const createEventMutation = useMutation({
     mutationFn: async (event: CreateEventInput) => {
       if (!auth.session) throw new Error("No active session");
-      
+
       const eventId = generateEventId();
       const newEvent: Event = {
         id: eventId,
         ...event,
         createdAt: new Date().toISOString(),
       };
-      
+
       await auth.session.storage.putJson(
         `/pub/pubky.app/events/${eventId}.json`,
         newEvent
       );
-      
+
       return newEvent;
     },
     onSuccess: () => {
@@ -129,11 +129,11 @@ export function useEvents() {
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
       if (!auth.session) throw new Error("No active session");
-      
+
       await auth.session.storage.delete(
         `/pub/pubky.app/events/${eventId}.json`
       );
-      
+
       return eventId;
     },
     onSuccess: () => {
@@ -160,11 +160,11 @@ export function useEvent(eventId: string) {
     queryKey: ["event", eventId, auth.publicKey],
     queryFn: async () => {
       if (!auth.session) throw new Error("No active session");
-      
+
       const event = await auth.session.storage.getJson(
         `/pub/pubky.app/events/${eventId}.json`
       ) as Event | null;
-      
+
       return event;
     },
     enabled: !!auth.session && !!eventId,
@@ -173,21 +173,21 @@ export function useEvent(eventId: string) {
   const updateEventMutation = useMutation({
     mutationFn: async (updates: Partial<Omit<Event, 'id' | 'createdAt'>>) => {
       if (!auth.session) throw new Error("No active session");
-      
+
       const currentEvent = eventQuery.data;
       if (!currentEvent) throw new Error("Event not found");
-      
+
       const updatedEvent: Event = {
         ...currentEvent,
         ...updates,
         updatedAt: new Date().toISOString(),
       };
-      
+
       await auth.session.storage.putJson(
         `/pub/pubky.app/events/${eventId}.json`,
         updatedEvent
       );
-      
+
       return updatedEvent;
     },
     onSuccess: (data) => {

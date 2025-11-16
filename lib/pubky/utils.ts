@@ -6,14 +6,14 @@ import { config } from "@/lib/config";
 import { imageVariant } from "@/types/image";
 
 export function getPubkyAvatarUrl(pubkyUrl: string): string {
-    return `${config.gateway.url}${config.gateway.baseAvatarPath}/${pubkyUrl.replace("pubky://", "")}`;
+  return `${config.gateway.url}${config.gateway.baseAvatarPath}/${pubkyUrl.replace("pubky://", "")}`;
 }
 
 export function getPubkyFileUrl(pubkyUrl: string): string {
-    return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}`;
+  return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}`;
 }
 export function getPubkyImageUrl(pubkyUrl: string, variant: imageVariant): string {
-    return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}/${variant}`;
+  return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}/${variant}`;
 }
 
 /**
@@ -35,7 +35,7 @@ export function getInitials(name: string | null | undefined): string {
  */
 export function truncatePublicKey(publicKey: string | null, length: number = 8): string {
   if (!publicKey) return "";
-  
+
   if (publicKey.length <= length * 2) {
     return publicKey;
   }
