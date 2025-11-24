@@ -1,14 +1,8 @@
 # Eventky
 
-A calendar and event management platform built with Next.js and Pubky authentication.
+__⚠️ This project is under active development. Breaking changes may occur.__
 
-## Features
-
-- 🔐 **Pubky Authentication** - Decentralized authentication with recovery file and QR code support
-- 📅 **Calendar Management** - Personal calendar view and management
-- 🎉 **Event Discovery** - Browse and create events
-- 👤 **Profile Integration** - Read user profiles from pubky.app
-- 🎨 **Modern UI** - Built with Shadcn UI and Tailwind CSS v4
+A calendar and event management platform built with Next.js and Pubky Core.
 
 ## Getting Started
 
@@ -19,17 +13,27 @@ A calendar and event management platform built with Next.js and Pubky authentica
 
 ### Setup
 
-This project uses an NPM workspace setup to link the local `pubky-app-specs` package.
+This project uses an NPM workspace setup to link the local updated `pubky-app-specs` package.
 
-1. **Install from monorepo root**:
+1. **Clone both projects to same Root**:
 ```bash
-# From ~/Repositories/
-npm install
+# From ~/Repositories
+git clone https://github.com/gillohner/eventky
+git clone https://github.com/gillohner/pubky-app-specs
+
+cd pubky-app-specs
+git checkout feat/eventky
 ```
 
-This automatically links both `eventky` and `pubky-app-specs/pkg` as workspaces.
+2. **Install dependencies**:
+```bash
+cd eventky
+npm i
+```
 
-2. **Configure environment**:
+ℹ️ During development `../pubky-app-specs/pkg` is needed.
+
+3. **Configure environment**:
 ```bash
 cd eventky
 cp .env.example .env.local
@@ -46,34 +50,7 @@ cd eventky
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser.
-
-## Project Structure
-
-```
-eventky/
-├── app/                    # Next.js app directory
-│   ├── login/             # Login page with QR & recovery file
-│   └── page.tsx           # Home page
-├── components/
-│   ├── auth/              # Authentication providers
-│   └── ui/                # Shadcn UI components
-├── lib/
-│   └── pubky/             # Pubky SDK wrapper & utilities
-├── stores/                # Zustand state management
-├── types/                 # TypeScript type definitions
-└── hooks/                 # Custom React hooks
-```
-
-## Authentication
-
-Eventky uses Pubky for decentralized authentication:
-
-- **Recovery File Login**: Upload your `.pubky` file with passphrase
-- **QR Code Login**: Scan with Pubky Ring mobile app
-- **Read-only Profiles**: Profile data is managed in pubky.app
-
-See [docs/PUBKY_AUTH.md](docs/PUBKY_AUTH.md) for detailed documentation.
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Technologies
 
@@ -97,20 +74,7 @@ All Pubky-related configuration is centralized in `/lib/config.ts`, which reads 
 
 See `.env.example` for detailed documentation and default values for each environment.
 
-### Monorepo Workspace Setup
-
-This project uses NPM workspaces for local development with `pubky-app-specs`. The workspace is configured at `/home/gil/Repositories/package.json`:
-
-```json
-{
-  "name": "pubky-events-monorepo",
-  "private": true,
-  "workspaces": [
-    "eventky",
-    "pubky-app-specs/pkg"
-  ]
-}
-```
+### Turbopack Setup
 
 Next.js is configured to resolve the workspace package with Turbopack:
 
@@ -133,12 +97,6 @@ cargo run --bin bundle_specs_npm
 cd ~/Repositories/eventky
 npm run dev
 ```
-
-## Learn More
-
-- [Pubky Documentation](https://pubky.tech)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Shadcn UI](https://ui.shadcn.com)
 
 ## License
 
