@@ -14,7 +14,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/login")
+      router.push("/login?returnPath=%2F")
     }
   }, [isAuthenticated, router])
 

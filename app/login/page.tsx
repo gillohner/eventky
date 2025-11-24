@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { PubkyClient } from "@/lib/pubky/client";
@@ -11,9 +11,17 @@ import { Upload } from "lucide-react";
 import { Pubky, Session, AuthToken } from "@synonymdev/pubky";
 import { PubkyAuthWidget } from "@/components/ui/pubky-auth-widget";
 
-export default function LoginPage() {
+interface LoginPageProps {
+    searchParams: Promise<{
+        returnPath?: string;
+    }>;
+}
+
+export default function LoginPage({ searchParams }: LoginPageProps) {
     const router = useRouter();
-    const { signin, signinWithSession } = useAuth();
+    const params = use(searchParams);
+    const returnPath = params?.returnPath || "/";
+    const { signin, signinWithSession, isAuthenticated } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +35,13 @@ export default function LoginPage() {
     useEffect(() => {
         setIsHydrated(true);
     }, []);
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated && isHydrated) {
+            router.push(returnPath);
+        }
+    }, [isAuthenticated, isHydrated, returnPath, router]);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -47,7 +62,7 @@ export default function LoginPage() {
                 // The useProfile hook will automatically fetch the profile after signin
                 signinWithSession(publicKey, session);
                 toast.success("Successfully logged in!");
-                router.push("/");
+                router.push(returnPath);
                 return;
             }
 
@@ -100,7 +115,7 @@ export default function LoginPage() {
             signin(publicKey, keypair, session);
 
             toast.success("Successfully logged in!");
-            router.push("/");
+            router.push(returnPath);
         } catch (error) {
             console.error("Sign in error:", error);
             setError("Failed to sign in. Please check your recovery file and passphrase.");
@@ -116,6 +131,18 @@ export default function LoginPage() {
                 <div className="text-center">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
                     <p className="text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show loading state while redirecting authenticated user
+    if (isAuthenticated) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Redirecting...</p>
                 </div>
             </div>
         );
