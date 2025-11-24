@@ -1,4 +1,4 @@
-import { EventPageLayout } from "@/components/event/event-page-layout";
+import { EventPageLayout } from "@/components/event/view/event-page-layout";
 
 interface EventPageProps {
   params: {

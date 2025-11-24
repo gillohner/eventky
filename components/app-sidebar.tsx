@@ -10,6 +10,7 @@ import {
     LogOut,
     User,
     ExternalLink,
+    Plus,
 } from "lucide-react"
 
 import {
@@ -119,6 +120,22 @@ export function AppSidebar() {
                         ) : null}
                     </SidebarGroupContent>
                 </SidebarGroup>
+
+                {/* New Event Button */}
+                {isHydrated && isAuthenticated && (
+                    <SidebarGroup>
+                        <SidebarGroupContent className="px-2">
+                            <Button
+                                onClick={() => router.push("/event/create")}
+                                className="w-full justify-start"
+                                size="lg"
+                            >
+                                <Plus />
+                                New Event
+                            </Button>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
 
                 {/* Navigation Menu */}
                 <SidebarGroup>
