@@ -12,6 +12,12 @@ Set the environment in your `.env.local` file:
 
 ```bash
 NEXT_PUBLIC_PUBKY_ENV=testnet
+
+# For Authenication with Pubky Ring you need to set the relay URL:
+NEXT_PUBLIC_PUBKY_RELAY=http://192.168.1.x:15412/link
+
+# If you have ufw enabled, allow access to the relay port:
+sudo ufw allow 15412/tcp
 ```
 
 This connects the application to a local homeserver and relay for development and testing.
