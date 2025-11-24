@@ -1,14 +1,8 @@
-import { Pubky, Keypair, PublicKey, Session, Address } from "@synonymdev/pubky";
+import { Pubky, Keypair, Session, Address } from "@synonymdev/pubky";
 import { PubkyAppUser, userUriBuilder } from "pubky-app-specs";
 import { config } from "@/lib/config";
 
 export class PubkyClient {
-  private homeserver: PublicKey;
-
-  constructor() {
-    this.homeserver = PublicKey.from(config.homeserver.publicKey);
-  }
-
   /**
    * Restore keypair from recovery file (for login only)
    */
