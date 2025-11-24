@@ -23,7 +23,7 @@ NEXT_PUBLIC_PUBKY_ENV=staging  # testnet | staging | production
 
 - `NEXT_PUBLIC_PUBKY_HOMESERVER_PUBLIC_KEY` - Homeserver public key
 - `NEXT_PUBLIC_PUBKY_RELAY_URL` - HTTP relay for QR auth
-- `NEXT_PUBLIC_PUBKY_GATEWAY_URL` - Gateway for pubky:// URLs
+- `NEXT_PUBLIC_PUBKY_GATEWAY_URL` - Gateway for pubky:// URLs (Nexus by default)
 - `NEXT_PUBLIC_PUBKY_PROFILE_PATH` - Profile path (default: `/pub/pubky.app/profile.json`)
 
 ## Configuration Usage
@@ -40,15 +40,32 @@ config.profile.path         // Profile storage path
 
 ## File Resolution
 
-Images resolve via gateway:
+In `/lib/pubky/utils.ts` we provide utilities to resolve different `pubky-app-specs` resources through the gateway.
 
-```
-pubky://USER_ID/pub/pubky.app/files/FILE_ID
-  ↓
-https://gateway.example.com/USER_ID/pub/pubky.app/files/FILE_ID
+### Avatar Resolution
+Avatars are resolved through the gateway's avatar endpoint with optimized sizing:
+
+```typescript
+getPubkyAvatarUrl("pubky://USER_ID/pub/pubky.app/files/FILE_ID")
 ```
 
-Transformations via query params: `?w=400&h=300&q=80&f=webp`
+### Image Resolution with Variants
+Images support different size variants (`main`, `feed`) for optimized loading:
+
+```typescript
+getPubkyImageUrl("pubky://USER_ID/pub/pubky.app/files/FILE_ID", "feed")
+```
+
+Available variants in `/types/image.ts`:
+- `main` - Full size image
+- `feed` - Optimized for feed display
+
+### General File Resolution
+For non-image files or when you don't need variants:
+
+```typescript
+getPubkyFileUrl("pubky://USER_ID/pub/pubky.app/files/FILE_ID")
+```
 
 ## Development
 
