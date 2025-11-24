@@ -12,6 +12,7 @@ export function getPubkyAvatarUrl(pubkyUrl: string): string {
 export function getPubkyFileUrl(pubkyUrl: string): string {
   return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}`;
 }
+
 export function getPubkyImageUrl(pubkyUrl: string, variant: imageVariant): string {
   return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}/${variant}`;
 }
