@@ -6,6 +6,8 @@
 export type PubkyEnvironment = "testnet" | "staging" | "production";
 
 interface PubkyConfig {
+    isDevelopment: boolean;
+
     // App Configuration
     app: {
         name: string;
@@ -87,6 +89,8 @@ function buildConfig(): PubkyConfig {
     const environment = getEnvironment();
 
     return {
+        isDevelopment: process.env.NODE_ENV === "development",
+
         app: {
             name: process.env.NEXT_PUBLIC_APP_NAME || "Eventky",
             version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
