@@ -12,7 +12,7 @@ The implementation follows a layered architecture pattern:
 3. **Hook Layer**: Custom React hooks for data management
 4. **Component Layer**: Reusable UI components
 5. **Page Layer**: Route-specific page components
-
+NODE_ENV
 ## 1. Data Fetching Architecture
 
 ### 1.1 Utility Layer (`/lib/pubky/events.ts`)
