@@ -8,6 +8,7 @@ interface EventPageLayoutProps {
   eventId: string;
 }
 
+// TODO: Actual implementation not just boilerplate skeleton
 export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
   const { data: event, isLoading, error } = useEvent(authorId, eventId);
 
@@ -17,10 +18,10 @@ export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Event Image Skeleton */}
           <Skeleton className="w-full h-64 rounded-lg" />
-          
+
           {/* Event Title Skeleton */}
           <Skeleton className="h-10 w-3/4" />
-          
+
           {/* Event Details Skeleton */}
           <div className="space-y-4">
             <Skeleton className="h-6 w-1/2" />
@@ -69,16 +70,16 @@ export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
         <div className="space-y-4">
           {event.image_uri && (
             <div className="w-full h-64 rounded-lg overflow-hidden bg-muted">
-              <img 
-                src={event.image_uri} 
+              <img
+                src={event.image_uri}
                 alt={event.summary}
                 className="w-full h-full object-cover"
               />
             </div>
           )}
-          
+
           <h1 className="text-4xl font-bold tracking-tight">{event.summary}</h1>
-          
+
           {event.status && (
             <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-primary/10 text-primary">
               {event.status}
@@ -91,8 +92,8 @@ export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-1">Date & Time</h3>
             <p className="text-base">
-              {new Date(event.dtstart / 1000).toLocaleString()}
-              {event.dtend && ` - ${new Date(event.dtend / 1000).toLocaleString()}`}
+              {new Date(Number(event.dtstart) / 1000).toLocaleString()}
+              {event.dtend && ` - ${new Date(Number(event.dtend) / 1000).toLocaleString()}`}
             </p>
             {event.dtstart_tzid && (
               <p className="text-sm text-muted-foreground mt-1">{event.dtstart_tzid}</p>
@@ -118,19 +119,12 @@ export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
             </div>
           )}
 
-          {event.organizer && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Organizer</h3>
-              <p className="text-base">{event.organizer.cn || event.organizer.uri}</p>
-            </div>
-          )}
-
           {event.categories && event.categories.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Categories</h3>
               <div className="flex flex-wrap gap-2">
                 {event.categories.map((category: string, index: number) => (
-                  <span 
+                  <span
                     key={index}
                     className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground"
                   >
