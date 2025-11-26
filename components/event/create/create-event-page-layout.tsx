@@ -4,17 +4,17 @@ import { useEvent } from "@/hooks/use-event";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EventTitleField } from "@/components/event/create/event-title-field";
+import { EventDateTimeFields } from "@/components/event/create/event-datetime-fields";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { EventFormData, useEventFormStore } from "@/stores/event-form-store";
-import { EventTitleField } from "./event-title-field";
 import { PubkyAppEvent } from "pubky-app-specs";
 import {
   formDataToEventData,
   eventToFormData,
-  generateEventId,
 } from "@/lib/pubky/event-utils";
 import { config } from "@/lib/config";
 
@@ -172,9 +172,6 @@ export function CreateEventPageLayout({
         return;
       }
 
-      // Generate event ID for new events
-      const eventIdToUse = mode === "edit" ? eventId! : generateEventId();
-
       // Create PubkyAppEvent from JSON (this will sanitize via WASM)
       let event: PubkyAppEvent;
       try {
@@ -184,6 +181,9 @@ export function CreateEventPageLayout({
         console.error("WASM error:", wasmError);
         return;
       }
+
+      // Generate event ID for new events using the event's createId method
+      const eventIdToUse = mode === "edit" ? eventId! : event.createId();
 
       // TODO: Implement actual event creation/update with Pubky storage
       // For now, just simulate success
@@ -240,35 +240,18 @@ export function CreateEventPageLayout({
                 control={form.control}
                 error={form.formState.errors.summary}
               />
-
-              {/* More fields will be added in Phase 2-6 */}
-              <div className="text-sm text-muted-foreground mt-4">
-                Additional fields (date/time, location, description, etc.) will be implemented in Phase 2-6
-              </div>
             </div>
           </div>
         </section>
 
-        {/* Debug: Show current form state */}
-        {config.isDevelopment && (
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <h3 className="font-medium mb-2">Form State (Dev Only):</h3>
-            <div className="space-y-2 text-xs">
-              <div>
-                <strong>Is Valid:</strong> {form.formState.isValid ? "Yes" : "No"}
-              </div>
-              <div>
-                <strong>Is Dirty:</strong> {form.formState.isDirty ? "Yes" : "No"}
-              </div>
-              <div>
-                <strong>Is Submitting:</strong> {form.formState.isSubmitting ? "Yes" : "No"}
-              </div>
-              <pre className="overflow-auto mt-2">
-                {JSON.stringify(form.watch(), null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
+        {/* Date & Time */}
+        <section>
+          <EventDateTimeFields
+            control={form.control}
+            errors={form.formState.errors}
+            setValue={form.setValue}
+          />
+        </section>
 
         {/* Submit Buttons */}
         <div className="flex justify-end gap-4 pt-6 border-t">
@@ -292,6 +275,26 @@ export function CreateEventPageLayout({
                 : "Create Event"}
           </Button>
         </div>
+        {/* Debug: Show current form state */}
+        {config.isDevelopment && (
+          <div className="p-4 border rounded-lg bg-muted/50">
+            <h3 className="font-medium mb-2">Form State (Dev Mode Only):</h3>
+            <div className="space-y-2 text-xs">
+              <div>
+                <strong>Is Valid:</strong> {form.formState.isValid ? "Yes" : "No"}
+              </div>
+              <div>
+                <strong>Is Dirty:</strong> {form.formState.isDirty ? "Yes" : "No"}
+              </div>
+              <div>
+                <strong>Is Submitting:</strong> {form.formState.isSubmitting ? "Yes" : "No"}
+              </div>
+              <pre className="overflow-auto mt-2">
+                {JSON.stringify(form.watch(), null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
