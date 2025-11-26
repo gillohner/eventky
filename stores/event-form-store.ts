@@ -3,15 +3,16 @@ import { persist } from "zustand/middleware";
 
 /**
  * Form data structure matching the form layer (not WASM layer)
- * Uses JavaScript-native types (Date, string) instead of bigint
+ * Stores datetime as ISO strings to avoid timezone conversion issues
+ * Format: YYYY-MM-DDTHH:MM:SS (no timezone, represents local time)
  */
 export interface EventFormData {
     // Required fields
     summary: string;
-    dtstart: Date | null;
+    dtstart: string | null;
 
     // Optional fields
-    dtend?: Date | null;
+    dtend?: string | null;
     duration?: string;
     dtstart_tzid?: string;
     dtend_tzid?: string;
@@ -51,31 +52,15 @@ export const useEventFormStore = create<EventFormStore>()(
         }),
         {
             name: "event-form-storage",
-            // Zustand persist will handle JSON serialization, Date objects will be strings
+            // Store dates as ISO strings directly - no Date object conversion
             partialize: (state) => ({
-                formData: state.formData
-                    ? {
-                        ...state.formData,
-                        dtstart: state.formData.dtstart?.toISOString() || null,
-                        dtend: state.formData.dtend?.toISOString() || null,
-                    }
-                    : null,
+                formData: state.formData,
                 eventId: state.eventId,
             }),
             merge: (persistedState: any, currentState) => ({
                 ...currentState,
                 ...(persistedState || {}),
-                formData: persistedState?.formData
-                    ? {
-                        ...persistedState.formData,
-                        dtstart: persistedState.formData.dtstart
-                            ? new Date(persistedState.formData.dtstart)
-                            : null,
-                        dtend: persistedState.formData.dtend
-                            ? new Date(persistedState.formData.dtend)
-                            : null,
-                    }
-                    : null,
+                formData: persistedState?.formData || null,
             }),
         }
     )
