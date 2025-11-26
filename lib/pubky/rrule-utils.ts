@@ -35,13 +35,13 @@ export function calculateNextOccurrences(
                 'SU': 0, 'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6
             };
             const targetWeekdays = rules.byday.map(day => weekdayMap[day]).sort((a, b) => a - b);
-            
+
             // Start from the beginning of the week containing dtstart
             let searchDate = new Date(currentDate);
-            
+
             while (generatedCount < maxIterations && generatedCount < 1000) {
                 const currentWeekday = searchDate.getDay();
-                
+
                 // Check if current day matches any target weekday
                 if (targetWeekdays.includes(currentWeekday)) {
                     const isoString = format(searchDate, "yyyy-MM-dd'T'HH:mm:ss");
@@ -51,16 +51,16 @@ export function calculateNextOccurrences(
                         generatedCount++;
                     }
                 }
-                
+
                 // Move to next day
                 searchDate = addDays(searchDate, 1);
-                
+
                 // If we've completed a week and interval > 1, skip ahead
                 if (currentWeekday === 6 && rules.interval && rules.interval > 1) {
                     searchDate = addWeeks(searchDate, rules.interval - 1);
                 }
             }
-            
+
             return occurrences;
         }
 
