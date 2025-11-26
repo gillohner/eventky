@@ -55,7 +55,7 @@ export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
           <div className="rounded-lg border border-border bg-card p-6 text-center">
             <h2 className="text-lg font-semibold mb-2">Event Not Found</h2>
             <p className="text-sm text-muted-foreground">
-              The event you're looking for doesn't exist or has been removed.
+              The event you&apos;re looking for doesn&apos;t exist or has been removed.
             </p>
           </div>
         </div>
@@ -70,10 +70,11 @@ export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
         <div className="space-y-4">
           {event.image_uri && (
             <div className="w-full h-64 rounded-lg overflow-hidden bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={event.image_uri}
                 alt={event.summary}
-                className="w-full h-full object-cover"
+                className="w-full h-64 object-cover rounded-lg"
               />
             </div>
           )}

@@ -109,7 +109,8 @@ export function EventTimezoneSelector({
 
     // Reset focused index when search changes
     useEffect(() => {
-        setFocusedIndex(0);
+        // Use a microtask to avoid setState during render
+        Promise.resolve().then(() => setFocusedIndex(0));
     }, [search]);
 
     // Focus search input when dropdown opens
