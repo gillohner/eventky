@@ -130,12 +130,12 @@ export function CreateEventPageLayout({
   // Loading state for edit mode
   if (mode === "edit" && shouldFetchEvent && isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-10 w-1/2 mb-6" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <Skeleton className="h-9 w-48 mb-8" /> {/* Page title */}
+        <div className="space-y-8">
+          <Skeleton className="h-32 w-full" /> {/* Basic Information section */}
+          <Skeleton className="h-96 w-full" /> {/* Date & Time section */}
+          <Skeleton className="h-12 w-full" /> {/* Submit buttons */}
         </div>
       </div>
     );
