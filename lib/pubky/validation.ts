@@ -41,38 +41,38 @@ export function validateUrl(url: string): boolean {
  */
 export function getFieldValidationError(
     field: string,
-    value: any
+    value: unknown
 ): string | undefined {
     switch (field) {
         case "geo":
-            if (value && !validateGeoCoordinates(value)) {
+            if (value && typeof value === "string" && !validateGeoCoordinates(value)) {
                 return "Invalid coordinates format (expected: lat;lon)";
             }
             break;
         case "url":
         case "image_uri":
-            if (value && !validateUrl(value)) {
+            if (value && typeof value === "string" && !validateUrl(value)) {
                 return "Invalid URL format";
             }
             break;
         case "duration":
-            if (value && !validateDuration(value)) {
+            if (value && typeof value === "string" && !validateDuration(value)) {
                 return "Invalid duration format (expected: PT2H30M)";
             }
             break;
         case "rrule":
-            if (value && !validateRrule(value)) {
+            if (value && typeof value === "string" && !validateRrule(value)) {
                 return "Invalid recurrence rule format";
             }
             break;
         case "dtstart_tzid":
         case "dtend_tzid":
-            if (value && !validateTimezone(value)) {
+            if (value && typeof value === "string" && !validateTimezone(value)) {
                 return "Invalid timezone (use IANA timezone format)";
             }
             break;
         case "status":
-            if (value && !getValidEventStatuses().includes(value)) {
+            if (value && typeof value === "string" && !getValidEventStatuses().includes(value)) {
                 return `Invalid status (must be one of: ${getValidEventStatuses().join(", ")})`;
             }
             break;
