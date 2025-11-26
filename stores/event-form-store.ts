@@ -57,10 +57,10 @@ export const useEventFormStore = create<EventFormStore>()(
                 formData: state.formData,
                 eventId: state.eventId,
             }),
-            merge: (persistedState: any, currentState) => ({
+            merge: (persistedState: unknown, currentState) => ({
                 ...currentState,
-                ...(persistedState || {}),
-                formData: persistedState?.formData || null,
+                ...(persistedState && typeof persistedState === 'object' ? persistedState : {}),
+                formData: persistedState && typeof persistedState === 'object' && 'formData' in persistedState ? (persistedState.formData as EventFormData | null) : null,
             }),
         }
     )

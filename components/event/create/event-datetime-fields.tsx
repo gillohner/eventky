@@ -1,6 +1,6 @@
 "use client";
 
-import { Control, useWatch, UseFormSetValue } from "react-hook-form";
+import { Control, useWatch, UseFormSetValue, FieldErrors } from "react-hook-form";
 import { EventFormData } from "@/stores/event-form-store";
 import { EventDateTimePicker } from "./event-datetime-picker";
 import { EventTimezoneSelector } from "./event-timezone-selector";
@@ -12,7 +12,7 @@ import { useState } from "react";
 
 interface EventDateTimeFieldsProps {
     control: Control<EventFormData>;
-    errors: any;
+    errors: FieldErrors<EventFormData>;
     setValue: UseFormSetValue<EventFormData>;
 }
 
@@ -41,7 +41,7 @@ export function EventDateTimeFields({
 
     return (
         <Card>
-            <CardContent className="pt-6 space-y-6">
+            <CardContent className="space-y-6">
                 <div className="space-y-2">
                     <h3 className="text-lg font-semibold">Date & Time</h3>
                     <p className="text-sm text-muted-foreground">

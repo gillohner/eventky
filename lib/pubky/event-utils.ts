@@ -19,7 +19,7 @@ export function formDataToEventData(
     data: EventFormData,
     mode: "create" | "edit",
     existingEvent?: PubkyAppEvent
-): any | null {
+): Record<string, unknown> | null {
     // Validation - return null instead of throwing
     if (!data.dtstart) {
         return null;
@@ -107,9 +107,6 @@ export function formatDateInTimezone(
     }
 
     const [, year, month, day, hours, minutes, seconds] = match;
-
-    // Create a date string in the format that can be interpreted in the target timezone
-    const dateStr = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 
     // Create a date object (will be in local timezone)
     const date = new Date(

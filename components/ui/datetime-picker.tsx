@@ -203,6 +203,7 @@ export function DateTimePicker({
 
     useEffect(() => {
         if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDate(initDate);
             setMonth(initDate);
             setMonthYearPicker(false);
@@ -331,6 +332,7 @@ export function DateTimePicker({
                     ></div>
                     <MonthYearPicker
                         value={month}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         mode={monthYearPicker as any}
                         onChange={onMonthYearChanged}
                         minDate={minDate}
@@ -500,6 +502,7 @@ function TimePicker({
 
     useEffect(() => {
         onChange(buildTime({ use12HourFormat, value, formatStr, hour, minute, second, ampm }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hour, minute, second, ampm, formatStr, use12HourFormat]);
 
     const _hourIn24h = useMemo(() => {
@@ -587,20 +590,20 @@ function TimePicker({
             }
         }, 1);
         return () => clearTimeout(timeoutId);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [open]);
 
     const onHourChange = useCallback(
         (v: TimeOption) => {
             if (min) {
-                let newTime = buildTime({ use12HourFormat, value, formatStr, hour: v.value, minute, second, ampm });
+                const newTime = buildTime({ use12HourFormat, value, formatStr, hour: v.value, minute, second, ampm });
                 if (newTime < min) {
                     setMinute(min.getMinutes());
                     setSecond(min.getSeconds());
                 }
             }
             if (max) {
-                let newTime = buildTime({ use12HourFormat, value, formatStr, hour: v.value, minute, second, ampm });
+                const newTime = buildTime({ use12HourFormat, value, formatStr, hour: v.value, minute, second, ampm });
                 if (newTime > max) {
                     setMinute(max.getMinutes());
                     setSecond(max.getSeconds());
@@ -614,13 +617,13 @@ function TimePicker({
     const onMinuteChange = useCallback(
         (v: TimeOption) => {
             if (min) {
-                let newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute: v.value, second, ampm });
+                const newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute: v.value, second, ampm });
                 if (newTime < min) {
                     setSecond(min.getSeconds());
                 }
             }
             if (max) {
-                let newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute: v.value, second, ampm });
+                const newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute: v.value, second, ampm });
                 if (newTime > max) {
                     setSecond(max.getSeconds());
                 }
@@ -633,7 +636,7 @@ function TimePicker({
     const onAmpmChange = useCallback(
         (v: TimeOption) => {
             if (min) {
-                let newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute, second, ampm: v.value });
+                const newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute, second, ampm: v.value });
                 if (newTime < min) {
                     const minH = min.getHours() % 12;
                     setHour(minH === 0 ? 12 : minH);
@@ -642,7 +645,7 @@ function TimePicker({
                 }
             }
             if (max) {
-                let newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute, second, ampm: v.value });
+                const newTime = buildTime({ use12HourFormat, value, formatStr, hour, minute, second, ampm: v.value });
                 if (newTime > max) {
                     const maxH = max.getHours() % 12;
                     setHour(maxH === 0 ? 12 : maxH);
@@ -656,7 +659,7 @@ function TimePicker({
     );
 
     const display = useMemo(() => {
-        let arr = [];
+        const arr = [];
         for (const element of ['hour', 'minute', 'second']) {
             if (!timePicker || timePicker[element as keyof typeof timePicker]) {
                 if (element === 'hour') {

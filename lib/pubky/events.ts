@@ -12,11 +12,11 @@ export async function getEvent(
     const pubky = new Pubky();
     const url = eventUriBuilder(authorId, eventId);
     const data = await pubky.publicStorage.getJson(url as Address);
-    
+
     if (!data || typeof data !== "object") {
       return null;
     }
-    
+
     // Convert to PubkyAppEvent class to validate and sanitize
     return PubkyAppEvent.fromJson(data);
   } catch (error) {
@@ -31,7 +31,7 @@ export async function getEvent(
 export async function getAttendees(
   authorId: string,
   eventId: string
-): Promise<any[]> {
+): Promise<unknown[]> {
   // TODO: Implement when attendee fetching is needed
   console.log("getAttendees not yet implemented", { authorId, eventId });
   return [];
@@ -41,7 +41,7 @@ export async function getAttendees(
  * Create or update RSVP status (placeholder for future implementation)
  */
 export async function createAttendee(
-  session: any,
+  session: unknown,
   eventUri: string,
   partstat: string
 ): Promise<boolean> {

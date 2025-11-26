@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EventTitleField } from "@/components/event/create/event-title-field";
 import { EventDateTimeFields } from "@/components/event/create/event-datetime-fields";
+import { EventRecurrenceFields } from "@/components/event/create/event-recurrence-fields";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -82,7 +83,7 @@ export function CreateEventPageLayout({
       setFormData(value as EventFormData, eventIdKey);
     });
     return () => subscription.unsubscribe();
-  }, [form, mode, authorId, eventId, setFormData]);
+  }, [mode, authorId, eventId, setFormData]);
 
   // Check authentication
   if (!isAuthenticated) {
@@ -149,7 +150,7 @@ export function CreateEventPageLayout({
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold mb-4">Event Not Found</h2>
             <p className="text-muted-foreground mb-6">
-              The event you're trying to edit could not be found.
+              The event you&apos;re trying to edit could not be found.
             </p>
             <Button onClick={() => router.back()}>Go Back</Button>
           </div>
@@ -176,8 +177,9 @@ export function CreateEventPageLayout({
       let event: PubkyAppEvent;
       try {
         event = PubkyAppEvent.fromJson(eventData);
-      } catch (wasmError: any) {
-        toast.error(wasmError?.toString() || "Invalid event data");
+      } catch (wasmError: unknown) {
+        const errorMessage = wasmError instanceof Error ? wasmError.message : String(wasmError);
+        toast.error(errorMessage || "Invalid event data");
         console.error("WASM error:", wasmError);
         return;
       }
@@ -249,6 +251,14 @@ export function CreateEventPageLayout({
           <EventDateTimeFields
             control={form.control}
             errors={form.formState.errors}
+            setValue={form.setValue}
+          />
+        </section>
+
+        {/* Recurrence */}
+        <section>
+          <EventRecurrenceFields
+            control={form.control}
             setValue={form.setValue}
           />
         </section>
