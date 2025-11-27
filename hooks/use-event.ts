@@ -7,8 +7,6 @@ export function useEvent(
   eventId: string,
   options?: Omit<UseQueryOptions<PubkyAppEvent | null>, "queryKey" | "queryFn">
 ) {
-  // TODO: Implement event fetching logic beyond just tanstack/react-query
-  console.log(authorId, eventId);
   return useQuery({
     queryKey: ["event", authorId, eventId],
     queryFn: () => getEvent(authorId, eventId),
