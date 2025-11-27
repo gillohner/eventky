@@ -10,7 +10,7 @@ export interface AuthData {
 export interface SerializableAuthData {
   isAuthenticated: boolean;
   publicKey: string | null;
-  // Store keypair seed bytes for session reconstruction
+  // Store keypair seed for recovery file auth (enables session recreation)
   keypairSeed: number[] | null;
 }
 

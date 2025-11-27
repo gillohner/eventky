@@ -74,7 +74,6 @@ export function AppSidebar() {
     }
 
     const avatarUrl = profile?.image && auth?.publicKey ? getPubkyAvatarUrl(auth.publicKey) : null;
-    console.log("Avatar URL:", avatarUrl);
     const initials = getInitials(profile?.name)
     const displayName = profile?.name || truncatePublicKey(auth.publicKey, 6)
 
