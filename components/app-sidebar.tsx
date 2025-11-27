@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useAuth } from "@/components/providers/auth-provider"
 import { useProfile } from "@/hooks/use-profile"
 import { getPubkyAvatarUrl, getInitials, truncatePublicKey } from "@/lib/pubky/utils"
 import { config } from "@/lib/config"

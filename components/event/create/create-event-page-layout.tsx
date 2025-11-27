@@ -1,7 +1,7 @@
 "use client";
 
 import { useEvent } from "@/hooks/use-event";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EventTitleField } from "@/components/event/create/event-title-field";
@@ -161,6 +161,16 @@ export function CreateEventPageLayout({
 
   const onSubmit = form.handleSubmit(async (data: EventFormData) => {
     try {
+      // Verify we have a session
+      if (!auth.session) {
+        toast.error("Session expired. Please sign in again.");
+        const currentPath = mode === "edit"
+          ? `/event/${authorId}/${eventId}?edit=true`
+          : "/event/create";
+        router.push(`/login?returnPath=${encodeURIComponent(currentPath)}`);
+        return;
+      }
+
       // Convert form data to WASM event data
       const eventData = formDataToEventData(
         data,
@@ -187,10 +197,9 @@ export function CreateEventPageLayout({
       // Generate event ID for new events using the event's createId method
       const eventIdToUse = mode === "edit" ? eventId! : event.createId();
 
-      // TODO: Implement actual event creation/update with Pubky storage
-      // For now, just simulate success
-      console.log("Event to save:", event.toJson());
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Save event to Pubky storage
+      const { saveEvent } = await import("@/lib/pubky/events");
+      await saveEvent(auth.session, event, eventIdToUse);
 
       toast.success(
         mode === "edit" ? "Event updated successfully!" : "Event created successfully!"
@@ -204,8 +213,11 @@ export function CreateEventPageLayout({
       router.push(`/event/${userId}/${eventIdToUse}`);
     } catch (error) {
       console.error("Error saving event:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       toast.error(
-        mode === "edit" ? "Failed to update event" : "Failed to create event"
+        mode === "edit"
+          ? `Failed to update event: ${errorMessage}`
+          : `Failed to create event: ${errorMessage}`
       );
     }
   });
