@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         set(authData);
 
         try {
-            // Extract keypair seed for session reconstruction
+            // Recovery file auth: Store keypair seed to recreate session on refresh
             const secretKeyBytes = keypair.secretKey();
             const keypairSeed = Array.from(secretKeyBytes.slice(0, 32)) as number[];
 
@@ -61,19 +61,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         set(authData);
 
-        try {
-            // QR auth: We have a valid session but can't serialize it to localStorage.
-            // Store auth state so user appears logged in, but session won't persist across page refresh.
-            // User will need to re-scan QR code after refresh to get a new session.
-            const serializableData: SerializableAuthData = {
-                isAuthenticated: true, // User IS authenticated with valid session
-                publicKey: authData.publicKey,
-                keypairSeed: null, // No keypair available - can't restore session
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableData));
-        } catch (error) {
-            console.error("Error saving auth to localStorage:", error);
-        }
+        // QR auth: Session persists in memory during browser session only
+        // Cannot be serialized to localStorage (Session object is not JSON-serializable)
+        // Per Pubky Auth spec, sessions are managed by authenticator app
+        // User will need to re-authenticate after page refresh
+        // This is standard for QR-based auth flows (e.g., WhatsApp Web)
     },
 
     logout: () => {
@@ -100,7 +92,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             if (storedAuth) {
                 const parsed: SerializableAuthData = JSON.parse(storedAuth);
 
-                // If we have a keypair seed, recreate the session
+                // Recovery file auth: Recreate session from keypair seed
                 if (parsed.isAuthenticated && parsed.keypairSeed && parsed.publicKey) {
                     try {
                         // Dynamically import Pubky SDK to avoid SSR issues
@@ -125,16 +117,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                         });
                         return;
                     } catch (sessionError) {
-                        console.error("Error restoring session:", sessionError);
-                        // Fall through to set non-authenticated state
+                        console.error("Error restoring session from keypair:", sessionError);
+                        // Fall through to logout state
                     }
                 }
 
-                // QR auth case: User was authenticated but we can't restore session (no keypair seed)
-                // Mark as not authenticated so they need to re-scan QR code
+                // QR auth case: No keypair seed means session can't be restored
+                // User needs to re-authenticate with QR code
                 set({
                     isAuthenticated: false,
-                    publicKey: parsed.publicKey,
+                    publicKey: null,
                     keypair: null,
                     session: null,
                     isHydrated: true,

@@ -36,8 +36,8 @@ export async function saveEvent(
   try {
     // TODO: Optimize path setting from WASM bindings
     // Construct the storage path directly
-    // Format: /pub/eventky.app/events/:event_id
-    const eventPath = `/pub/eventky.app/events/${eventId}`;
+    // Format: /pub/eventky.pub/events/:event_id
+    const eventPath = `/pub/eventky.pub/events/${eventId}`;
 
     // Convert event to JSON for storage
     const eventJson = event.toJson();

@@ -58,8 +58,9 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         try {
             // If we have a session, use it directly
             if (session) {
-                // Sign in with the session (QR auth doesn't provide keypair access)
-                // The useProfile hook will automatically fetch the profile after signin
+                // QR auth: Session persists in memory during browser session
+                // Cannot be stored in localStorage (not serializable)
+                // User will need to re-scan QR after page refresh
                 signinWithSession(publicKey, session);
                 toast.success("Successfully logged in!");
                 router.push(returnPath);
