@@ -9,15 +9,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const authStore = useAuthStore();
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  const isRestoringSession = useAuthStore((state) => state.isRestoringSession);
 
   // Hydrate auth state from localStorage on mount (only once)
   useEffect(() => {
     authStore.hydrate();
-  }, [authStore]); // Include authStore in deps
+  }, []); // Empty deps - only run once on mount
 
-  // Don't render children until hydrated to avoid SSR mismatch
-  if (!isHydrated) {
-    return null;
+  // Show loading state during hydration or session restoration
+  if (!isHydrated || isRestoringSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">
+            {isRestoringSession ? "Restoring session..." : "Loading..."}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const contextValue: AuthContextType = {
