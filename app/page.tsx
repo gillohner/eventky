@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useAuth } from "@/components/providers/auth-provider"
 import { useProfile } from "@/hooks/use-profile"
 
 export default function Home() {

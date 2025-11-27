@@ -6,7 +6,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/providers/auth-provider";
 
 // Types
 interface CalendarData {

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/providers/auth-provider";
 import { PubkyClient } from "@/lib/pubky/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

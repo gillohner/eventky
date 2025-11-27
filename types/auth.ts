@@ -10,6 +10,8 @@ export interface AuthData {
 export interface SerializableAuthData {
   isAuthenticated: boolean;
   publicKey: string | null;
+  // Store keypair seed bytes for session reconstruction
+  keypairSeed: number[] | null;
 }
 
 export interface AuthContextType {

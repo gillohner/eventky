@@ -1,4 +1,4 @@
-import { Pubky, Address } from "@synonymdev/pubky";
+import { Pubky, Address, Session } from "@synonymdev/pubky";
 import { PubkyAppEvent, eventUriBuilder } from "pubky-app-specs";
 
 /**
@@ -22,6 +22,33 @@ export async function getEvent(
   } catch (error) {
     console.error("Error fetching event:", error);
     return null;
+  }
+}
+
+/**
+ * Create or update an event on Pubky Homeserver
+ */
+export async function saveEvent(
+  session: Session,
+  event: PubkyAppEvent,
+  eventId: string
+): Promise<boolean> {
+  try {
+    // TODO: Optimize path setting from WASM bindings
+    // Construct the storage path directly
+    // Format: /pub/eventky.app/events/:event_id
+    const eventPath = `/pub/eventky.app/events/${eventId}`;
+
+    // Convert event to JSON for storage
+    const eventJson = event.toJson();
+
+    // Save to Pubky storage using session
+    await session.storage.putJson(eventPath as `/pub/${string}`, eventJson);
+
+    return true;
+  } catch (error) {
+    console.error("Error saving event:", error);
+    throw error;
   }
 }
 
