@@ -200,7 +200,7 @@ export function CreateEventPageLayout({
 
       // Save event to Pubky storage
       const { saveEvent } = await import("@/lib/pubky/events");
-      await saveEvent(auth.session, event, eventIdToUse);
+      await saveEvent(auth.session, event, eventIdToUse, auth.publicKey!);
 
       toast.success(
         mode === "edit" ? "Event updated successfully!" : "Event created successfully!"
