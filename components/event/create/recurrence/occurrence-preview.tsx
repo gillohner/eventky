@@ -1,12 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
-import { Calendar, XCircle, Check, Plus, X } from "lucide-react";
+import { Calendar, XCircle, Check, Plus, Info } from "lucide-react";
 import { formatOccurrence } from "@/lib/pubky/rrule-utils";
 import { OccurrenceListItem } from "./occurrence-list-item";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface OccurrenceDate {
     date: string;
@@ -26,10 +37,8 @@ interface OccurrencePreviewProps {
     excludedOccurrences: Set<string>;
     stats: OccurrenceStats;
     timezone?: string;
-    onToggleOccurrence: (date: string) => void;
-    onAddRdate: () => void;
-    onUpdateRdate: (index: number, date: Date | undefined) => void;
-    onRemoveRdate: (index: number) => void;
+    onToggleOccurrence: (date: string, isAdditional: boolean) => void;
+    onAddRdate: (date: Date) => void;
     onClearExclusions: () => void;
 }
 
@@ -41,10 +50,19 @@ export function OccurrencePreview({
     timezone,
     onToggleOccurrence,
     onAddRdate,
-    onUpdateRdate,
-    onRemoveRdate,
     onClearExclusions,
 }: OccurrencePreviewProps) {
+    const [popoverOpen, setPopoverOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+    const handleAddDate = () => {
+        if (selectedDate) {
+            onAddRdate(selectedDate);
+            setSelectedDate(undefined);
+            setPopoverOpen(false);
+        }
+    };
+
     if (allDates.length === 0 && rdates.filter(d => d).length === 0) {
         return null;
     }
@@ -56,8 +74,16 @@ export function OccurrencePreview({
                     <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <Label className="text-sm font-semibold">
-                            Event Schedule
+                            Event Schedule Preview
                         </Label>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                <p>Showing upcoming occurrences for preview. The event will continue beyond this list based on your recurrence pattern.</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs">
                         <span className="flex items-center gap-1 text-muted-foreground">
@@ -87,17 +113,54 @@ export function OccurrencePreview({
                 </p>
             </div>
 
-            {/* Add Extra Date Button - Outside scroll area */}
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full h-9 text-xs border-dashed hover:bg-primary/10 hover:border-primary/50 hover:text-primary"
-                onClick={onAddRdate}
-            >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Extra Date
-            </Button>
+            {/* Add Extra Date Button with Popover - Outside scroll area */}
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-9 text-xs border-dashed hover:bg-primary/10 hover:border-primary/50 hover:text-primary"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Extra Date
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-3" align="start">
+                    <div className="space-y-3">
+                        <Label className="text-sm font-medium">Select Date & Time</Label>
+                        <DateTimePicker
+                            value={selectedDate}
+                            onChange={setSelectedDate}
+                            use12HourFormat={false}
+                            timePicker={{ hour: true, minute: true, second: false }}
+                            classNames={{ trigger: "w-full" }}
+                        />
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="flex-1"
+                                onClick={handleAddDate}
+                                disabled={!selectedDate}
+                            >
+                                Add
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                    setSelectedDate(undefined);
+                                    setPopoverOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </PopoverContent>
+            </Popover>
 
             <div className="rounded-lg border bg-card">
                 <ScrollArea className="h-64">
@@ -111,38 +174,10 @@ export function OccurrencePreview({
                                     formattedDate={formatOccurrence(item.date, timezone)}
                                     isExcluded={isExcluded}
                                     isAdditional={isAdditional}
-                                    onToggle={() => onToggleOccurrence(item.date)}
+                                    onToggle={() => onToggleOccurrence(item.date, isAdditional)}
                                 />
                             );
                         })}
-
-                        {/* Additional Date Pickers */}
-                        {rdates.map((date, index) => (
-                            !date && (
-                                <div key={`picker-${index}`} className="px-3 py-2 bg-muted/50 rounded-md border border-border">
-                                    <div className="flex gap-2 items-center">
-                                        <div className="flex-1">
-                                            <DateTimePicker
-                                                value={undefined}
-                                                onChange={(newDate) => onUpdateRdate(index, newDate)}
-                                                use12HourFormat={false}
-                                                timePicker={{ hour: true, minute: true, second: false }}
-                                                classNames={{ trigger: "w-full" }}
-                                            />
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                                            onClick={() => onRemoveRdate(index)}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            )
-                        ))}
                     </div>
                 </ScrollArea>
             </div>
