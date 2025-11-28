@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { validateRrule } from "pubky-app-specs";
 import type { RecurrencePreset, RecurrenceFrequency, Weekday } from "@/types/recurrence";
 
 const WEEKDAY_OPTIONS: Array<{ value: Weekday; label: string }> = [
@@ -22,9 +24,11 @@ interface RecurrenceSettingsProps {
     interval: number;
     count: number | undefined;
     selectedWeekdays: Weekday[];
+    customRrule?: string;
     onIntervalChange: (interval: number) => void;
     onCountChange: (count: number | undefined) => void;
     onWeekdayToggle: (day: Weekday) => void;
+    onCustomRruleChange: (rrule: string) => void;
 }
 
 export function RecurrenceSettings({
@@ -33,11 +37,64 @@ export function RecurrenceSettings({
     interval,
     count,
     selectedWeekdays,
+    customRrule,
     onIntervalChange,
     onCountChange,
     onWeekdayToggle,
+    onCustomRruleChange,
 }: RecurrenceSettingsProps) {
+    const [rruleInput, setRruleInput] = useState(customRrule || "");
+    const [validationError, setValidationError] = useState<string | null>(null);
+
+    // Validate RRULE as user types (debounced via blur or manual trigger)
+    const handleRruleBlur = () => {
+        const trimmed = rruleInput.trim();
+
+        if (!trimmed) {
+            setValidationError("RRULE cannot be empty");
+            return;
+        }
+
+        try {
+            const isValid = validateRrule(trimmed);
+            if (isValid) {
+                setValidationError(null);
+                onCustomRruleChange(trimmed);
+            } else {
+                setValidationError("Invalid RRULE format");
+            }
+        } catch {
+            setValidationError("Invalid RRULE format");
+        }
+    };
+
     if (preset === "none") return null;
+
+    // Custom RRULE input
+    if (preset === "custom") {
+        return (
+            <div className="space-y-4 p-4 border rounded-md bg-muted/50">
+                <div className="space-y-2">
+                    <Label htmlFor="custom-rrule">Custom RRULE</Label>
+                    <Input
+                        id="custom-rrule"
+                        type="text"
+                        placeholder="FREQ=DAILY;INTERVAL=1"
+                        value={rruleInput}
+                        onChange={(e) => setRruleInput(e.target.value)}
+                        onBlur={handleRruleBlur}
+                        className={validationError ? "border-destructive" : ""}
+                    />
+                    {validationError && (
+                        <p className="text-sm text-destructive">{validationError}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                        Enter a valid RRULE string (e.g., FREQ=DAILY;INTERVAL=2;COUNT=10)
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     const getFrequencyUnitLabel = (frequency: string, interval: number): string => {
         const isSingular = interval === 1;

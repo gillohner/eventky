@@ -32,6 +32,7 @@ export function RecurrencePresetSelector({
                     <SelectItem value="weekly">Weekly</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
                     <SelectItem value="yearly">Yearly</SelectItem>
+                    <SelectItem value="custom">Custom RRULE</SelectItem>
                 </SelectContent>
             </Select>
         </div>
