@@ -1,5 +1,5 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
-import { PubkyAppEvent, eventUriBuilder } from "pubky-app-specs";
+import { PubkyAppEvent, eventUriBuilder, PubkySpecsBuilder } from "pubky-app-specs";
 
 /**
  * Fetch an event from Pubky homeserver
@@ -31,19 +31,20 @@ export async function getEvent(
 export async function saveEvent(
   session: Session,
   event: PubkyAppEvent,
-  eventId: string
+  eventId: string,
+  userId: string
 ): Promise<boolean> {
   try {
-    // TODO: Optimize path setting from WASM bindings
-    // Construct the storage path directly
-    // Format: /pub/eventky.pub/events/:event_id
-    const eventPath = `/pub/eventky.pub/events/${eventId}`;
+    // Use eventUriBuilder to construct the full URI, then extract the path
+    const eventUri = eventUriBuilder(userId, eventId);
+    // Convert pubky://userId/path to /path
+    const eventPath = eventUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 
     // Convert event to JSON for storage
     const eventJson = event.toJson();
 
     // Save to Pubky storage using session
-    await session.storage.putJson(eventPath as `/pub/${string}`, eventJson);
+    await session.storage.putJson(eventPath, eventJson);
 
     return true;
   } catch (error) {
