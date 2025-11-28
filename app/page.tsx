@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -9,18 +8,8 @@ import { useProfile } from "@/hooks/use-profile"
 
 export default function Home() {
   const router = useRouter()
-  const { isAuthenticated, auth, logout } = useAuth()
+  const { auth, logout } = useAuth()
   const { profile, isLoading } = useProfile()
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login?returnPath=%2F")
-    }
-  }, [isAuthenticated, router])
-
-  if (!isAuthenticated) {
-    return null
-  }
 
   const handleLogout = () => {
     logout()
