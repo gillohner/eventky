@@ -17,6 +17,7 @@ const DEFAULT_RECURRENCE_STATE: RecurrenceState = {
     selectedWeekdays: [],
     rdates: [],
     excludedOccurrences: new Set(),
+    customRrule: undefined,
 };
 
 interface EventFormStore {
@@ -38,6 +39,7 @@ interface EventFormStore {
     toggleExclusion: (date: string) => void;
     clearExclusions: () => void;
     resetRecurrence: () => void;
+    setCustomRrule: (rrule: string) => void;
 }
 
 export const useEventFormStore = create<EventFormStore>()(
@@ -143,6 +145,10 @@ export const useEventFormStore = create<EventFormStore>()(
             resetRecurrence: () => set({
                 recurrenceState: DEFAULT_RECURRENCE_STATE,
             }),
+
+            setCustomRrule: (rrule) => set((state) => ({
+                recurrenceState: { ...state.recurrenceState, customRrule: rrule },
+            })),
         }),
         {
             name: "event-form-storage",

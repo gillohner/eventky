@@ -5,7 +5,7 @@
 /**
  * Recurrence preset patterns
  */
-export type RecurrencePreset = "none" | "daily" | "weekly" | "monthly" | "yearly";
+export type RecurrencePreset = "none" | "daily" | "weekly" | "monthly" | "yearly" | "custom";
 
 /**
  * RRULE frequency values (RFC 5545)
@@ -28,6 +28,7 @@ export interface RecurrenceState {
     selectedWeekdays: Weekday[];
     rdates: string[];
     excludedOccurrences: Set<string>;
+    customRrule?: string;
 }
 
 /**

@@ -4,8 +4,8 @@ import { useEvent } from "@/hooks/use-event";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EventImageUpload } from "@/components/event/create/event-image-upload";
-import { EventTitleField } from "@/components/event/create/event-title-field";
+import { EventImageField } from "@/components/event/create/event-image-field";
+import { EventBasicInfoFields } from "@/components/event/create/event-basic-info-fields";
 import { EventDateTimeFields } from "@/components/event/create/event-datetime-fields";
 import { EventRecurrenceFields } from "@/components/event/create/event-recurrence-fields";
 import { useRouter } from "next/navigation";
@@ -249,16 +249,14 @@ export function CreateEventPageLayout({
         {/* Basic Information */}
         <section className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
             <div className="space-y-4">
-              <EventImageUpload
-                control={form.control}
+              <EventImageField
                 setValue={form.setValue}
                 value={form.watch("image_uri")}
               />
-              <EventTitleField
+              <EventBasicInfoFields
                 control={form.control}
-                error={form.formState.errors.summary}
+                titleError={form.formState.errors.summary}
               />
             </div>
           </div>

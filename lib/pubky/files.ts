@@ -31,7 +31,7 @@ export async function uploadImageFile(
     // Upload blob data to homeserver
     // Blob must be uploaded as raw binary data, not JSON
     const blobPath = blobResult.meta.path as `/pub/${string}`;
-    
+
     try {
         // Use session.storage.putBytes for raw binary upload
         await session.storage.putBytes(blobPath, blobData);
