@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/select";
 
 interface RecurrencePresetSelectorProps {
-    value: "none" | "daily" | "weekly" | "monthly" | "custom";
-    onChange: (value: "none" | "daily" | "weekly" | "monthly" | "custom") => void;
+    value: "none" | "daily" | "weekly" | "monthly" | "yearly";
+    onChange: (value: "none" | "daily" | "weekly" | "monthly" | "yearly") => void;
 }
 
 export function RecurrencePresetSelector({
@@ -20,17 +20,17 @@ export function RecurrencePresetSelector({
 }: RecurrencePresetSelectorProps) {
     return (
         <div className="space-y-2">
-            <Label>Does this event repeat?</Label>
+            <Label>Repeat</Label>
             <Select value={value} onValueChange={onChange}>
                 <SelectTrigger>
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="none">No, one-time event</SelectItem>
+                    <SelectItem value="none">Does not repeat</SelectItem>
                     <SelectItem value="daily">Daily</SelectItem>
                     <SelectItem value="weekly">Weekly</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="custom">Custom pattern...</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
                 </SelectContent>
             </Select>
         </div>

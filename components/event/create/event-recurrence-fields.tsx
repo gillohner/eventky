@@ -23,10 +23,10 @@ export function EventRecurrenceFields({
     const dtstart = useWatch({ control, name: "dtstart" });
     const dtstart_tzid = useWatch({ control, name: "dtstart_tzid" });
 
-    const [preset, setPreset] = useState<"none" | "daily" | "weekly" | "monthly" | "custom">("none");
+    const [preset, setPreset] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none");
     const [frequency, setFrequency] = useState<string>("WEEKLY");
     const [interval, setInterval] = useState<number>(1);
-    const [count, setCount] = useState<number | undefined>(10);
+    const [count, setCount] = useState<number | undefined>(undefined);
     const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
     const [rdates, setRdates] = useState<string[]>([]);
     const [excludedOccurrences, setExcludedOccurrences] = useState<Set<string>>(new Set());
@@ -55,7 +55,8 @@ export function EventRecurrenceFields({
         if (preset === "none" || !dtstart) return [];
 
         const rrule = buildRRule();
-        return calculateNextOccurrences(rrule, dtstart, count || 10);
+        // Show ~2 years of events in preview when no limit set (104 weeks)
+        return calculateNextOccurrences(rrule, dtstart, count || 104);
     }, [preset, dtstart, buildRRule, count]);
 
     // Update rrule and exdate when dependencies change
@@ -83,21 +84,27 @@ export function EventRecurrenceFields({
             case "daily":
                 setFrequency("DAILY");
                 setInterval(1);
+                setCount(undefined);
                 break;
             case "weekly":
                 setFrequency("WEEKLY");
                 setInterval(1);
                 setSelectedWeekdays([]);
+                setCount(undefined);
                 break;
             case "monthly":
                 setFrequency("MONTHLY");
                 setInterval(1);
+                setCount(undefined);
                 break;
-            case "custom":
-                // Keep current settings
+            case "yearly":
+                setFrequency("YEARLY");
+                setInterval(1);
+                setCount(undefined);
                 break;
             case "none":
                 setExcludedOccurrences(new Set());
+                setCount(undefined);
                 break;
         }
     };
@@ -110,31 +117,34 @@ export function EventRecurrenceFields({
         );
     };
 
-    const toggleOccurrence = (occurrence: string) => {
-        setExcludedOccurrences(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(occurrence)) {
+    const toggleOccurrence = (occurrence: string, isAdditional: boolean) => {
+        if (isAdditional) {
+            // For additional dates (from rdate), just remove them completely
+            const newRdates = rdates.filter(d => d !== occurrence);
+            setRdates(newRdates);
+            // Remove from excluded set if it was there
+            setExcludedOccurrences(prev => {
+                const newSet = new Set(prev);
                 newSet.delete(occurrence);
-            } else {
-                newSet.add(occurrence);
-            }
-            return newSet;
-        });
+                return newSet;
+            });
+        } else {
+            // For standard occurrences, toggle exclusion
+            setExcludedOccurrences(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(occurrence)) {
+                    newSet.delete(occurrence);
+                } else {
+                    newSet.add(occurrence);
+                }
+                return newSet;
+            });
+        }
     };
 
-    const removeRdate = (index: number) => {
-        const newRdates = rdates.filter((_, i) => i !== index);
-        setRdates(newRdates);
-        setValue("rdate", newRdates.filter(d => d).length > 0 ? newRdates.filter(d => d) : undefined);
-    };
-
-    const addRdate = () => {
-        setRdates([...rdates, ""]);
-    };
-
-    const updateRdate = (index: number, newDate: Date | undefined) => {
-        const newRdates = [...rdates];
-        newRdates[index] = newDate ? dateToISOString(newDate) : "";
+    const addRdate = (newDate: Date) => {
+        const isoString = dateToISOString(newDate);
+        const newRdates = [...rdates, isoString];
         setRdates(newRdates);
         const filtered = newRdates.filter(d => d);
         setValue("rdate", filtered.length > 0 ? filtered : undefined);
@@ -187,7 +197,6 @@ export function EventRecurrenceFields({
                     interval={interval}
                     count={count}
                     selectedWeekdays={selectedWeekdays}
-                    onFrequencyChange={setFrequency}
                     onIntervalChange={setInterval}
                     onCountChange={setCount}
                     onWeekdayToggle={toggleWeekday}
@@ -201,8 +210,6 @@ export function EventRecurrenceFields({
                     timezone={dtstart_tzid}
                     onToggleOccurrence={toggleOccurrence}
                     onAddRdate={addRdate}
-                    onUpdateRdate={updateRdate}
-                    onRemoveRdate={removeRdate}
                     onClearExclusions={() => setExcludedOccurrences(new Set())}
                 />
             </CardContent>
