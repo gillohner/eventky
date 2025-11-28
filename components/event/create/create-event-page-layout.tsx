@@ -257,6 +257,7 @@ export function CreateEventPageLayout({
               <EventBasicInfoFields
                 control={form.control}
                 titleError={form.formState.errors.summary}
+                urlError={form.formState.errors.url}
               />
             </div>
           </div>
