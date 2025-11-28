@@ -1,11 +1,13 @@
 "use client";
 
 import { Control, UseFormSetValue, useWatch } from "react-hook-form";
-import { EventFormData } from "@/stores/event-form-store";
+import type { EventFormData } from "@/types/event";
+import type { OccurrenceDate, OccurrenceStats } from "@/types/recurrence";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { dateToISOString } from "@/lib/pubky/event-utils";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
+import { useEventFormStore } from "@/stores/event-form-store";
 import { RecurrencePresetSelector } from "./recurrence/recurrence-preset-selector";
 import { RecurrenceSettings } from "./recurrence/recurrence-settings";
 import { OccurrencePreview } from "./recurrence/occurrence-preview";
@@ -23,13 +25,28 @@ export function EventRecurrenceFields({
     const dtstart = useWatch({ control, name: "dtstart" });
     const dtstart_tzid = useWatch({ control, name: "dtstart_tzid" });
 
-    const [preset, setPreset] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none");
-    const [frequency, setFrequency] = useState<string>("WEEKLY");
-    const [interval, setInterval] = useState<number>(1);
-    const [count, setCount] = useState<number | undefined>(undefined);
-    const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
-    const [rdates, setRdates] = useState<string[]>([]);
-    const [excludedOccurrences, setExcludedOccurrences] = useState<Set<string>>(new Set());
+    // Use store for recurrence state
+    const {
+        recurrenceState,
+        setPreset,
+        setInterval,
+        setCount,
+        toggleWeekday,
+        addRdate: addRdateToStore,
+        removeRdate,
+        toggleExclusion,
+        clearExclusions,
+    } = useEventFormStore();
+
+    const {
+        preset,
+        frequency,
+        interval,
+        count,
+        selectedWeekdays,
+        rdates,
+        excludedOccurrences,
+    } = recurrenceState;
 
     // Build RRULE string
     const buildRRule = useCallback((): string => {
@@ -74,81 +91,22 @@ export function EventRecurrenceFields({
         }
     }, [preset, buildRRule, excludedOccurrences, setValue]);
 
-    // Handle preset selection
-    const handlePresetChange = (value: string) => {
-        const newPreset = value as typeof preset;
-        setPreset(newPreset);
-
-        // Set defaults based on preset
-        switch (newPreset) {
-            case "daily":
-                setFrequency("DAILY");
-                setInterval(1);
-                setCount(undefined);
-                break;
-            case "weekly":
-                setFrequency("WEEKLY");
-                setInterval(1);
-                setSelectedWeekdays([]);
-                setCount(undefined);
-                break;
-            case "monthly":
-                setFrequency("MONTHLY");
-                setInterval(1);
-                setCount(undefined);
-                break;
-            case "yearly":
-                setFrequency("YEARLY");
-                setInterval(1);
-                setCount(undefined);
-                break;
-            case "none":
-                setExcludedOccurrences(new Set());
-                setCount(undefined);
-                break;
-        }
-    };
-
-    const toggleWeekday = (day: string) => {
-        setSelectedWeekdays(prev =>
-            prev.includes(day)
-                ? prev.filter(d => d !== day)
-                : [...prev, day]
-        );
-    };
-
-    const toggleOccurrence = (occurrence: string, isAdditional: boolean) => {
+    // Handle occurrence toggling
+    const toggleOccurrence = useCallback((occurrence: string, isAdditional: boolean) => {
         if (isAdditional) {
             // For additional dates (from rdate), just remove them completely
-            const newRdates = rdates.filter(d => d !== occurrence);
-            setRdates(newRdates);
-            // Remove from excluded set if it was there
-            setExcludedOccurrences(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(occurrence);
-                return newSet;
-            });
+            removeRdate(occurrence);
         } else {
             // For standard occurrences, toggle exclusion
-            setExcludedOccurrences(prev => {
-                const newSet = new Set(prev);
-                if (newSet.has(occurrence)) {
-                    newSet.delete(occurrence);
-                } else {
-                    newSet.add(occurrence);
-                }
-                return newSet;
-            });
+            toggleExclusion(occurrence);
         }
-    };
+    }, [removeRdate, toggleExclusion]);
 
-    const addRdate = (newDate: Date) => {
+    // Handle adding rdate
+    const addRdate = useCallback((newDate: Date) => {
         const isoString = dateToISOString(newDate);
-        const newRdates = [...rdates, isoString];
-        setRdates(newRdates);
-        const filtered = newRdates.filter(d => d);
-        setValue("rdate", filtered.length > 0 ? filtered : undefined);
-    };
+        addRdateToStore(isoString);
+    }, [addRdateToStore]);
 
     // Combine all dates: standard occurrences + additional dates, sorted
     const allDates = useMemo(() => {
@@ -188,7 +146,7 @@ export function EventRecurrenceFields({
 
                 <RecurrencePresetSelector
                     value={preset}
-                    onChange={handlePresetChange}
+                    onChange={setPreset}
                 />
 
                 <RecurrenceSettings
@@ -210,7 +168,7 @@ export function EventRecurrenceFields({
                     timezone={dtstart_tzid}
                     onToggleOccurrence={toggleOccurrence}
                     onAddRdate={addRdate}
-                    onClearExclusions={() => setExcludedOccurrences(new Set())}
+                    onClearExclusions={clearExclusions}
                 />
             </CardContent>
         </Card>
