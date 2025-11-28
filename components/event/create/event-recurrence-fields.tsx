@@ -2,8 +2,7 @@
 
 import { Control, UseFormSetValue, useWatch } from "react-hook-form";
 import type { EventFormData } from "@/types/event";
-import type { OccurrenceDate, OccurrenceStats } from "@/types/recurrence";
-import { Card, CardContent } from "@/components/ui/card";
+import { FormSection } from "@/components/ui/form-section";
 import { useEffect, useCallback, useMemo } from "react";
 import { dateToISOString } from "@/lib/pubky/event-utils";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
@@ -21,7 +20,6 @@ export function EventRecurrenceFields({
     control,
     setValue,
 }: EventRecurrenceFieldsProps) {
-    // Watch dtstart to calculate occurrences
     const dtstart = useWatch({ control, name: "dtstart" });
     const dtstart_tzid = useWatch({ control, name: "dtstart_tzid" });
 
@@ -36,6 +34,7 @@ export function EventRecurrenceFields({
         removeRdate,
         toggleExclusion,
         clearExclusions,
+        setCustomRrule,
     } = useEventFormStore();
 
     const {
@@ -46,10 +45,16 @@ export function EventRecurrenceFields({
         selectedWeekdays,
         rdates,
         excludedOccurrences,
+        customRrule,
     } = recurrenceState;
 
     // Build RRULE string
     const buildRRule = useCallback((): string => {
+        // If custom preset, use the custom RRULE directly
+        if (preset === "custom") {
+            return customRrule || "";
+        }
+
         let rrule = `FREQ=${frequency}`;
 
         if (interval > 1) {
@@ -65,14 +70,17 @@ export function EventRecurrenceFields({
         }
 
         return rrule;
-    }, [frequency, interval, count, selectedWeekdays]);
+    }, [preset, customRrule, frequency, interval, count, selectedWeekdays]);
 
     // Calculate occurrences based on RRULE
     const occurrences = useMemo(() => {
         if (preset === "none" || !dtstart) return [];
 
         const rrule = buildRRule();
-        // Show ~2 years of events in preview when no limit set (104 weeks)
+
+        // Skip calculation if custom RRULE is empty or invalid
+        if (preset === "custom" && !rrule) return [];
+
         return calculateNextOccurrences(rrule, dtstart, count || 104);
     }, [preset, dtstart, buildRRule, count]);
 
@@ -135,42 +143,38 @@ export function EventRecurrenceFields({
     }, [rdates, setValue]);
 
     return (
-        <Card>
-            <CardContent className="space-y-6">
-                <div className="space-y-1">
-                    <h3 className="text-lg font-semibold">Recurrence</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Configure if and how this event repeats
-                    </p>
-                </div>
+        <FormSection
+            title="Recurrence"
+            description="Configure if and how this event repeats"
+        >
+            <RecurrencePresetSelector
+                value={preset}
+                onChange={setPreset}
+            />
 
-                <RecurrencePresetSelector
-                    value={preset}
-                    onChange={setPreset}
-                />
+            <RecurrenceSettings
+                preset={preset}
+                frequency={frequency}
+                interval={interval}
+                count={count}
+                selectedWeekdays={selectedWeekdays}
+                customRrule={customRrule}
+                onIntervalChange={setInterval}
+                onCountChange={setCount}
+                onWeekdayToggle={toggleWeekday}
+                onCustomRruleChange={setCustomRrule}
+            />
 
-                <RecurrenceSettings
-                    preset={preset}
-                    frequency={frequency}
-                    interval={interval}
-                    count={count}
-                    selectedWeekdays={selectedWeekdays}
-                    onIntervalChange={setInterval}
-                    onCountChange={setCount}
-                    onWeekdayToggle={toggleWeekday}
-                />
-
-                <OccurrencePreview
-                    allDates={allDates}
-                    rdates={rdates}
-                    excludedOccurrences={excludedOccurrences}
-                    stats={stats}
-                    timezone={dtstart_tzid}
-                    onToggleOccurrence={toggleOccurrence}
-                    onAddRdate={addRdate}
-                    onClearExclusions={clearExclusions}
-                />
-            </CardContent>
-        </Card>
+            <OccurrencePreview
+                allDates={allDates}
+                rdates={rdates}
+                excludedOccurrences={excludedOccurrences}
+                stats={stats}
+                timezone={dtstart_tzid}
+                onToggleOccurrence={toggleOccurrence}
+                onAddRdate={addRdate}
+                onClearExclusions={clearExclusions}
+            />
+        </FormSection>
     );
 }
