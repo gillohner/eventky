@@ -18,18 +18,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-interface OccurrenceDate {
-    date: string;
-    type: "standard" | "additional";
-}
-
-interface OccurrenceStats {
-    standardCount: number;
-    additionalCount: number;
-    excludedCount: number;
-    totalActive: number;
-}
+import type { OccurrenceDate, OccurrenceStats } from "@/types/recurrence";
 
 interface OccurrencePreviewProps {
     allDates: OccurrenceDate[];

@@ -236,7 +236,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                                         <input
                                             ref={fileInputRef}
                                             type="file"
-                                            accept=".pubky"
+                                            accept=".pkarr"
                                             onChange={handleFileSelect}
                                             className="hidden"
                                         />
@@ -327,7 +327,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                                         open={true}
                                         onSuccess={handleQrAuthSuccess}
                                         onError={handleQrAuthError}
-                                        caps="/pub/eventky.app/:rw"
+                                        caps="/pub/eventky.app/:rw,/pub/pubky.app/:rw"
                                     />
                                 </div>
 

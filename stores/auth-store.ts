@@ -1,6 +1,6 @@
-import { create } from "zustand";
-import type { Keypair, Session } from "@synonymdev/pubky";
 import { AuthData, SerializableAuthData } from "@/types/auth";
+import type { Keypair, Session } from "@synonymdev/pubky";
+import { create } from "zustand";
 
 const STORAGE_KEY = "pubky_auth";
 
@@ -63,9 +63,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         // QR auth: Session persists in memory during browser session only
         // Cannot be serialized to localStorage (Session object is not JSON-serializable)
-        // Per Pubky Auth spec, sessions are managed by authenticator app
-        // User will need to re-authenticate after page refresh
-        // This is standard for QR-based auth flows (e.g., WhatsApp Web)
+        // Sessions from QR auth are temporary and managed by the authenticator app
+        // User will need to re-authenticate with QR code after page refresh
+        // This is by design for security - similar to WhatsApp Web
     },
 
     logout: () => {
@@ -76,6 +76,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         try {
             localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(`${STORAGE_KEY}_session_url`);
         } catch (error) {
             console.error("Error removing auth from localStorage:", error);
         }

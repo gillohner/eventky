@@ -4,8 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { RecurrencePreset, RecurrenceFrequency, Weekday } from "@/types/recurrence";
 
-const WEEKDAY_OPTIONS = [
+const WEEKDAY_OPTIONS: Array<{ value: Weekday; label: string }> = [
     { value: "MO", label: "Mon" },
     { value: "TU", label: "Tue" },
     { value: "WE", label: "Wed" },
@@ -16,14 +17,14 @@ const WEEKDAY_OPTIONS = [
 ];
 
 interface RecurrenceSettingsProps {
-    preset: "none" | "daily" | "weekly" | "monthly" | "yearly";
-    frequency: string;
+    preset: RecurrencePreset;
+    frequency: RecurrenceFrequency;
     interval: number;
     count: number | undefined;
-    selectedWeekdays: string[];
+    selectedWeekdays: Weekday[];
     onIntervalChange: (interval: number) => void;
     onCountChange: (count: number | undefined) => void;
-    onWeekdayToggle: (day: string) => void;
+    onWeekdayToggle: (day: Weekday) => void;
 }
 
 export function RecurrenceSettings({
