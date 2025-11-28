@@ -10,17 +10,19 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 interface EventBasicInfoFieldsProps {
     control: Control<EventFormData>;
     titleError?: { message?: string };
+    urlError?: { message?: string };
 }
 
 export function EventBasicInfoFields({
     control,
     titleError,
+    urlError,
 }: EventBasicInfoFieldsProps) {
     return (
         <FormSection>
             {/* Title Field */}
             <div className="space-y-2">
-                <Label htmlFor="summary">Event Title*</Label>
+                <Label htmlFor="summary">Title*</Label>
                 <Controller
                     name="summary"
                     control={control}
@@ -79,6 +81,42 @@ export function EventBasicInfoFields({
                     </div>
                 )}
             />
+
+            {/* URL Field */}
+            <div className="space-y-2">
+                <Label htmlFor="url">Website</Label>
+                <Controller
+                    name="url"
+                    control={control}
+                    rules={{
+                        pattern: {
+                            value: /^https?:\/\/.+/i,
+                            message: "Please enter a valid URL starting with http:// or https://",
+                        },
+                        maxLength: {
+                            value: 2048,
+                            message: "URL must not exceed 2048 characters",
+                        },
+                    }}
+                    render={({ field }) => (
+                        <Input
+                            {...field}
+                            value={field.value || ""}
+                            id="url"
+                            type="url"
+                            placeholder="https://example.com/event"
+                            aria-invalid={!!urlError}
+                            className={urlError ? "border-destructive" : ""}
+                        />
+                    )}
+                />
+                {urlError && (
+                    <p className="text-sm text-destructive">{urlError.message}</p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                    Link to event page or registration
+                </p>
+            </div>
         </FormSection>
     );
 }
