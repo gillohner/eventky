@@ -14,10 +14,21 @@ export function getPubkyFileUrl(pubkyUrl: string): string {
 }
 
 export function getPubkyImageUrl(pubkyUrl: string, variant: imageVariant): string {
-  return `${config.gateway.url}${config.gateway.baseFilePath}/${pubkyUrl.replace("pubky://", "")}/${variant}`;
-}
-
-/**
+    // Parse pubky:// URI: pubky://userId/pub/pubky.app/files/fileId
+    // Extract userId and fileId, discard intermediate path segments
+    const withoutProtocol = pubkyUrl.replace("pubky://", "");
+    const parts = withoutProtocol.split("/");
+    
+    // parts[0] = userId
+    // parts[1] = "pub"
+    // parts[2] = "pubky.app"
+    // parts[3] = "files"
+    // parts[4] = fileId
+    const userId = parts[0];
+    const fileId = parts[parts.length - 1]; // Get last segment (fileId)
+    
+    return `${config.gateway.url}${config.gateway.baseFilePath}/${userId}/${fileId}/${variant}`;
+}/**
  * Get initials from a name (first letter of first two words)
  */
 export function getInitials(name: string | null | undefined): string {

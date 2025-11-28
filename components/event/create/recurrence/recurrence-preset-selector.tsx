@@ -8,10 +8,11 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
+import type { RecurrencePreset } from "@/types/recurrence";
 
 interface RecurrencePresetSelectorProps {
-    value: "none" | "daily" | "weekly" | "monthly" | "yearly";
-    onChange: (value: "none" | "daily" | "weekly" | "monthly" | "yearly") => void;
+    value: RecurrencePreset;
+    onChange: (value: RecurrencePreset) => void;
 }
 
 export function RecurrencePresetSelector({
