@@ -1,7 +1,6 @@
 "use client";
 
-import { Control, Controller, FieldError } from "react-hook-form";
-import { EventFormData } from "@/stores/event-form-store";
+import { Control, Controller, FieldError, FieldPath, FieldValues } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -9,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 
-interface EventTimezoneSelectorProps {
-    control: Control<EventFormData>;
-    name: "dtstart_tzid" | "dtend_tzid";
+interface TimezoneSelectorProps<T extends FieldValues> {
+    control: Control<T>;
+    name: FieldPath<T>;
     label: string;
     error?: FieldError;
     disabled?: boolean;
@@ -79,13 +78,13 @@ function getUTCOffset(timezone: string): string {
     }
 }
 
-export function EventTimezoneSelector({
+export function TimezoneSelector<T extends FieldValues>({
     control,
     name,
     label,
     error,
     disabled,
-}: EventTimezoneSelectorProps) {
+}: TimezoneSelectorProps<T>) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [focusedIndex, setFocusedIndex] = useState(0);
@@ -109,7 +108,6 @@ export function EventTimezoneSelector({
 
     // Reset focused index when search changes
     useEffect(() => {
-        // Use a microtask to avoid setState during render
         Promise.resolve().then(() => setFocusedIndex(0));
     }, [search]);
 
@@ -172,7 +170,7 @@ export function EventTimezoneSelector({
 
     return (
         <div className="space-y-2">
-            {label && <Label htmlFor={name}>{label}</Label>}
+            {label && <Label htmlFor={name as string}>{label}</Label>}
             <Controller
                 name={name}
                 control={control}

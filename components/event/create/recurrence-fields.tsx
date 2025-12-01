@@ -11,15 +11,15 @@ import { RecurrencePresetSelector } from "./recurrence/recurrence-preset-selecto
 import { RecurrenceSettings } from "./recurrence/recurrence-settings";
 import { OccurrencePreview } from "./recurrence/occurrence-preview";
 
-interface EventRecurrenceFieldsProps {
+interface RecurrenceFieldsProps {
     control: Control<EventFormData>;
     setValue: UseFormSetValue<EventFormData>;
 }
 
-export function EventRecurrenceFields({
+export function RecurrenceFields({
     control,
     setValue,
-}: EventRecurrenceFieldsProps) {
+}: RecurrenceFieldsProps) {
     const dtstart = useWatch({ control, name: "dtstart" });
     const dtstart_tzid = useWatch({ control, name: "dtstart_tzid" });
 

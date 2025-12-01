@@ -120,9 +120,18 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* New Event Button */}
+                {/* Action Buttons */}
                 <SidebarGroup>
-                    <SidebarGroupContent className="px-2">
+                    <SidebarGroupContent className="px-2 space-y-2">
+                        <Button
+                            onClick={() => router.push("/calendar/create")}
+                            className="w-full justify-start"
+                            size="lg"
+                            variant="outline"
+                        >
+                            <Plus />
+                            New Calendar
+                        </Button>
                         <Button
                             onClick={() => router.push("/event/create")}
                             className="w-full justify-start"

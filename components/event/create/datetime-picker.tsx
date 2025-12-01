@@ -3,7 +3,7 @@
 import { Control, Controller, FieldError } from "react-hook-form";
 import { EventFormData } from "@/stores/event-form-store";
 import { Label } from "@/components/ui/label";
-import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { DateTimePicker as UIDateTimePicker } from "@/components/ui/datetime-picker";
 import { isoStringToDate, dateToISOString } from "@/lib/pubky/event-utils";
 
 interface EventDateTimePickerProps {
@@ -41,7 +41,7 @@ export function EventDateTimePicker({
                     },
                 }}
                 render={({ field }) => (
-                    <DateTimePicker
+                    <UIDateTimePicker
                         value={field.value ? isoStringToDate(field.value) : undefined}
                         onChange={(date) => field.onChange(date ? dateToISOString(date) : null)}
                         min={minDate ? isoStringToDate(minDate) : undefined}

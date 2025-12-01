@@ -1,5 +1,5 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
-import { PubkyAppEvent, eventUriBuilder, PubkySpecsBuilder } from "pubky-app-specs";
+import { PubkyAppEvent, eventUriBuilder } from "pubky-app-specs";
 
 /**
  * Fetch an event from Pubky homeserver
