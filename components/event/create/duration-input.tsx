@@ -7,17 +7,17 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { validateDuration } from "@/lib/pubky/validation";
 
-interface EventDurationInputProps {
+interface DurationInputProps {
     control: Control<EventFormData>;
     error?: FieldError;
     disabled?: boolean;
 }
 
-export function EventDurationInput({
+export function DurationInput({
     control,
     error,
     disabled,
-}: EventDurationInputProps) {
+}: DurationInputProps) {
     return (
         <div className="space-y-2">
             <Label htmlFor="duration">Duration</Label>

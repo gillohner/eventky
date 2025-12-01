@@ -4,10 +4,11 @@ import { useEvent } from "@/hooks/use-event";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EventImageField } from "@/components/event/create/event-image-field";
-import { EventBasicInfoFields } from "@/components/event/create/event-basic-info-fields";
-import { EventDateTimeFields } from "@/components/event/create/event-datetime-fields";
-import { EventRecurrenceFields } from "@/components/event/create/event-recurrence-fields";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { BasicInfoFields } from "./basic-info";
+import { DateTimeFields } from "./datetime-fields";
+import { RecurrenceFields } from "./recurrence-fields";
+import { LocationFields } from "./location-fields";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -75,6 +76,8 @@ export function CreateEventPageLayout({
     if (mode === "edit" && existingEvent) {
       form.reset(eventToFormData(existingEvent));
     }
+    // form.reset is stable and doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingEvent, mode]);
 
   // Persist form data on changes
@@ -84,6 +87,8 @@ export function CreateEventPageLayout({
       setFormData(value as EventFormData, eventIdKey);
     });
     return () => subscription.unsubscribe();
+    // form.watch is stable and doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, authorId, eventId, setFormData]);
 
   // Check authentication
@@ -250,11 +255,14 @@ export function CreateEventPageLayout({
         <section className="space-y-6">
           <div>
             <div className="space-y-4">
-              <EventImageField
-                setValue={form.setValue}
+              <ImageUpload
                 value={form.watch("image_uri")}
+                onChange={(uri) => form.setValue("image_uri", uri)}
+                title="Event Image"
+                description="Upload a banner image for your event (max 5MB)"
+                aspectRatio="video"
               />
-              <EventBasicInfoFields
+              <BasicInfoFields
                 control={form.control}
                 titleError={form.formState.errors.summary}
                 urlError={form.formState.errors.url}
@@ -265,16 +273,25 @@ export function CreateEventPageLayout({
 
         {/* Date & Time */}
         <section>
-          <EventDateTimeFields
+          <DateTimeFields
             control={form.control}
             errors={form.formState.errors}
             setValue={form.setValue}
           />
         </section>
 
+        {/* Location */}
+        <section>
+          <LocationFields
+            control={form.control}
+            locationError={form.formState.errors.location}
+            geoError={form.formState.errors.geo}
+          />
+        </section>
+
         {/* Recurrence */}
         <section>
-          <EventRecurrenceFields
+          <RecurrenceFields
             control={form.control}
             setValue={form.setValue}
           />

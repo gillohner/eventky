@@ -2,25 +2,25 @@
 
 import { Control, useWatch, UseFormSetValue, FieldErrors } from "react-hook-form";
 import { EventFormData } from "@/stores/event-form-store";
-import { EventDateTimePicker } from "./event-datetime-picker";
-import { EventTimezoneSelector } from "./event-timezone-selector";
-import { EventDurationInput } from "./event-duration-input";
+import { EventDateTimePicker } from "./datetime-picker";
+import { TimezoneSelector } from "@/components/ui/timezone-selector";
+import { DurationInput } from "./duration-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormSection } from "@/components/ui/form-section";
 import { useState } from "react";
 
-interface EventDateTimeFieldsProps {
+interface DateTimeFieldsProps {
     control: Control<EventFormData>;
     errors: FieldErrors<EventFormData>;
     setValue: UseFormSetValue<EventFormData>;
 }
 
-export function EventDateTimeFields({
+export function DateTimeFields({
     control,
     errors,
     setValue,
-}: EventDateTimeFieldsProps) {
+}: DateTimeFieldsProps) {
     const dtstart = useWatch({ control, name: "dtstart" });
     const [endTimeMode, setEndTimeMode] = useState<"endtime" | "duration">("endtime");
 
@@ -49,7 +49,7 @@ export function EventDateTimeFields({
                         label=""
                         error={errors.dtstart}
                     />
-                    <EventTimezoneSelector
+                    <TimezoneSelector
                         control={control}
                         name="dtstart_tzid"
                         label=""
@@ -79,7 +79,7 @@ export function EventDateTimeFields({
                                 error={errors.dtend}
                                 minDate={dtstart || undefined}
                             />
-                            <EventTimezoneSelector
+                            <TimezoneSelector
                                 control={control}
                                 name="dtend_tzid"
                                 label=""
@@ -92,7 +92,7 @@ export function EventDateTimeFields({
                     </TabsContent>
 
                     <TabsContent value="duration" className="mt-4">
-                        <EventDurationInput
+                        <DurationInput
                             control={control}
                             error={errors.duration}
                         />
