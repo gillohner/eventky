@@ -2,7 +2,7 @@
  * File and blob upload utilities for Pubky
  */
 
-import { Session, Client } from "@synonymdev/pubky";
+import { Session } from "@synonymdev/pubky";
 import { PubkySpecsBuilder } from "pubky-app-specs";
 
 /**

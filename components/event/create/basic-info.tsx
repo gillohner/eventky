@@ -6,18 +6,26 @@ import { FormSection } from "@/components/ui/form-section";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { getValidEventStatuses } from "@/lib/pubky/validation";
 
-interface EventBasicInfoFieldsProps {
+interface BasicInfoFieldsProps {
     control: Control<EventFormData>;
     titleError?: { message?: string };
     urlError?: { message?: string };
 }
 
-export function EventBasicInfoFields({
+export function BasicInfoFields({
     control,
     titleError,
     urlError,
-}: EventBasicInfoFieldsProps) {
+}: BasicInfoFieldsProps) {
     return (
         <FormSection>
             {/* Title Field */}
@@ -115,6 +123,36 @@ export function EventBasicInfoFields({
                 )}
                 <p className="text-sm text-muted-foreground">
                     Link to event page or registration
+                </p>
+            </div>
+
+            {/* Status Field */}
+            <div className="space-y-2">
+                <Label htmlFor="status">Event Status</Label>
+                <Controller
+                    name="status"
+                    control={control}
+                    defaultValue="CONFIRMED"
+                    render={({ field }) => (
+                        <Select
+                            value={field.value || "CONFIRMED"}
+                            onValueChange={field.onChange}
+                        >
+                            <SelectTrigger id="status">
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {getValidEventStatuses().map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                        {status.charAt(0) + status.slice(1).toLowerCase()}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+                <p className="text-sm text-muted-foreground">
+                    Current status of the event
                 </p>
             </div>
         </FormSection>

@@ -332,6 +332,7 @@ export function DateTimePicker({
                     ></div>
                     <MonthYearPicker
                         value={month}
+                        // Upstream types are not necessarily correct
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         mode={monthYearPicker as any}
                         onChange={onMonthYearChanged}

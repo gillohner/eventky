@@ -174,7 +174,7 @@ export const useEventFormStore = create<EventFormStore>()(
 
                 // Restore recurrenceState and convert Array back to Set
                 if (persistedState && typeof persistedState === 'object' && 'recurrenceState' in persistedState) {
-                    const persistedRecurrence = persistedState.recurrenceState as any;
+                    const persistedRecurrence = persistedState.recurrenceState as Omit<RecurrenceState, 'excludedOccurrences'> & { excludedOccurrences: string[] };
                     baseState.recurrenceState = {
                         ...persistedRecurrence,
                         excludedOccurrences: new Set(persistedRecurrence.excludedOccurrences || []),

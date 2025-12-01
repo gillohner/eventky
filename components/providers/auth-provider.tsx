@@ -14,6 +14,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Hydrate auth state from localStorage on mount (only once)
   useEffect(() => {
     authStore.hydrate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - only run once on mount
 
   // Show loading state during hydration or session restoration

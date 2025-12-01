@@ -1,23 +1,30 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { UseFormSetValue } from "react-hook-form";
-import type { EventFormData } from "@/types/event";
+import { toast } from "sonner";
 import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, X, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { uploadImageFile, deleteImageFile, validateImageFile } from "@/lib/pubky/files";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
 
-interface EventImageFieldProps {
-    setValue: UseFormSetValue<EventFormData>;
+interface ImageUploadProps {
     value?: string | null;
+    onChange: (imageUri: string | undefined) => void;
+    title?: string;
+    description?: string;
+    aspectRatio?: "video" | "square" | "wide";
 }
 
-export function EventImageField({ setValue, value }: EventImageFieldProps) {
+export function ImageUpload({
+    value,
+    onChange,
+    title = "Image",
+    description = "Upload an image (max 5MB)",
+    aspectRatio = "video"
+}: ImageUploadProps) {
     const { auth } = useAuth();
     const [isUploading, setIsUploading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -45,7 +52,7 @@ export function EventImageField({ setValue, value }: EventImageFieldProps) {
             }
 
             const imageUri = await uploadImageFile(auth.session, auth.publicKey!, file);
-            setValue("image_uri", imageUri);
+            onChange(imageUri);
             setImageKey(prev => prev + 1);
 
             toast.success("Image uploaded successfully");
@@ -95,7 +102,7 @@ export function EventImageField({ setValue, value }: EventImageFieldProps) {
 
         try {
             await deleteImageFile(auth.session, value);
-            setValue("image_uri", undefined);
+            onChange(undefined);
             toast.success("Image removed");
         } catch (error) {
             console.error("Error deleting image:", error);
@@ -113,10 +120,16 @@ export function EventImageField({ setValue, value }: EventImageFieldProps) {
         fileInputRef.current?.click();
     };
 
+    const aspectClass = {
+        video: "aspect-video sm:aspect-[21/9]",
+        square: "aspect-square",
+        wide: "aspect-[16/9]"
+    }[aspectRatio];
+
     return (
         <FormSection
-            title="Image"
-            description="Upload a banner image for your event (max 5MB)"
+            title={title}
+            description={description}
         >
             <input
                 ref={fileInputRef}
@@ -129,14 +142,15 @@ export function EventImageField({ setValue, value }: EventImageFieldProps) {
             {value ? (
                 <div className="relative group rounded-lg overflow-hidden border bg-muted -mx-6 sm:mx-0">
                     {isUploading || isDeleting ? (
-                        <Skeleton className="aspect-video sm:aspect-[21/9] w-full" />
+                        <Skeleton className={`${aspectClass} w-full`} />
                     ) : (
                         <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 key={imageKey}
                                 src={getPubkyImageUrl(value, "main")}
-                                alt="Event banner"
-                                className="aspect-video sm:aspect-[21/9] w-full object-cover"
+                                alt="Uploaded image"
+                                className={`${aspectClass} w-full object-cover`}
                                 onError={(e) => {
                                     const img = e.currentTarget;
                                     const retryCount = parseInt(img.dataset.retryCount || "0");
