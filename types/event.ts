@@ -19,7 +19,6 @@ export interface EventFormData {
     dtend_tzid?: string;
     description?: string;
     status?: string;
-    categories?: string[];
     location?: string;
     geo?: string;
     image_uri?: string;

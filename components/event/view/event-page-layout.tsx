@@ -119,22 +119,6 @@ export function EventPageLayout({ authorId, eventId }: EventPageLayoutProps) {
               <p className="text-base whitespace-pre-wrap">{event.description}</p>
             </div>
           )}
-
-          {event.categories && event.categories.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Categories</h3>
-              <div className="flex flex-wrap gap-2">
-                {event.categories.map((category: string, index: number) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground"
-                  >
-                    {category}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* RSVP Section - Placeholder */}
