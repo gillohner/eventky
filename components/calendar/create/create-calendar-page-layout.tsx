@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BasicInfoFields } from "./basic-info";
 import { SettingsFields } from "./settings";
 import { saveCalendar } from "@/lib/pubky/calendars";
+import { PubkySpecsBuilder } from "pubky-app-specs";
 import { config } from "@/lib/config";
 
 export function CreateCalendarPageLayout() {
@@ -42,22 +43,43 @@ export function CreateCalendarPageLayout() {
         setIsSaving(true);
 
         try {
-            const result = await saveCalendar(auth.session, auth.publicKey, data);
+            // Create calendar using WASM builder
+            const builder = new PubkySpecsBuilder(auth.publicKey);
+            const calendarResult = builder.createCalendar(
+                data.name,
+                data.timezone,
+                data.color || null,
+                data.image_uri || null,
+                data.description || null,
+                data.url || null,
+                data.x_pubky_admins || null
+            );
 
-            if (result.success) {
-                toast.success("Calendar created successfully!");
+            // Extract calendar ID from meta
+            const calendarId = calendarResult.meta.id;
 
-                // Invalidate calendars queries to refresh data
-                await queryClient.invalidateQueries({ queryKey: ["nexus", "calendars"] });
+            // Save calendar to homeserver
+            await saveCalendar(auth.session, calendarResult.calendar, calendarId, auth.publicKey);
 
-                // Reset form to default state
-                form.reset();
+            toast.success("Calendar created successfully!");
 
-                // TODO: Navigate to calendar view when implemented
-                router.push("/");
-            } else {
-                toast.error(result.error || "Failed to create calendar");
+            // Invalidate calendars queries to refresh data
+            await queryClient.invalidateQueries({ queryKey: ["nexus", "calendars"] });
+            if (auth.publicKey) {
+                await queryClient.invalidateQueries({ queryKey: ["nexus", "calendar", auth.publicKey, calendarId] });
             }
+
+            // Reset form to default state
+            form.reset({
+                name: "",
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+                color: "#3b82f6",
+                description: "",
+                url: "",
+            });
+
+            // Navigate to calendar detail page
+            router.push(`/calendar/${auth.publicKey}/${calendarId}`);
         } catch (error) {
             console.error("Failed to create calendar:", error);
             toast.error("An unexpected error occurred");
@@ -109,7 +131,29 @@ export function CreateCalendarPageLayout() {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.back()}
+                            onClick={() => {
+                                if (form.formState.isDirty) {
+                                    if (confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                                        form.reset({
+                                            name: "",
+                                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+                                            color: "#3b82f6",
+                                            description: "",
+                                            url: "",
+                                        });
+                                        router.back();
+                                    }
+                                } else {
+                                    form.reset({
+                                        name: "",
+                                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+                                        color: "#3b82f6",
+                                        description: "",
+                                        url: "",
+                                    });
+                                    router.back();
+                                }
+                            }}
                             disabled={isSaving}
                         >
                             Cancel
