@@ -215,8 +215,13 @@ export function CreateEventPageLayout({
         await queryClient.invalidateQueries({ queryKey: ["nexus", "event", auth.publicKey, eventIdToUse] });
       }
 
-      // Reset form to default state
-      form.reset();
+      // Reset form to default state - provide explicit default values
+      form.reset({
+        summary: "",
+        dtstart: null,
+        status: "CONFIRMED",
+        x_pubky_rsvp_access: "PUBLIC",
+      });
 
       // Redirect to event page
       router.push(`/event/${auth.publicKey}/${eventIdToUse}`);
@@ -239,12 +244,22 @@ export function CreateEventPageLayout({
         )
       ) {
         clearFormData();
-        form.reset();
+        form.reset({
+          summary: "",
+          dtstart: null,
+          status: "CONFIRMED",
+          x_pubky_rsvp_access: "PUBLIC",
+        });
         router.back();
       }
     } else {
       clearFormData();
-      form.reset();
+      form.reset({
+        summary: "",
+        dtstart: null,
+        status: "CONFIRMED",
+        x_pubky_rsvp_access: "PUBLIC",
+      });
       router.back();
     }
   };
