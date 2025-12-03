@@ -36,6 +36,15 @@ export async function saveEvent(
   userId: string
 ): Promise<boolean> {
   try {
+    // Validate session
+    console.log("Session object:", session);
+    console.log("Session.storage:", session?.storage);
+    console.log("Session.info:", session?.info);
+    
+    if (!session || !session.storage) {
+      throw new Error("Invalid session: No storage available. Please sign in again.");
+    }
+
     // Use eventUriBuilder to construct the full URI, then extract the path
     const eventUri = eventUriBuilder(userId, eventId);
     // Convert pubky://userId/path to /path
@@ -44,37 +53,29 @@ export async function saveEvent(
     // Convert event to JSON for storage
     const eventJson = event.toJson();
 
+    console.log("Saving event:", {
+      eventId,
+      userId,
+      eventPath,
+      eventJson,
+    });
+
     // Save to Pubky storage using session
-    await session.storage.putJson(eventPath, eventJson);
+    const result = await session.storage.putJson(eventPath, eventJson);
+
+    console.log("Event saved successfully, result:", result);
+
+    // Verify the save by reading it back
+    try {
+      const verification = await session.storage.getJson(eventPath);
+      console.log("Verification read:", verification);
+    } catch (verifyError) {
+      console.error("Failed to verify event save:", verifyError);
+    }
 
     return true;
   } catch (error) {
     console.error("Error saving event:", error);
     throw error;
   }
-}
-
-/**
- * Fetch attendees for an event (placeholder for future implementation)
- */
-export async function getAttendees(
-  authorId: string,
-  eventId: string
-): Promise<unknown[]> {
-  // TODO: Implement when attendee fetching is needed
-  console.log("getAttendees not yet implemented", { authorId, eventId });
-  return [];
-}
-
-/**
- * Create or update RSVP status (placeholder for future implementation)
- */
-export async function createAttendee(
-  session: unknown,
-  eventUri: string,
-  partstat: string
-): Promise<boolean> {
-  // TODO: Implement when RSVP functionality is needed
-  console.log("createAttendee not yet implemented", { eventUri, partstat });
-  return false;
 }
