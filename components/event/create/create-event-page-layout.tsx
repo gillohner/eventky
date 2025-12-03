@@ -2,7 +2,9 @@
 
 import { useEvent } from "@/hooks/use-event";
 import { useAuth } from "@/components/providers/auth-provider";
+import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { BasicInfoFields } from "./basic-info";
@@ -34,6 +36,7 @@ export function CreateEventPageLayout({
 }: CreateEventPageLayoutProps) {
   const router = useRouter();
   const { auth, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const { formData: persistedFormData, eventId: persistedEventId, setFormData, clearFormData } = useEventFormStore();
 
   // Fetch existing event if in edit mode
@@ -41,7 +44,11 @@ export function CreateEventPageLayout({
   const { data: existingEvent, isLoading } = useEvent(
     authorId || "",
     eventId || "",
-    { enabled: shouldFetchEvent }
+    {
+      queryOptions: {
+        enabled: shouldFetchEvent,
+      },
+    }
   );
 
   // Determine default values
@@ -94,29 +101,17 @@ export function CreateEventPageLayout({
   // Check authentication
   if (!isAuthenticated) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
-            <p className="text-muted-foreground mb-6">
-              You need to be signed in to {mode === "edit" ? "edit" : "create"}{" "}
-              events.
-            </p>
-            <Button onClick={() => {
-              // TODO: Move this logic to parrent component
-              const currentPath = mode === "edit"
-                ? `/event/${authorId}/${eventId}?edit=true`
-                : "/event/create";
-              router.push(`/login?returnPath=${encodeURIComponent(currentPath)}`);
-            }}>Sign In</Button>
-          </div>
-        </div>
-      </div>
+      <AuthGuard
+        mode={mode}
+        resourceType="event"
+        authorId={authorId}
+        resourceId={eventId}
+      />
     );
   }
 
   // Check authorization in edit mode
-  if (mode === "edit" && existingEvent && auth.publicKey) {
+  if (mode === "edit" && existingEvent && auth?.publicKey) {
     if (authorId !== auth.publicKey) {
       return (
         <div className="container mx-auto py-8 px-4">
@@ -167,9 +162,9 @@ export function CreateEventPageLayout({
 
   const onSubmit = form.handleSubmit(async (data: EventFormData) => {
     try {
-      // Verify we have a session
-      if (!auth.session) {
-        toast.error("Session expired. Please sign in again.");
+      // Verify we have auth data
+      if (!auth?.session || !auth?.publicKey) {
+        toast.error("Authentication required. Please sign in.");
         const currentPath = mode === "edit"
           ? `/event/${authorId}/${eventId}?edit=true`
           : "/event/create";
@@ -205,7 +200,7 @@ export function CreateEventPageLayout({
 
       // Save event to Pubky storage
       const { saveEvent } = await import("@/lib/pubky/events");
-      await saveEvent(auth.session, event, eventIdToUse, auth.publicKey!);
+      await saveEvent(auth.session, event, eventIdToUse, auth.publicKey);
 
       toast.success(
         mode === "edit" ? "Event updated successfully!" : "Event created successfully!"
@@ -214,9 +209,17 @@ export function CreateEventPageLayout({
       // Clear persisted form data
       clearFormData();
 
+      // Invalidate relevant queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["nexus", "events"] });
+      if (auth.publicKey) {
+        await queryClient.invalidateQueries({ queryKey: ["nexus", "event", auth.publicKey, eventIdToUse] });
+      }
+
+      // Reset form to default state
+      form.reset();
+
       // Redirect to event page
-      const userId = auth.publicKey!;
-      router.push(`/event/${userId}/${eventIdToUse}`);
+      router.push(`/event/${auth.publicKey}/${eventIdToUse}`);
     } catch (error) {
       console.error("Error saving event:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -236,10 +239,12 @@ export function CreateEventPageLayout({
         )
       ) {
         clearFormData();
+        form.reset();
         router.back();
       }
     } else {
       clearFormData();
+      form.reset();
       router.back();
     }
   };
