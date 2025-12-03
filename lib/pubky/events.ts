@@ -40,7 +40,7 @@ export async function saveEvent(
     console.log("Session object:", session);
     console.log("Session.storage:", session?.storage);
     console.log("Session.info:", session?.info);
-    
+
     if (!session || !session.storage) {
       throw new Error("Invalid session: No storage available. Please sign in again.");
     }
