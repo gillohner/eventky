@@ -16,6 +16,7 @@ interface PubkyConfig {
     };
 
     // Environment
+    env: PubkyEnvironment;
     environment: PubkyEnvironment;
 
     // Homeserver Configuration
@@ -97,6 +98,7 @@ function buildConfig(): PubkyConfig {
             githubRepo: process.env.NEXT_PUBLIC_GITHUB_REPO,
         },
 
+        env: environment,
         environment,
 
         homeserver: {

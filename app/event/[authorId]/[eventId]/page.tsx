@@ -1,5 +1,8 @@
-import { EventPageLayout } from "@/components/event/view/event-page-layout";
+"use client";
+
 import { use } from "react";
+import { useEvent } from "@/hooks/use-event";
+import { DevJsonView } from "@/components/dev-json-view";
 
 interface EventPageProps {
   params: Promise<{
@@ -10,6 +13,14 @@ interface EventPageProps {
 
 export default function EventPage({ params }: EventPageProps) {
   const { authorId, eventId } = use(params);
+  const { data: event, isLoading, error } = useEvent(authorId, eventId);
 
-  return <EventPageLayout authorId={authorId} eventId={eventId} />;
+  return (
+    <DevJsonView
+      data={event}
+      title={`Event: ${authorId}/${eventId}`}
+      isLoading={isLoading}
+      error={error as Error}
+    />
+  );
 }
