@@ -210,7 +210,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             const publicKey = keypair.publicKey.z32();
 
             // Create a session with the restored keypair
-            const pubky = new Pubky();
+            // Use testnet configuration if in testnet mode
+            const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
             const signer = pubky.signer(keypair);
 
             const session = await signer.signin();
