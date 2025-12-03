@@ -1,61 +1,56 @@
-import { Session } from "@synonymdev/pubky";
-import { PubkySpecsBuilder } from "pubky-app-specs";
+import { Pubky, Address, Session } from "@synonymdev/pubky";
+import { PubkyAppCalendar, calendarUriBuilder } from "pubky-app-specs";
 import type { CalendarFormData } from "@/types/calendar";
+import { config } from "@/lib/config";
 
 /**
- * Save calendar to Pubky
+ * Fetch a calendar from Pubky homeserver
  */
-export async function saveCalendar(
-    session: Session,
-    userId: string,
-    calendarData: CalendarFormData
-): Promise<{ success: boolean; error?: string; path?: string }> {
+export async function getCalendar(
+    authorId: string,
+    calendarId: string
+): Promise<PubkyAppCalendar | null> {
     try {
-        // Create calendar using WASM builder
-        const builder = new PubkySpecsBuilder(userId);
-        const calendarResult = builder.createCalendar(
-            calendarData.name,
-            calendarData.timezone,
-            calendarData.color || null,
-            calendarData.image_uri || null,
-            calendarData.description || null,
-            calendarData.url || null,
-            calendarData.x_pubky_admins || null
-        );
+        const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
+        const url = calendarUriBuilder(authorId, calendarId);
+        const data = await pubky.publicStorage.getJson(url as Address);
 
-        // Extract path from URI (remove "pubky://{userId}" prefix)
-        const path = calendarResult.meta.url.replace(`pubky://${userId}`, "") as `/pub/${string}`;
+        if (!data || typeof data !== "object") {
+            return null;
+        }
 
-        // Store calendar JSON
-        await session.storage.putJson(path, calendarResult.calendar);
-
-        return {
-            success: true,
-            path,
-        };
+        // Convert to PubkyAppCalendar class to validate and sanitize
+        return PubkyAppCalendar.fromJson(data);
     } catch (error) {
-        console.error("Failed to save calendar:", error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : "Failed to save calendar",
-        };
+        console.error("Error fetching calendar:", error);
+        return null;
     }
 }
 
 /**
- * Get calendar from Pubky
+ * Create or update a calendar on Pubky Homeserver
  */
-export async function getCalendar(
+export async function saveCalendar(
     session: Session,
-    calendarId: string
-): Promise<CalendarFormData | null> {
+    calendar: PubkyAppCalendar,
+    calendarId: string,
+    userId: string
+): Promise<boolean> {
     try {
-        const path = `/pub/eventky.app/calendars/${calendarId}` as `/pub/${string}`;
+        // Use calendarUriBuilder to construct the full URI, then extract the path
+        const calendarUri = calendarUriBuilder(userId, calendarId);
+        // Convert pubky://userId/path to /path
+        const calendarPath = calendarUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 
-        const calendarData = await session.storage.getJson(path);
-        return calendarData as CalendarFormData;
+        // Convert calendar to JSON for storage
+        const calendarJson = calendar.toJson();
+
+        // Save to Pubky storage using session
+        await session.storage.putJson(calendarPath, calendarJson);
+
+        return true;
     } catch (error) {
-        console.error("Failed to fetch calendar:", error);
-        return null;
+        console.error("Error saving calendar:", error);
+        throw error;
     }
 }
