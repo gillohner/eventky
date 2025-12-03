@@ -116,7 +116,7 @@ export function PubkyAuthWidget({
 
   // Initialize SDK
   useEffect(() => {
-    sdkRef.current = new pubky.Pubky();
+    sdkRef.current = config.env === "testnet" ? pubky.Pubky.testnet() : new pubky.Pubky();
   }, []);
 
   // Auto-generate flow if open prop is true
