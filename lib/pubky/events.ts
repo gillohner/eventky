@@ -1,5 +1,6 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
 import { PubkyAppEvent, eventUriBuilder } from "pubky-app-specs";
+import { config } from "@/lib/config";
 
 /**
  * Fetch an event from Pubky homeserver
@@ -9,7 +10,7 @@ export async function getEvent(
   eventId: string
 ): Promise<PubkyAppEvent | null> {
   try {
-    const pubky = new Pubky();
+    const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
     const url = eventUriBuilder(authorId, eventId);
     const data = await pubky.publicStorage.getJson(url as Address);
 

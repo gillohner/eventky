@@ -4,7 +4,7 @@ import { pubkyClient } from "@/lib/pubky/client";
 
 /**
  * Hook to fetch user profile from Pubky storage (read-only)
- * Requires a valid session to fetch the profile
+ * SDK's cookie-based session management handles authentication automatically
  */
 export function useProfile() {
     const { auth } = useAuth();
@@ -15,15 +15,12 @@ export function useProfile() {
             if (!auth.publicKey) {
                 throw new Error("No public key available");
             }
-            // Only fetch if we have a session - without it we can't access the profile
-            if (!auth.session) {
-                throw new Error("No active session - please re-authenticate");
-            }
-            return await pubkyClient.getProfile(auth.publicKey, auth.session);
+            // SDK handles session via cookies - no need to pass session object
+            return await pubkyClient.getProfile(auth.publicKey);
         },
-        enabled: !!auth.publicKey && !!auth.session, // Only fetch when both exist
+        enabled: !!auth.publicKey && !!auth.session, // Only fetch when authenticated
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: false, // Don't retry if there's no session
+        retry: false,
     });
 
     return {

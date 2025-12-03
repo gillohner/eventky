@@ -4,6 +4,13 @@ import { config } from "@/lib/config";
 
 export class PubkyClient {
   /**
+   * Create Pubky instance with correct configuration (testnet or mainnet)
+   */
+  private static createPubky(): Pubky {
+    return config.env === "testnet" ? Pubky.testnet() : new Pubky();
+  }
+
+  /**
    * Restore keypair from recovery file (for login only)
    */
   static restoreFromRecoveryFile(
@@ -17,7 +24,7 @@ export class PubkyClient {
    * Sign in with restored keypair (for login only)
    */
   async signin(keypair: Keypair): Promise<Session> {
-    const pubky = new Pubky();
+    const pubky = PubkyClient.createPubky();
     const signer = pubky.signer(keypair);
     return signer.signin();
   }
@@ -26,22 +33,14 @@ export class PubkyClient {
    * Retrieve user profile from Pubky storage (read-only)
    * Profiles are managed in pubky.app, we only read them here
    * 
-   * Can use either session.storage (when available) or publicStorage (when reading any user)
+   * SDK's cookie-based session management handles authenticated requests automatically
    */
-  async getProfile(publicKey: string, session?: Session): Promise<ReturnType<PubkyAppUser["toJson"]> | null> {
+  async getProfile(publicKey: string): Promise<ReturnType<PubkyAppUser["toJson"]> | null> {
     try {
-      const pubky = new Pubky();
-      let profileData;
-
-      if (session) {
-        // Use session storage for authenticated user
-        profileData = await session.storage.getJson(config.profile.path as `/pub/${string}`);
-      } else {
-        // Use public storage for any user
-        const url = userUriBuilder(publicKey);
-        // Type cast needed: SDK expects Address type but userUriBuilder returns string
-        profileData = await pubky.publicStorage.getJson(url as Address);
-      }
+      const pubky = PubkyClient.createPubky();
+      const url = userUriBuilder(publicKey);
+      // Type cast needed: SDK expects Address type but userUriBuilder returns string
+      const profileData = await pubky.publicStorage.getJson(url as Address);
 
       if (profileData && typeof profileData === "object") {
         // Convert to PubkyAppUser class to validate and sanitize

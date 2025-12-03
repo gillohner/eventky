@@ -36,16 +36,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         set(authData);
 
         try {
-            // Recovery file auth: Store keypair seed to recreate session on refresh
+            // Store base64-encoded secret key for persistence
+            // Session will be recreated on hydration via signin()
+            // SDK's cookie-based session management handles persistence
             const secretKeyBytes = keypair.secretKey();
-            const keypairSeed = Array.from(secretKeyBytes.slice(0, 32)) as number[];
+            const seed = btoa(String.fromCharCode(...secretKeyBytes));
 
             const serializableData: SerializableAuthData = {
-                isAuthenticated: authData.isAuthenticated,
-                publicKey: authData.publicKey,
-                keypairSeed,
+                isAuthenticated: true,
+                publicKey,
+                seed,
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableData));
+
+            // Ingest user into Nexus for indexing
+            import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                ingestUserIntoNexus(publicKey).catch(console.error);
+            });
         } catch (error) {
             console.error("Error saving auth to localStorage:", error);
         }
@@ -61,11 +68,27 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         set(authData);
 
-        // QR auth: Session persists in memory during browser session only
-        // Cannot be serialized to localStorage (Session object is not JSON-serializable)
-        // Sessions from QR auth are temporary and managed by the authenticator app
-        // User will need to re-authenticate with QR code after page refresh
-        // This is by design for security - similar to WhatsApp Web
+        try {
+            // Store publicKey for QR auth in sessionStorage (tab-scoped persistence)
+            // Session object stays in memory, cookies maintained by browser
+            // This allows auth to persist across page reloads within same tab
+            const serializableData: SerializableAuthData = {
+                isAuthenticated: true,
+                publicKey,
+                seed: null, // No seed for QR auth
+            };
+
+            // Use sessionStorage for tab-scoped persistence (not localStorage)
+            // This way QR auth persists in the tab but not across new tabs
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializableData));
+
+            // Ingest user into Nexus for indexing
+            import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                ingestUserIntoNexus(publicKey).catch(console.error);
+            });
+        } catch (error) {
+            console.error("Error saving auth to sessionStorage:", error);
+        }
     },
 
     logout: () => {
@@ -77,8 +100,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         try {
             localStorage.removeItem(STORAGE_KEY);
             localStorage.removeItem(`${STORAGE_KEY}_session_url`);
+            sessionStorage.removeItem(STORAGE_KEY);
         } catch (error) {
-            console.error("Error removing auth from localStorage:", error);
+            console.error("Error removing auth from storage:", error);
         }
     },
 
@@ -89,22 +113,39 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         set({ isRestoringSession: true });
 
         try {
-            const storedAuth = localStorage.getItem(STORAGE_KEY);
+            // Check localStorage first (recovery file auth with seed)
+            let storedAuth = localStorage.getItem(STORAGE_KEY);
+            let isQrAuth = false;
+
+            // If not in localStorage, check sessionStorage (QR auth)
+            if (!storedAuth) {
+                storedAuth = sessionStorage.getItem(STORAGE_KEY);
+                isQrAuth = true;
+            }
+
             if (storedAuth) {
                 const parsed: SerializableAuthData = JSON.parse(storedAuth);
 
-                // Recovery file auth: Recreate session from keypair seed
-                if (parsed.isAuthenticated && parsed.keypairSeed && parsed.publicKey) {
-                    try {
-                        // Dynamically import Pubky SDK to avoid SSR issues
-                        const { Keypair, Pubky } = await import("@synonymdev/pubky");
+                // Validate stored data
+                if (!parsed.isAuthenticated || !parsed.publicKey) {
+                    console.warn("Invalid stored auth data, clearing...");
+                    localStorage.removeItem(STORAGE_KEY);
+                    sessionStorage.removeItem(STORAGE_KEY);
+                    set({ isHydrated: true, isRestoringSession: false });
+                    return;
+                }
 
-                        // Recreate keypair from seed
-                        const seedArray = new Uint8Array(parsed.keypairSeed);
-                        const keypair = Keypair.fromSecretKey(seedArray);
+                try {
+                    const { Keypair, Pubky } = await import("@synonymdev/pubky");
+                    const { config } = await import("@/lib/config");
 
-                        // Recreate session
-                        const pubky = new Pubky();
+                    if (parsed.seed) {
+                        // Recovery file auth: Recreate keypair and session from seed
+                        const seedBytes = Uint8Array.from(atob(parsed.seed), c => c.charCodeAt(0));
+                        const keypair = Keypair.fromSecretKey(seedBytes);
+
+                        // Use testnet configuration if in testnet mode
+                        const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
                         const signer = pubky.signer(keypair);
                         const session = await signer.signin();
 
@@ -116,32 +157,41 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                             isHydrated: true,
                             isRestoringSession: false,
                         });
-                        return;
-                    } catch (sessionError) {
-                        console.warn("Error restoring session from keypair, will require re-authentication:", sessionError);
-                        // Clear invalid stored auth data
-                        localStorage.removeItem(STORAGE_KEY);
-                        // Fall through to logout state
-                    }
-                }
 
-                // QR auth case: No keypair seed means session can't be restored
-                // User needs to re-authenticate with QR code
-                // Also clear any stored auth that failed to restore
-                localStorage.removeItem(STORAGE_KEY);
-                set({
-                    isAuthenticated: false,
-                    publicKey: null,
-                    keypair: null,
-                    session: null,
-                    isHydrated: true,
-                    isRestoringSession: false,
-                });
+                        // Ingest user into Nexus for indexing after hydration
+                        if (parsed.publicKey) {
+                            import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                                ingestUserIntoNexus(parsed.publicKey!).catch(console.error);
+                            });
+                        }
+                    } else if (isQrAuth) {
+                        // QR auth: Session cookies should still be valid in this browser tab
+                        // We can't recreate the Session object without the keypair,
+                        // but browser maintains HTTP session cookies
+                        // User needs to re-scan QR code to get a new Session object
+                        console.warn("QR auth detected but Session object lost on reload");
+                        console.warn("Please re-authenticate with QR code");
+                        sessionStorage.removeItem(STORAGE_KEY);
+                        set({ isHydrated: true, isRestoringSession: false });
+                    } else {
+                        // No seed and not QR auth - invalid state
+                        console.warn("Invalid auth state, clearing...");
+                        localStorage.removeItem(STORAGE_KEY);
+                        set({ isHydrated: true, isRestoringSession: false });
+                    }
+                } catch (error) {
+                    console.error("Could not restore session:", error);
+                    localStorage.removeItem(STORAGE_KEY);
+                    sessionStorage.removeItem(STORAGE_KEY);
+                    set({ isHydrated: true, isRestoringSession: false });
+                }
             } else {
                 set({ isHydrated: true, isRestoringSession: false });
             }
         } catch (error) {
-            console.error("Error loading auth from localStorage:", error);
+            console.error("Error loading auth from storage:", error);
+            localStorage.removeItem(STORAGE_KEY);
+            sessionStorage.removeItem(STORAGE_KEY);
             set({ isHydrated: true, isRestoringSession: false });
         }
     },

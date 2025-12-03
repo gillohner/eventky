@@ -10,8 +10,10 @@ export interface AuthData {
 export interface SerializableAuthData {
   isAuthenticated: boolean;
   publicKey: string | null;
-  // Store keypair seed for recovery file auth (enables session recreation)
-  keypairSeed: number[] | null;
+  // Store base64-encoded secret key for recovery file auth
+  // Session will be recreated on hydration via signin()
+  // SDK's cookie-based session management handles persistence
+  seed: string | null; // Base64-encoded secret key (64 bytes)
 }
 
 export interface AuthContextType {
