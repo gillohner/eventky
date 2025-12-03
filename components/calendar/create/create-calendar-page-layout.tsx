@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import type { CalendarFormData } from "@/types/calendar";
 import { useAuth } from "@/components/providers/auth-provider";
+import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { BasicInfoFields } from "./basic-info";
 import { SettingsFields } from "./settings";
 import { saveCalendar } from "@/lib/pubky/calendars";
@@ -15,7 +17,8 @@ import { config } from "@/lib/config";
 
 export function CreateCalendarPageLayout() {
     const router = useRouter();
-    const { auth } = useAuth();
+    const { auth, isAuthenticated } = useAuth();
+    const queryClient = useQueryClient();
     const [isSaving, setIsSaving] = useState(false);
 
     const form = useForm<CalendarFormData>({
@@ -43,6 +46,13 @@ export function CreateCalendarPageLayout() {
 
             if (result.success) {
                 toast.success("Calendar created successfully!");
+
+                // Invalidate calendars queries to refresh data
+                await queryClient.invalidateQueries({ queryKey: ["nexus", "calendars"] });
+
+                // Reset form to default state
+                form.reset();
+
                 // TODO: Navigate to calendar view when implemented
                 router.push("/");
             } else {
@@ -56,18 +66,11 @@ export function CreateCalendarPageLayout() {
         }
     };
 
-    if (!auth?.publicKey) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center space-y-4">
-                    <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <p className="text-lg text-muted-foreground">
-                        Please log in to create a calendar
-                    </p>
-                </div>
-            </div>
-        );
+    // Check authentication
+    if (!isAuthenticated) {
+        return <AuthGuard mode="create" resourceType="calendar" />;
     }
+
 
     return (
         <div className="container max-w-4xl mx-auto py-8 px-4">

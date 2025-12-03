@@ -39,8 +39,8 @@ const navItems = [
         icon: Home,
     },
     {
-        title: "Calendar",
-        url: "/calendar",
+        title: "Calendars",
+        url: "/calendars",
         icon: Calendar,
     },
     {
@@ -124,6 +124,14 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent className="px-2 space-y-2">
                         <Button
+                            onClick={() => router.push("/event/create")}
+                            className="w-full justify-start"
+                            size="lg"
+                        >
+                            <Plus />
+                            New Event
+                        </Button>
+                        <Button
                             onClick={() => router.push("/calendar/create")}
                             className="w-full justify-start"
                             size="lg"
@@ -132,14 +140,7 @@ export function AppSidebar() {
                             <Plus />
                             New Calendar
                         </Button>
-                        <Button
-                            onClick={() => router.push("/event/create")}
-                            className="w-full justify-start"
-                            size="lg"
-                        >
-                            <Plus />
-                            New Event
-                        </Button>
+
                     </SidebarGroupContent>
                 </SidebarGroup>
 

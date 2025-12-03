@@ -8,8 +8,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-import { Pubky, Session, AuthToken } from "@synonymdev/pubky";
+import { Pubky, Session, AuthToken, Keypair, PublicKey } from "@synonymdev/pubky";
 import { PubkyAuthWidget } from "@/components/ui/pubky-auth-widget";
+import { config } from "@/lib/config";
+
+// Helper function to ingest user into Nexus
+async function ingestUserIntoNexus(publicKey: string) {
+    try {
+        const response = await fetch(`${config.gateway.url}/v0/ingest/${publicKey}`, {
+            method: 'PUT',
+            headers: {
+                'accept': '*/*'
+            }
+        });
+
+        if (response.ok) {
+            console.log(`User ${publicKey} ingested into Nexus`);
+        } else {
+            console.warn(`Failed to ingest user into Nexus: ${response.status}`);
+        }
+    } catch (error) {
+        console.warn('Failed to ingest user into Nexus:', error);
+        // Don't throw - this is a non-critical operation
+    }
+}
 
 interface LoginPageProps {
     searchParams: Promise<{
@@ -30,6 +52,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
     const [recoveryFile, setRecoveryFile] = useState<File | null>(null);
     const [isHydrated, setIsHydrated] = useState(false);
     const [authMethod, setAuthMethod] = useState<"recovery" | "qr">("qr");
+    const [isSigningUp, setIsSigningUp] = useState(false);
 
     // Handle hydration
     useEffect(() => {
@@ -58,6 +81,9 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         try {
             // If we have a session, use it directly
             if (session) {
+                // Ingest user into Nexus
+                await ingestUserIntoNexus(publicKey);
+
                 // QR auth: Session persists in memory during browser session
                 // Cannot be stored in localStorage (not serializable)
                 // User will need to re-scan QR after page refresh
@@ -87,6 +113,84 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         setError(`QR authentication failed: ${error.message}`);
     };
 
+    const handleTestnetSignup = async () => {
+        if (config.env !== "testnet") {
+            toast.error("Testnet signup only available in testnet mode");
+            return;
+        }
+
+        setIsSigningUp(true);
+        setError(null);
+
+        try {
+            // Generate a signup token from the testnet homeserver admin API
+            const tokenResponse = await fetch("http://localhost:6288/generate_signup_token", {
+                headers: {
+                    "X-Admin-Password": "admin"
+                }
+            });
+
+            if (!tokenResponse.ok) {
+                throw new Error("Failed to generate signup token");
+            }
+
+            const signupToken = await tokenResponse.text();
+            console.log("Generated signup token:", signupToken);
+
+            // Create a new random keypair
+            const keypair = Keypair.random();
+            const publicKey = keypair.publicKey.z32();
+            console.log("Generated keypair for user:", publicKey);
+
+            // Initialize Pubky SDK for testnet
+            const pubky = Pubky.testnet();
+            const signer = pubky.signer(keypair);
+
+            // Sign up on the testnet homeserver
+            const homeserver = PublicKey.from(config.homeserver.publicKey);
+            const session = await signer.signup(homeserver, signupToken);
+
+            console.log("Signup successful! User:", session.info.publicKey.z32());
+
+            // Wait a moment for Pkarr record to propagate
+            console.log("Waiting for Pkarr record to propagate...");
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Create a default profile for the new user
+            const defaultProfile = {
+                name: `Test User ${publicKey.substring(0, 8)}`,
+                bio: "Test account created via Eventky testnet signup",
+                image: null,
+                links: [],
+                status: null
+            };
+
+            try {
+                // Write the profile to the homeserver
+                await session.storage.putText("/pub/pubky.app/profile.json", JSON.stringify(defaultProfile));
+                console.log("Default profile created");
+            } catch (profileError) {
+                console.warn("Failed to create default profile:", profileError);
+                // Continue anyway - profile can be created later
+            }
+
+            // Ingest user into Nexus to start monitoring this homeserver
+            await ingestUserIntoNexus(publicKey);
+
+            // Sign in with the new account
+            signin(publicKey, keypair, session);
+
+            toast.success(`Account created! User ID: ${publicKey.substring(0, 8)}...`);
+            router.push(returnPath);
+        } catch (error) {
+            console.error("Testnet signup error:", error);
+            setError(`Failed to create testnet account: ${error instanceof Error ? error.message : "Unknown error"}`);
+            toast.error("Failed to create testnet account");
+        } finally {
+            setIsSigningUp(false);
+        }
+    };
+
     const handleSignIn = async () => {
         if (!recoveryFile || !passphrase.trim()) {
             setError("Please select a recovery file and enter your passphrase");
@@ -110,6 +214,9 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             const signer = pubky.signer(keypair);
 
             const session = await signer.signin();
+
+            // Ingest user into Nexus to start monitoring this homeserver
+            await ingestUserIntoNexus(publicKey);
 
             // Sign in with the restored credentials
             // The useProfile hook will automatically fetch the profile after signin
@@ -337,6 +444,55 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                                         <p className="text-sm text-red-400">{error}</p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Testnet Quick Signup */}
+                {config.env === "testnet" && (
+                    <div className="w-full max-w-md mx-auto mb-8">
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-border/50"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="bg-background px-4 text-muted-foreground">Testnet Only</span>
+                            </div>
+                        </div>
+                        <div className="mt-6 rounded-2xl border-2 border-yellow-500/30 bg-yellow-500/5 p-6">
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-500/20">
+                                    <svg className="h-5 w-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-semibold text-yellow-500 mb-1">Quick Testnet Signup</h3>
+                                    <p className="text-xs text-muted-foreground mb-4">
+                                        Create a new random account on the local testnet homeserver instantly. Perfect for testing!
+                                    </p>
+                                    <Button
+                                        onClick={handleTestnetSignup}
+                                        disabled={isSigningUp}
+                                        variant="outline"
+                                        className="w-full border-yellow-500/50 hover:bg-yellow-500/10"
+                                    >
+                                        {isSigningUp ? (
+                                            <>
+                                                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-yellow-500/20 border-t-yellow-500"></div>
+                                                Creating Account...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                                </svg>
+                                                Create Test Account
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>

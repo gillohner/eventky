@@ -118,13 +118,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                         });
                         return;
                     } catch (sessionError) {
-                        console.error("Error restoring session from keypair:", sessionError);
+                        console.warn("Error restoring session from keypair, will require re-authentication:", sessionError);
+                        // Clear invalid stored auth data
+                        localStorage.removeItem(STORAGE_KEY);
                         // Fall through to logout state
                     }
                 }
 
                 // QR auth case: No keypair seed means session can't be restored
                 // User needs to re-authenticate with QR code
+                // Also clear any stored auth that failed to restore
+                localStorage.removeItem(STORAGE_KEY);
                 set({
                     isAuthenticated: false,
                     publicKey: null,
