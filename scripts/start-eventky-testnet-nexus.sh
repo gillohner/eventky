@@ -29,19 +29,41 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Start Neo4j and Redis using docker-compose
-echo -e "${GREEN}Starting Neo4j, Redis, and PostgreSQL...${NC}"
+# Start Neo4j and Redis from pubky-nexus/docker
+echo -e "${GREEN}Starting Neo4j and Redis from pubky-nexus...${NC}"
 cd /home/gil/Repositories/pubky-nexus/docker
 if ! docker compose up -d neo4j redis; then
     echo -e "${RED}Error: Failed to start Neo4j and Redis${NC}"
     exit 1
 fi
 
-# Start PostgreSQL for testnet from pubky-docker
-cd /home/gil/Repositories/pubky-docker
-if ! docker compose up -d postgres; then
-    echo -e "${RED}Error: Failed to start PostgreSQL${NC}"
-    exit 1
+# Start PostgreSQL for testnet as standalone container
+echo -e "${GREEN}Starting PostgreSQL for testnet...${NC}"
+# Check if postgres container already exists
+if docker ps -a --format '{{.Names}}' | grep -q "^eventky-postgres$"; then
+    echo -e "${YELLOW}PostgreSQL container already exists, starting...${NC}"
+    docker start eventky-postgres || {
+        echo -e "${YELLOW}Container exists but failed to start, recreating...${NC}"
+        docker rm -f eventky-postgres
+        docker run -d \
+            --name eventky-postgres \
+            -e POSTGRES_USER=test_user \
+            -e POSTGRES_PASSWORD=test_pass \
+            -e POSTGRES_DB=pubky_homeserver \
+            -p 5432:5432 \
+            -v eventky-postgres-data:/var/lib/postgresql/data \
+            postgres:17-alpine
+    }
+else
+    echo -e "${GREEN}Creating new PostgreSQL container...${NC}"
+    docker run -d \
+        --name eventky-postgres \
+        -e POSTGRES_USER=test_user \
+        -e POSTGRES_PASSWORD=test_pass \
+        -e POSTGRES_DB=pubky_homeserver \
+        -p 5432:5432 \
+        -v eventky-postgres-data:/var/lib/postgresql/data \
+        postgres:17-alpine
 fi
 
 # Wait for services to be ready
@@ -59,7 +81,7 @@ if ! docker ps | grep -q redis; then
     exit 1
 fi
 
-if ! docker ps | grep -q postgres; then
+if ! docker ps | grep -q "eventky-postgres"; then
     echo -e "${RED}Error: PostgreSQL container is not running${NC}"
     exit 1
 fi
