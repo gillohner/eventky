@@ -3,7 +3,6 @@
  * Functions for fetching event data from the Pubky Nexus API
  */
 
-import { PubkyAppEvent } from "pubky-app-specs";
 import { nexusClient, getErrorMessage } from "./client";
 
 /**
