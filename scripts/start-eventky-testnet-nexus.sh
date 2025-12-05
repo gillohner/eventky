@@ -87,6 +87,16 @@ if ! docker ps | grep -q "eventky-postgres"; then
 fi
 
 echo -e "${GREEN}✓ Neo4j, Redis, and PostgreSQL are running${NC}"
+
+# Reset Nexus cursor to 0 for fresh start
+echo -e "${YELLOW}Resetting Nexus cursor to 0...${NC}"
+HOMESERVER_KEY="Homeserver:8pinxxgqs41n4aididenw5apqp1urfmzdztr8jt4abrkdn435ewo"
+if docker exec redis redis-cli EXISTS "$HOMESERVER_KEY" 2>/dev/null | grep -q "1"; then
+    docker exec redis redis-cli JSON.SET "$HOMESERVER_KEY" '.cursor' '"0"' > /dev/null 2>&1
+    echo -e "${GREEN}✓ Cursor reset to 0${NC}"
+else
+    echo -e "${YELLOW}Note: Homeserver not in Redis yet (will be created on first run)${NC}"
+fi
 echo ""
 
 # Kill existing tmux session if it exists

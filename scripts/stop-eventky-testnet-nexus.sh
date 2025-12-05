@@ -40,6 +40,18 @@ echo -e "${GREEN}✓ Neo4j and Redis stopped${NC}"
 echo ""
 echo -e "${GREEN}✓ All services stopped${NC}"
 echo ""
+
+# Option to clean Redis data
+read -p "Do you want to clean Redis data (cursor will reset)? [y/N] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Cleaning Redis data...${NC}"
+    cd /home/gil/Repositories/pubky-nexus/docker
+    docker compose down redis -v
+    echo -e "${GREEN}✓ Redis data cleaned${NC}"
+fi
+
+echo ""
 echo "To remove containers and volumes:"
 echo "  - Remove PostgreSQL: docker rm eventky-postgres"
 echo "  - Remove PostgreSQL data: docker volume rm eventky-postgres-data"
