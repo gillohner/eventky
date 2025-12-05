@@ -21,14 +21,14 @@ function createNexusClient(): AxiosInstance {
   // Add response interceptor for error handling
   client.interceptors.response.use(
     (response) => response,
-    (error: AxiosError) => {
+    (error: AxiosError<{ error?: string }>) => {
       if (error.response) {
         // Server responded with error status
         console.error("Nexus API Error:", {
           status: error.response.status,
           data: error.response.data,
           url: error.config?.url,
-          message: (error.response.data as any)?.error || error.message,
+          message: error.response.data?.error || error.message,
         });
       } else if (error.request) {
         // Request was made but no response received

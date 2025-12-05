@@ -1,6 +1,5 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
 import { PubkyAppCalendar, calendarUriBuilder } from "pubky-app-specs";
-import type { CalendarFormData } from "@/types/calendar";
 import { config } from "@/lib/config";
 
 /**

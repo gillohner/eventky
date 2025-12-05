@@ -1,6 +1,6 @@
 "use client";
 
-import { useCalendarsStream } from "@/hooks/use-calendar";
+import { useCalendarsStream } from "@/hooks/use-calendar-optimistic";
 import { DevJsonView } from "@/components/dev-json-view";
 
 export default function CalendarsPage() {
