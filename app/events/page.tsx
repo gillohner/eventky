@@ -1,6 +1,6 @@
 "use client";
 
-import { useEventsStream } from "@/hooks/use-event";
+import { useEventsStream } from "@/hooks/use-event-optimistic";
 import { DevJsonView } from "@/components/dev-json-view";
 
 export default function EventsPage() {

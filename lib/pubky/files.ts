@@ -4,6 +4,7 @@
 
 import { Session } from "@synonymdev/pubky";
 import { PubkySpecsBuilder } from "pubky-app-specs";
+import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 
 /**
  * Upload an image file to Pubky homeserver
@@ -54,6 +55,10 @@ export async function uploadImageFile(
         fileResult.file.toJson()
     );
 
+    // Trigger Nexus ingest to speed up file indexing
+    // This is fire-and-forget - don't block on it
+    ingestUserIntoNexus(userId).catch(console.error);
+
     // Return file URI for use in form
     return fileResult.meta.url;
 }
@@ -68,10 +73,11 @@ export async function deleteImageFile(
     session: Session,
     fileUri: string
 ): Promise<void> {
-    // Parse file URI to get path
+    // Parse file URI to get path and user ID
     // Format: pubky://USER_ID/pub/pubky.app/files/FILE_ID
     const fileUrl = new URL(fileUri);
     const filePath = fileUrl.pathname as `/pub/${string}`;
+    const userId = fileUrl.hostname; // User ID is the hostname in pubky:// URIs
 
     // Get file metadata to find blob reference
     const fileResponse = await session.storage.get(filePath);
@@ -90,6 +96,11 @@ export async function deleteImageFile(
 
     // Delete file metadata
     await session.storage.delete(filePath);
+
+    // Trigger Nexus ingest to update index after deletion
+    if (userId) {
+        ingestUserIntoNexus(userId).catch(console.error);
+    }
 }
 
 /**

@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { CacheSyncProvider, GlobalSyncIndicator } from "@/components/providers/cache-sync-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,14 +35,17 @@ export default function RootLayout({
       >
         <QueryProvider>
           <AuthProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <SidebarTrigger className="m-4" />
-                {children}
-              </SidebarInset>
-            </SidebarProvider>
-            <Toaster />
+            <CacheSyncProvider>
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset>
+                  <SidebarTrigger className="m-4" />
+                  {children}
+                </SidebarInset>
+              </SidebarProvider>
+              <GlobalSyncIndicator />
+              <Toaster />
+            </CacheSyncProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

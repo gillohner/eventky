@@ -3,7 +3,6 @@
  * Functions for fetching calendar data from the Pubky Nexus API
  */
 
-import { PubkyAppCalendar } from "pubky-app-specs";
 import { nexusClient, getErrorMessage } from "./client";
 
 /**

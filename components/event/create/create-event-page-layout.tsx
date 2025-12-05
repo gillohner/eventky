@@ -1,10 +1,10 @@
 "use client";
 
-import { useEvent } from "@/hooks/use-event";
+import { useEvent } from "@/hooks/use-event-optimistic";
+import { useCreateEvent, useUpdateEvent } from "@/hooks/use-event-mutations";
 import { useAuth } from "@/components/providers/auth-provider";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
-import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { BasicInfoFields } from "./basic-info";
@@ -36,8 +36,15 @@ export function CreateEventPageLayout({
 }: CreateEventPageLayoutProps) {
   const router = useRouter();
   const { auth, isAuthenticated } = useAuth();
-  const queryClient = useQueryClient();
   const { formData: persistedFormData, eventId: persistedEventId, setFormData, clearFormData } = useEventFormStore();
+
+  // Mutation hooks with optimistic updates
+  const createEventMutation = useCreateEvent({
+    showToasts: false, // We handle toasts manually for better UX
+  });
+  const updateEventMutation = useUpdateEvent({
+    showToasts: false,
+  });
 
   // Fetch existing event if in edit mode
   const shouldFetchEvent = mode === "edit" && !!authorId && !!eventId;
@@ -198,22 +205,23 @@ export function CreateEventPageLayout({
       // Generate event ID for new events using the event's createId method
       const eventIdToUse = mode === "edit" ? eventId! : event.createId();
 
-      // Save event to Pubky storage
-      const { saveEvent } = await import("@/lib/pubky/events");
-      await saveEvent(auth.session, event, eventIdToUse, auth.publicKey);
-
-      toast.success(
-        mode === "edit" ? "Event updated successfully!" : "Event created successfully!"
-      );
+      // Use mutation hooks for optimistic updates
+      if (mode === "edit") {
+        await updateEventMutation.mutateAsync({
+          event,
+          eventId: eventIdToUse,
+        });
+        toast.success("Event updated successfully!");
+      } else {
+        await createEventMutation.mutateAsync({
+          event,
+          eventId: eventIdToUse,
+        });
+        toast.success("Event created successfully!");
+      }
 
       // Clear persisted form data
       clearFormData();
-
-      // Invalidate relevant queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ["nexus", "events"] });
-      if (auth.publicKey) {
-        await queryClient.invalidateQueries({ queryKey: ["nexus", "event", auth.publicKey, eventIdToUse] });
-      }
 
       // Reset form to default state - provide explicit default values
       form.reset({
@@ -223,7 +231,7 @@ export function CreateEventPageLayout({
         x_pubky_rsvp_access: "PUBLIC",
       });
 
-      // Redirect to event page
+      // Redirect to event page - optimistic cache will show data immediately
       router.push(`/event/${auth.publicKey}/${eventIdToUse}`);
     } catch (error) {
       console.error("Error saving event:", error);

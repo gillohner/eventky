@@ -22,6 +22,7 @@ interface PubkyConfig {
     // Homeserver Configuration
     homeserver: {
         publicKey: string;
+        url: string; // HTTP URL for direct file access
     };
 
     // HTTP Relay Configuration (for QR code authentication)
@@ -70,6 +71,16 @@ const DEFAULT_GATEWAYS: Record<PubkyEnvironment, string> = {
 };
 
 /**
+ * Default homeserver HTTP URLs for each environment
+ * Used for direct file access when Nexus hasn't indexed yet
+ */
+const DEFAULT_HOMESERVER_URLS: Record<PubkyEnvironment, string> = {
+    testnet: "http://localhost:6286",
+    staging: "https://homeserver.staging.pubky.app",
+    production: "https://homeserver.pubky.app",
+};
+
+/**
  * Get the current environment from env variables
  */
 function getEnvironment(): PubkyEnvironment {
@@ -103,6 +114,7 @@ function buildConfig(): PubkyConfig {
 
         homeserver: {
             publicKey: process.env.NEXT_PUBLIC_PUBKY_HOMESERVER || DEFAULT_HOMESERVERS[environment],
+            url: process.env.NEXT_PUBLIC_PUBKY_HOMESERVER_URL || DEFAULT_HOMESERVER_URLS[environment],
         },
 
         relay: {

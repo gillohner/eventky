@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, X, RefreshCw } from "lucide-react";
+import { Upload, X, RefreshCw, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { uploadImageFile, deleteImageFile, validateImageFile } from "@/lib/pubky/files";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
@@ -30,6 +30,7 @@ export function ImageUpload({
     const [isDeleting, setIsDeleting] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [imageKey, setImageKey] = useState(0);
+    const [imageLoadError, setImageLoadError] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = async (file: File) => {
@@ -54,6 +55,8 @@ export function ImageUpload({
             const imageUri = await uploadImageFile(auth.session, auth.publicKey!, file);
             onChange(imageUri);
             setImageKey(prev => prev + 1);
+            // Reset error states when new image is uploaded
+            setImageLoadError(false);
 
             toast.success("Image uploaded successfully");
         } catch (error) {
@@ -143,6 +146,37 @@ export function ImageUpload({
                 <div className="relative group rounded-lg overflow-hidden border bg-muted -mx-6 sm:mx-0">
                     {isUploading || isDeleting ? (
                         <Skeleton className={`${aspectClass} w-full`} />
+                    ) : imageLoadError ? (
+                        // Show error state with actions when image fails to load
+                        <div className={`${aspectClass} w-full flex flex-col items-center justify-center bg-destructive/10 text-destructive p-4`}>
+                            <AlertTriangle className="h-8 w-8 mb-2" />
+                            <p className="text-sm font-medium text-center mb-1">Image not available</p>
+                            <p className="text-xs text-muted-foreground text-center mb-3">
+                                The image may not be indexed yet
+                            </p>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={handleReplace}
+                                    disabled={isUploading || isDeleting}
+                                >
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Replace
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleDelete}
+                                    disabled={isUploading || isDeleting}
+                                >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Remove
+                                </Button>
+                            </div>
+                        </div>
                     ) : (
                         <>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -151,14 +185,23 @@ export function ImageUpload({
                                 src={getPubkyImageUrl(value, "main")}
                                 alt="Uploaded image"
                                 className={`${aspectClass} w-full object-cover`}
+                                onLoad={() => {
+                                    // Reset error state on successful load
+                                    setImageLoadError(false);
+                                }}
                                 onError={(e) => {
                                     const img = e.currentTarget;
                                     const retryCount = parseInt(img.dataset.retryCount || "0");
+
+                                    // Try up to 3 times with delay, then show error
                                     if (retryCount < 3) {
                                         img.dataset.retryCount = String(retryCount + 1);
                                         setTimeout(() => {
-                                            img.src = getPubkyImageUrl(value, "main") + `?retry=${retryCount}`;
+                                            img.src = getPubkyImageUrl(value, "main") + `?retry=${retryCount + 1}`;
                                         }, 1000 * (retryCount + 1));
+                                    } else {
+                                        // All retries failed, show error state
+                                        setImageLoadError(true);
                                     }
                                 }}
                             />
