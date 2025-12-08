@@ -188,6 +188,8 @@ export function pubkyCalendarToNexusFormat(
             image_uri: calendar.image_uri ?? undefined,
             x_pubky_admins: calendar.x_pubky_admins ?? undefined,
             created: calendar.created ? Number(calendar.created) : undefined,
+            sequence: calendar.sequence ?? undefined,
+            last_modified: calendar.last_modified ? Number(calendar.last_modified) : undefined,
         },
         tags: [],
     };
@@ -207,6 +209,23 @@ export function extractEventVersion(event: NexusEventResponse): EventVersionInfo
         sequence: event.details.sequence ?? 0,
         lastModified: event.details.last_modified ?? 0,
         indexedAt: event.details.indexed_at ?? 0,
+    };
+}
+
+/**
+ * Extract version info from NexusCalendarResponse for comparison
+ */
+export interface CalendarVersionInfo {
+    sequence: number;
+    lastModified: number;
+    indexedAt: number;
+}
+
+export function extractCalendarVersion(calendar: NexusCalendarResponse): CalendarVersionInfo {
+    return {
+        sequence: calendar.details.sequence ?? 0,
+        lastModified: calendar.details.last_modified ?? 0,
+        indexedAt: calendar.details.indexed_at ?? 0,
     };
 }
 
