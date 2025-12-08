@@ -74,3 +74,55 @@ export function truncatePublicKey(publicKey: string | null, length: number = 8):
 
   return `${publicKey.slice(0, length)}...${publicKey.slice(-length)}`;
 }
+
+/**
+ * Z-Base32 alphabet used by Pkarr/Pubky for public key encoding
+ * https://philzimmermann.com/docs/human-oriented-base-32-encoding.txt
+ */
+const Z_BASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
+
+/**
+ * Validate if a string is a valid Pubky public key
+ * Based on pubky-app-specs PubkyId validation:
+ * - Must be exactly 52 characters
+ * - Must be valid Z-Base32 encoding
+ * 
+ * @param input - The string to validate (with or without pk: prefix)
+ * @returns Object with isValid flag and cleaned pubkyId (without pk: prefix)
+ */
+export function validatePubkyId(input: string): { isValid: boolean; pubkyId: string } {
+  // Strip pk: prefix if present (case-insensitive)
+  const cleanInput = input.toLowerCase().startsWith("pk:")
+    ? input.slice(3)
+    : input;
+
+  // Must be exactly 52 characters
+  if (cleanInput.length !== 52) {
+    return { isValid: false, pubkyId: cleanInput };
+  }
+
+  // Must only contain valid Z-Base32 characters
+  const lowercaseInput = cleanInput.toLowerCase();
+  for (const char of lowercaseInput) {
+    if (!Z_BASE32_ALPHABET.includes(char)) {
+      return { isValid: false, pubkyId: cleanInput };
+    }
+  }
+
+  return { isValid: true, pubkyId: lowercaseInput };
+}
+
+/**
+ * Check if input looks like it might be a public key (for UX hints)
+ * Returns true if it starts with pk: or is 52 chars of valid-looking characters
+ */
+export function looksLikePubkyId(input: string): boolean {
+  if (input.toLowerCase().startsWith("pk:")) {
+    return true;
+  }
+  // If it's getting close to 52 chars and looks alphanumeric
+  if (input.length >= 40 && /^[a-z0-9]+$/i.test(input)) {
+    return true;
+  }
+  return false;
+}
