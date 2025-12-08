@@ -14,7 +14,14 @@ import {
     ChevronDown,
     ChevronUp,
     Loader2,
+    Info,
 } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface EventTag {
     label: string;
@@ -84,7 +91,7 @@ export function TagsSection({
 
     return (
         <Card className={cn("", className)}>
-            <CardHeader className="pb-2">
+            <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <Tag className="h-5 w-5 text-muted-foreground" />
@@ -94,6 +101,16 @@ export function TagsSection({
                                 {tags.length}
                             </Badge>
                         )}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Tags apply to the entire event series, not individual instances.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </CardTitle>
 
                     {/* Add Tag Button */}
@@ -110,7 +127,7 @@ export function TagsSection({
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-0">
                 {/* Tag Input */}
                 {showInput && (
                     <div className="flex items-center gap-2">
@@ -146,11 +163,6 @@ export function TagsSection({
                         </Button>
                     </div>
                 )}
-
-                {/* Series Tag Notice */}
-                <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
-                    Tags apply to the entire event series, not individual instances.
-                </div>
 
                 {/* Tags Display */}
                 {tags.length > 0 ? (
