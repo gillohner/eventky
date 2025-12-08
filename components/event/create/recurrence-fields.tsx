@@ -81,7 +81,7 @@ export function RecurrenceFields({
         // Skip calculation if custom RRULE is empty or invalid
         if (preset === "custom" && !rrule) return [];
 
-        return calculateNextOccurrences(rrule, dtstart, count || 104);
+        return calculateNextOccurrences({ rrule, dtstart, maxCount: count || 104 });
     }, [preset, dtstart, buildRRule, count]);
 
     // Update rrule and exdate when dependencies change

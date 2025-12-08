@@ -1,6 +1,6 @@
-import { Pubky, Keypair, Session, Address } from "@synonymdev/pubky";
+import { Pubky, Keypair, Session, Address, PublicKey } from "@synonymdev/pubky";
 import { PubkyAppUser, userUriBuilder } from "pubky-app-specs";
-import { config } from "@/lib/config";
+import { config, isTestnet } from "@/lib/config";
 
 export class PubkyClient {
   /**
@@ -21,11 +21,25 @@ export class PubkyClient {
   }
 
   /**
-   * Sign in with restored keypair (for login only)
+   * Sign in with restored keypair
+   * 
+   * For testnet: Uses signup() with the configured homeserver since PKARR
+   * records aren't published in local testnet environments.
+   * 
+   * For mainnet: Uses signin() which resolves the homeserver via PKARR/PKDNS.
    */
   async signin(keypair: Keypair): Promise<Session> {
     const pubky = PubkyClient.createPubky();
     const signer = pubky.signer(keypair);
+
+    if (isTestnet) {
+      // In testnet, PKARR records aren't published to a resolvable DHT,
+      // so we use signup() with the configured homeserver instead.
+      // signup() works for both new and existing users.
+      const homeserverKey = PublicKey.from(config.homeserver.publicKey);
+      return signer.signup(homeserverKey);
+    }
+
     return signer.signin();
   }
 
