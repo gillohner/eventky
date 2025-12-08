@@ -11,6 +11,7 @@ import { BasicInfoFields } from "./basic-info";
 import { DateTimeFields } from "./datetime-fields";
 import { RecurrenceFields } from "./recurrence-fields";
 import { LocationFields } from "./location-fields";
+import { CalendarSelector } from "./calendar-selector";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -27,12 +28,15 @@ interface CreateEventPageLayoutProps {
   mode?: "create" | "edit";
   authorId?: string;
   eventId?: string;
+  /** Pre-fill with this calendar URI (used when coming from a calendar page) */
+  initialCalendarUri?: string;
 }
 
 export function CreateEventPageLayout({
   mode = "create",
   authorId,
   eventId,
+  initialCalendarUri,
 }: CreateEventPageLayoutProps) {
   const router = useRouter();
   const { auth, isAuthenticated } = useAuth();
@@ -67,15 +71,26 @@ export function CreateEventPageLayout({
 
     // In create mode, check if we have persisted data for this event
     if (mode === "create" && persistedFormData && !persistedEventId) {
+      // If we have an initial calendar URI, merge it with persisted data
+      if (initialCalendarUri) {
+        const existingUris = persistedFormData.x_pubky_calendar_uris || [];
+        if (!existingUris.includes(initialCalendarUri)) {
+          return {
+            ...persistedFormData,
+            x_pubky_calendar_uris: [initialCalendarUri, ...existingUris],
+          };
+        }
+      }
       return persistedFormData;
     }
 
-    // Default empty form
+    // Default empty form with optional initial calendar
     return {
       summary: "",
       dtstart: null,
       status: "CONFIRMED",
       x_pubky_rsvp_access: "PUBLIC",
+      x_pubky_calendar_uris: initialCalendarUri ? [initialCalendarUri] : undefined,
     };
   };
 
@@ -322,6 +337,14 @@ export function CreateEventPageLayout({
           <RecurrenceFields
             control={form.control}
             setValue={form.setValue}
+          />
+        </section>
+
+        {/* Calendars */}
+        <section>
+          <CalendarSelector
+            control={form.control}
+            initialCalendarUris={initialCalendarUri ? [initialCalendarUri] : undefined}
           />
         </section>
 
