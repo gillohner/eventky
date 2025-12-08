@@ -192,6 +192,7 @@ export function pubkyCalendarToNexusFormat(
             last_modified: calendar.last_modified ? Number(calendar.last_modified) : undefined,
         },
         tags: [],
+        events: [], // Empty for local optimistic data - Nexus will populate with linked events
     };
 }
 
