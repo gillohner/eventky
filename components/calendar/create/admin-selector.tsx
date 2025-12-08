@@ -4,7 +4,7 @@ import { Control, Controller } from "react-hook-form";
 import type { CalendarFormData } from "@/types/calendar";
 import { UserSearch } from "@/components/ui/user-search";
 import { useUsersByIds, type SelectedUser } from "@/hooks/use-user-search";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 interface AdminSelectorProps {
     control: Control<CalendarFormData>;
@@ -49,27 +49,22 @@ function AdminSelectorInner({
     onChange,
     ownerUserId,
 }: AdminSelectorInnerProps) {
-    const [selectedUsers, setSelectedUsers] = useState<SelectedUser[]>([]);
-
     // Fetch existing admin user details when value changes
     const { data: existingUsers, isLoading } = useUsersByIds(value);
 
-    // Sync existing users to selected users state when data loads
-    useEffect(() => {
+    // Derive selected users from fetched data (no useState needed)
+    const selectedUsers: SelectedUser[] = useMemo(() => {
         if (existingUsers && existingUsers.length > 0) {
-            const users: SelectedUser[] = existingUsers.map((user) => ({
+            return existingUsers.map((user) => ({
                 id: user.id,
                 name: user.name,
                 image: user.image,
             }));
-            setSelectedUsers(users);
-        } else if (value.length === 0) {
-            setSelectedUsers([]);
         }
-    }, [existingUsers, value.length]);
+        return [];
+    }, [existingUsers]);
 
     const handleSelectionChange = (users: SelectedUser[]) => {
-        setSelectedUsers(users);
         // Update form value with just the user IDs
         onChange(users.map((user) => user.id));
     };

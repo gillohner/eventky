@@ -32,6 +32,8 @@ export interface NexusCalendarResponse {
         taggers_count: number;
         relationship: boolean;
     }>;
+    /** Event URIs belonging to this calendar (via x_pubky_calendar_uris) */
+    events: string[];
 }
 
 /**

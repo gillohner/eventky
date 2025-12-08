@@ -49,6 +49,13 @@ export {
     type DeleteCalendarInput,
 } from "./use-calendar-mutations";
 
+// User calendars (where user is owner or admin)
+export {
+    useUserCalendars,
+    useCalendarByUri,
+    type UserCalendar,
+} from "./use-user-calendars";
+
 // Profile hooks
 export { useProfile } from "./use-profile";
 

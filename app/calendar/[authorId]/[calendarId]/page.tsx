@@ -6,7 +6,7 @@ import { DevJsonView } from "@/components/dev-json-view";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Edit } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import { SyncBadge } from "@/components/ui/sync-status-indicator";
 
 interface CalendarPageProps {
@@ -21,17 +21,39 @@ export default function CalendarPage({ params }: CalendarPageProps) {
     const { data: calendar, isLoading, error, syncStatus, isOptimistic } = useCalendar(authorId, calendarId);
     const router = useRouter();
     const { auth } = useAuth();
+
     const isOwner = auth?.publicKey === authorId;
+    const isAdmin = calendar?.details.x_pubky_admins?.includes(auth?.publicKey || "") ?? false;
+    const canManage = isOwner || isAdmin;
+
+    // Build the calendar URI for the "Add Event" link
+    const calendarUri = calendar?.details.uri || `pubky://${authorId}/pub/eventky.app/calendars/${calendarId}`;
 
     return (
         <div className="container mx-auto py-8 px-4">
             <div className="flex items-center justify-between mb-4">
-                {isOwner && (
-                    <Button onClick={() => router.push(`/calendar/${authorId}/${calendarId}/edit`)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Calendar
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {canManage && (
+                        <>
+                            <Button
+                                variant="default"
+                                onClick={() => router.push(`/event/create?calendar=${encodeURIComponent(calendarUri)}`)}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Event
+                            </Button>
+                            {isOwner && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => router.push(`/calendar/${authorId}/${calendarId}/edit`)}
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Calendar
+                                </Button>
+                            )}
+                        </>
+                    )}
+                </div>
                 {isOptimistic && (
                     <SyncBadge status={syncStatus} />
                 )}
