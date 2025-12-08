@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { AdminSelector } from "./admin-selector";
 
 interface SettingsFieldsProps {
     control: Control<CalendarFormData>;
@@ -14,6 +15,8 @@ interface SettingsFieldsProps {
     colorError?: FieldError;
     imageUri?: string;
     onImageChange: (uri: string | undefined) => void;
+    /** Current user's ID for excluding from admin selection */
+    ownerUserId?: string;
 }
 
 export function SettingsFields({
@@ -22,6 +25,7 @@ export function SettingsFields({
     colorError,
     imageUri,
     onImageChange,
+    ownerUserId,
 }: SettingsFieldsProps) {
     return (
         <FormSection
@@ -91,13 +95,8 @@ export function SettingsFields({
                 aspectRatio="square"
             />
 
-            {/* TODO: Admins */}
-            <div className="space-y-2">
-                <Label className="text-muted-foreground">Calendar Admins</Label>
-                <p className="text-sm text-muted-foreground">
-                    TODO: Multi-user admin management coming soon
-                </p>
-            </div>
+            {/* Admin Selector */}
+            <AdminSelector control={control} ownerUserId={ownerUserId} />
         </FormSection>
     );
 }

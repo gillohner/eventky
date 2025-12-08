@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { CalendarIcon, Loader2 } from "lucide-react";
@@ -8,19 +7,15 @@ import type { CalendarFormData } from "@/types/calendar";
 import { useAuth } from "@/components/providers/auth-provider";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import { BasicInfoFields } from "./basic-info";
 import { SettingsFields } from "./settings";
-import { saveCalendar } from "@/lib/pubky/calendars";
 import { PubkySpecsBuilder } from "pubky-app-specs";
 import { config } from "@/lib/config";
+import { useCreateCalendar } from "@/hooks/use-calendar-mutations";
 
 export function CreateCalendarPageLayout() {
     const router = useRouter();
     const { auth, isAuthenticated } = useAuth();
-    const queryClient = useQueryClient();
-    const [isSaving, setIsSaving] = useState(false);
 
     const form = useForm<CalendarFormData>({
         defaultValues: {
@@ -34,42 +29,10 @@ export function CreateCalendarPageLayout() {
 
     const { control, handleSubmit, setValue, watch, formState: { errors } } = form;
 
-    const onSubmit = async (data: CalendarFormData) => {
-        if (!auth?.publicKey || !auth?.session) {
-            toast.error("Please log in to create a calendar");
-            return;
-        }
-
-        setIsSaving(true);
-
-        try {
-            // Create calendar using WASM builder
-            const builder = new PubkySpecsBuilder(auth.publicKey);
-            const calendarResult = builder.createCalendar(
-                data.name,
-                data.timezone,
-                data.color || null,
-                data.image_uri || null,
-                data.description || null,
-                data.url || null,
-                data.x_pubky_admins || null
-            );
-
-            // Extract calendar ID from meta
-            const calendarId = calendarResult.meta.id;
-
-            // Save calendar to homeserver
-            await saveCalendar(auth.session, calendarResult.calendar, calendarId, auth.publicKey);
-
-            toast.success("Calendar created successfully!");
-
-            // Invalidate calendars queries to refresh data
-            await queryClient.invalidateQueries({ queryKey: ["nexus", "calendars"] });
-            if (auth.publicKey) {
-                await queryClient.invalidateQueries({ queryKey: ["nexus", "calendar", auth.publicKey, calendarId] });
-            }
-
-            // Reset form to default state
+    // Use mutation hook for optimistic caching
+    const createCalendar = useCreateCalendar({
+        onSuccess: (result) => {
+            // Reset form
             form.reset({
                 name: "",
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -77,15 +40,33 @@ export function CreateCalendarPageLayout() {
                 description: "",
                 url: "",
             });
-
             // Navigate to calendar detail page
-            router.push(`/calendar/${auth.publicKey}/${calendarId}`);
-        } catch (error) {
-            console.error("Failed to create calendar:", error);
-            toast.error("An unexpected error occurred");
-        } finally {
-            setIsSaving(false);
+            router.push(`/calendar/${result.authorId}/${result.calendarId}`);
+        },
+    });
+
+    const onSubmit = async (data: CalendarFormData) => {
+        if (!auth?.publicKey || !auth?.session) {
+            return;
         }
+
+        // Create calendar using WASM builder
+        const builder = new PubkySpecsBuilder(auth.publicKey);
+        const calendarResult = builder.createCalendar(
+            data.name,
+            data.timezone,
+            data.color || null,
+            data.image_uri || null,
+            data.description || null,
+            data.url || null,
+            data.x_pubky_admins || null
+        );
+
+        // Use mutation to save with optimistic caching
+        createCalendar.mutate({
+            calendar: calendarResult.calendar,
+            calendarId: calendarResult.meta.id,
+        });
     };
 
     // Check authentication
@@ -124,6 +105,7 @@ export function CreateCalendarPageLayout() {
                         colorError={errors.color}
                         imageUri={watch("image_uri")}
                         onImageChange={(uri) => setValue("image_uri", uri)}
+                        ownerUserId={auth?.publicKey ?? undefined}
                     />
 
                     {/* Action Buttons */}
@@ -154,12 +136,12 @@ export function CreateCalendarPageLayout() {
                                     router.back();
                                 }
                             }}
-                            disabled={isSaving}
+                            disabled={createCalendar.isPending}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isSaving}>
-                            {isSaving ? (
+                        <Button type="submit" disabled={createCalendar.isPending}>
+                            {createCalendar.isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Creating...

@@ -52,5 +52,13 @@ export {
 // Profile hooks
 export { useProfile } from "./use-profile";
 
+// User search hooks
+export {
+    useUserSearch,
+    useUsersByIds,
+    toSelectedUser,
+    type SelectedUser,
+} from "./use-user-search";
+
 // Utility hooks
 export { useIsMobile } from "./use-mobile";
