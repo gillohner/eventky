@@ -11,27 +11,7 @@ import { Upload } from "lucide-react";
 import { Pubky, Session, AuthToken, Keypair, PublicKey } from "@synonymdev/pubky";
 import { PubkyAuthWidget } from "@/components/ui/pubky-auth-widget";
 import { config } from "@/lib/config";
-
-// Helper function to ingest user into Nexus
-async function ingestUserIntoNexus(publicKey: string) {
-    try {
-        const response = await fetch(`${config.gateway.url}/v0/ingest/${publicKey}`, {
-            method: 'PUT',
-            headers: {
-                'accept': '*/*'
-            }
-        });
-
-        if (response.ok) {
-            console.log(`User ${publicKey} ingested into Nexus`);
-        } else {
-            console.warn(`Failed to ingest user into Nexus: ${response.status}`);
-        }
-    } catch (error) {
-        console.warn('Failed to ingest user into Nexus:', error);
-        // Don't throw - this is a non-critical operation
-    }
-}
+import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 
 interface LoginPageProps {
     searchParams: Promise<{
@@ -157,6 +137,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             // Create a default profile for the new user
+            // This is REQUIRED - without a profile, the user won't be indexed and can't tag/interact
             const defaultProfile = {
                 name: `Test User ${publicKey.substring(0, 8)}`,
                 bio: "Test account created via Eventky testnet signup",
@@ -165,14 +146,9 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                 status: null
             };
 
-            try {
-                // Write the profile to the homeserver
-                await session.storage.putText("/pub/pubky.app/profile.json", JSON.stringify(defaultProfile));
-                console.log("Default profile created");
-            } catch (profileError) {
-                console.warn("Failed to create default profile:", profileError);
-                // Continue anyway - profile can be created later
-            }
+            // Write the profile to the homeserver - this MUST succeed
+            await session.storage.putText("/pub/pubky.app/profile.json", JSON.stringify(defaultProfile));
+            console.log("Default profile created for user:", publicKey);
 
             // Ingest user into Nexus to start monitoring this homeserver
             await ingestUserIntoNexus(publicKey);
