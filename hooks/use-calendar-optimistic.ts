@@ -128,13 +128,17 @@ export function useCalendar(
                         // Nexus has same or newer version - mark as synced
                         markCalendarSynced(authorId, calendarId);
                     } else {
-                        // Local is still newer - mark sync attempt
+                        // Local is still newer - mark sync attempt (keep polling)
                         markCalendarSyncAttempt(authorId, calendarId);
                     }
                 }
 
-                // Store Nexus data in cache
-                setCalendar(authorId, calendarId, nexusData, "nexus");
+                // Only store Nexus data if it's not older than local
+                // This prevents reverting to stale data during sync
+                const localData2 = getCalendar(authorId, calendarId);
+                if (!localData2 || compareCalendarVersions(localData2.data, nexusData) <= 0) {
+                    setCalendar(authorId, calendarId, nexusData, "nexus");
+                }
             }
 
             return nexusData;
@@ -213,11 +217,8 @@ export function useCalendar(
         ? mergeCalendarData(localCached, query.data ?? undefined)
         : query.data;
 
-    // Determine if data is optimistic
-    const isOptimistic =
-        localCached !== undefined &&
-        !localCached.meta.synced &&
-        (!query.data || compareCalendarVersions(localCached.data, query.data) > 0);
+    // Determine if data is optimistic (from local cache, not yet confirmed synced)
+    const isOptimistic = localCached !== undefined && !localCached.meta.synced;
 
     // Force refetch function
     const refetch = useCallback(async () => {

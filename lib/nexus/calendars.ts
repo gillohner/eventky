@@ -3,7 +3,7 @@
  * Functions for fetching calendar data from the Pubky Nexus API
  */
 
-import { nexusClient, getErrorMessage } from "./client";
+import { nexusClient, getErrorMessage, isAxiosError } from "./client";
 
 /**
  * Response structure from Nexus API for a single calendar
@@ -23,6 +23,8 @@ export interface NexusCalendarResponse {
         image_uri?: string;
         x_pubky_admins?: string[];
         created?: number;
+        sequence?: number;        // Versioning: incremented on each edit
+        last_modified?: number;   // Versioning: timestamp of last modification
     };
     tags: Array<{
         label: string;
@@ -48,6 +50,8 @@ export interface NexusCalendarStreamResponse {
     image_uri?: string;
     x_pubky_admins?: string[];
     created?: number;
+    sequence?: number;        // Versioning: incremented on each edit
+    last_modified?: number;   // Versioning: timestamp of last modification
 }
 
 /**
@@ -72,6 +76,12 @@ export async function fetchCalendarFromNexus(
         const response = await nexusClient.get<NexusCalendarResponse>(url);
         return response.data || null;
     } catch (error) {
+        // Return null for 404 errors - calendar may not be indexed yet
+        // The optimistic cache will handle showing local data while waiting
+        if (isAxiosError(error) && error.response?.status === 404) {
+            return null;
+        }
+        // Log and throw for other errors
         console.error("Error fetching calendar from Nexus:", {
             authorId,
             calendarId,

@@ -178,6 +178,9 @@ export function compareEventVersions(
 
 /**
  * Compare two calendar responses to determine which is newer
+ * Returns: positive if a is newer, negative if b is newer, 0 if equal
+ * 
+ * Calendars now have sequence and last_modified versioning fields like events.
  */
 export function compareCalendarVersions(
     a: NexusCalendarResponse | undefined,
@@ -187,17 +190,22 @@ export function compareCalendarVersions(
     if (!a) return -1;
     if (!b) return 1;
 
-    // Calendars don't have sequence, compare by indexed_at
-    const indexA = a.details.indexed_at ?? 0;
-    const indexB = b.details.indexed_at ?? 0;
-    if (indexA !== indexB) {
-        return indexA - indexB;
+    // First compare by sequence (version number incremented on each edit)
+    const seqA = a.details.sequence ?? 0;
+    const seqB = b.details.sequence ?? 0;
+    if (seqA !== seqB) {
+        return seqA - seqB;
     }
 
-    // Then by created timestamp if available
-    const createdA = a.details.created ?? 0;
-    const createdB = b.details.created ?? 0;
-    return createdA - createdB;
+    // Then by last_modified timestamp
+    const modA = a.details.last_modified ?? 0;
+    const modB = b.details.last_modified ?? 0;
+    if (modA !== modB) {
+        return modA - modB;
+    }
+
+    // Finally by indexed_at (Nexus processing time)
+    return (a.details.indexed_at ?? 0) - (b.details.indexed_at ?? 0);
 }
 
 /**
