@@ -22,7 +22,12 @@ function createNexusClient(): AxiosInstance {
   client.interceptors.response.use(
     (response) => response,
     (error: AxiosError<{ error?: string }>) => {
-      if (error.response) {
+      // Don't log 404s for search endpoints - "not found" is expected behavior
+      const is404 = error.response?.status === 404;
+      const isSearchEndpoint = error.config?.url?.includes('/search/');
+      const shouldLog = !is404 || !isSearchEndpoint;
+
+      if (error.response && shouldLog) {
         // Server responded with error status
         console.error("Nexus API Error:", {
           status: error.response.status,
@@ -30,13 +35,13 @@ function createNexusClient(): AxiosInstance {
           url: error.config?.url,
           message: error.response.data?.error || error.message,
         });
-      } else if (error.request) {
+      } else if (error.request && !error.response) {
         // Request was made but no response received
         console.error("Nexus API No Response:", {
           url: error.config?.url,
           message: error.message,
         });
-      } else {
+      } else if (!error.request && !error.response) {
         // Error setting up the request
         console.error("Nexus API Request Error:", error.message);
       }
