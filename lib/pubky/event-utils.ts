@@ -119,73 +119,10 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
     };
 }
 
-/**
- * Format a datetime string for display in a specific timezone
- * Returns a string like "Dec 1, 2025, 10:00:00 AM MST"
- */
-export function formatDateInTimezone(
-    isoDate: string,
-    timezone: string,
-    locale: string = 'en-US'
-): string {
-    // Parse the ISO string manually to avoid timezone conversion
-    const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-    if (!match) {
-        throw new Error(`Invalid ISO datetime format: ${isoDate}`);
-    }
-
-    const [, year, month, day, hours, minutes, seconds] = match;
-
-    // Create a date object (will be in local timezone)
-    const date = new Date(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        parseInt(hours),
-        parseInt(minutes),
-        parseInt(seconds)
-    );
-
-    return new Intl.DateTimeFormat(locale, {
-        timeZone: timezone,
-        dateStyle: 'medium',
-        timeStyle: 'long',
-    }).format(date);
-}
-
-/**
- * Convert an ISO datetime string to a Date object for UI components
- * IMPORTANT: Only use this for components that require Date objects
- * The Date will be in the browser's local timezone
- */
-export function isoStringToDate(isoString: string): Date {
-    const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
-    if (!match) {
-        throw new Error(`Invalid ISO datetime format: ${isoString}`);
-    }
-
-    const [, year, month, day, hours, minutes, seconds] = match;
-    return new Date(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        parseInt(hours),
-        parseInt(minutes),
-        parseInt(seconds)
-    );
-}
-
-/**
- * Convert a Date object to ISO string (YYYY-MM-DDTHH:MM:SS)
- * WITHOUT timezone conversion - extracts local components
- */
-export function dateToISOString(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-}
+// Re-export datetime utilities for backward compatibility
+// Components should gradually migrate to import from @/lib/datetime directly
+export {
+    parseIsoDateTime as isoStringToDate,
+    dateToISOString,
+    formatDateInTimezone,
+} from "@/lib/datetime";
