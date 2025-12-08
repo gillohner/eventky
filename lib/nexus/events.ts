@@ -3,7 +3,7 @@
  * Functions for fetching event data from the Pubky Nexus API
  */
 
-import { nexusClient, getErrorMessage } from "./client";
+import { nexusClient, getErrorMessage, isAxiosError } from "./client";
 
 /**
  * Response structure from Nexus API for a single event
@@ -117,6 +117,12 @@ export async function fetchEventFromNexus(
     const response = await nexusClient.get<NexusEventResponse>(url);
     return response.data || null;
   } catch (error) {
+    // Return null for 404 errors - event may not be indexed yet
+    // The optimistic cache will handle showing local data while waiting
+    if (isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    // Log and throw for other errors
     console.error("Error fetching event from Nexus:", {
       authorId,
       eventId,

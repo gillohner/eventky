@@ -22,10 +22,13 @@ function createNexusClient(): AxiosInstance {
   client.interceptors.response.use(
     (response) => response,
     (error: AxiosError<{ error?: string }>) => {
-      // Don't log 404s for search endpoints - "not found" is expected behavior
+      // Don't log 404s for certain endpoints - "not found" is expected behavior
+      // during optimistic caching wait or search operations
       const is404 = error.response?.status === 404;
       const isSearchEndpoint = error.config?.url?.includes('/search/');
-      const shouldLog = !is404 || !isSearchEndpoint;
+      const isCalendarEndpoint = error.config?.url?.includes('/calendar/');
+      const isEventEndpoint = error.config?.url?.includes('/event/');
+      const shouldLog = !is404 || (!isSearchEndpoint && !isCalendarEndpoint && !isEventEndpoint);
 
       if (error.response && shouldLog) {
         // Server responded with error status
