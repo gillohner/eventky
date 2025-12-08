@@ -41,6 +41,11 @@ interface PubkyConfig {
     profile: {
         path: string;
     };
+
+    // Pubky App URLs (for linking to profiles, etc.)
+    pubkyApp: {
+        profileUrl: string; // Base URL for profile links (e.g., https://pubky.app/profile)
+    };
 }
 
 /**
@@ -78,6 +83,16 @@ const DEFAULT_HOMESERVER_URLS: Record<PubkyEnvironment, string> = {
     testnet: "http://localhost:6286",
     staging: "https://homeserver.staging.pubky.app",
     production: "https://homeserver.pubky.app",
+};
+
+/**
+ * Default Pubky App URLs for each environment
+ * Used for linking to user profiles
+ */
+const DEFAULT_PUBKY_APP_URLS: Record<PubkyEnvironment, string> = {
+    testnet: "http://localhost:3000", // Local pubky-app instance
+    staging: "https://staging.pubky.app",
+    production: "https://pubky.app",
 };
 
 /**
@@ -129,6 +144,10 @@ function buildConfig(): PubkyConfig {
 
         profile: {
             path: process.env.NEXT_PUBLIC_PUBKY_PROFILE_PATH || "/pub/pubky.app/profile.json",
+        },
+
+        pubkyApp: {
+            profileUrl: process.env.NEXT_PUBLIC_PUBKY_APP_PROFILE_URL || `${DEFAULT_PUBKY_APP_URLS[environment]}/profile`,
         },
     };
 }
