@@ -80,10 +80,10 @@ export function TagsSection({
     // Merge Nexus tags with pending writes and determine if user tagged each
     const mergedTags = useMemo(() => {
         const tagMap = new Map<string, EventTag & { userTagged: boolean }>();
-        
+
         for (const tag of tags) {
             // Check if current user is in taggers array OR relationship is true
-            const userTagged = currentUserId 
+            const userTagged = currentUserId
                 ? (tag.taggers.includes(currentUserId) || tag.relationship)
                 : false;
             tagMap.set(tag.label.toLowerCase(), { ...tag, userTagged });

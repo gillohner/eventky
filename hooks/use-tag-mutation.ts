@@ -53,13 +53,13 @@ export function getPendingTagsForEvent(
 ): Array<{ label: string; action: 'add' | 'remove' }> {
     const prefix = `${eventAuthorId}:${eventId}:${userPublicKey}:`;
     const results: Array<{ label: string; action: 'add' | 'remove' }> = [];
-    
+
     for (const [key, value] of pendingTagWrites.entries()) {
         if (key.startsWith(prefix)) {
             results.push({ label: value.label, action: value.action });
         }
     }
-    
+
     return results;
 }
 
