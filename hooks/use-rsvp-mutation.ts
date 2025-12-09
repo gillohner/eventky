@@ -24,6 +24,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
 import { saveAttendee, type SaveAttendeeResult } from "@/lib/pubky/attendees";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
+import { eventUriBuilder, attendeeUriBuilder } from "pubky-app-specs";
 import { toast } from "sonner";
 import type { NexusEventResponse } from "@/lib/nexus/events";
 
@@ -163,9 +164,9 @@ export function useRsvpMutation(options?: RsvpMutationOptions) {
                         id: `optimistic-${auth.publicKey}-${now}`,
                         indexed_at: now,
                         author: auth.publicKey,
-                        uri: `pubky://${auth.publicKey}/pub/eventky.app/attendees/optimistic`,
+                        uri: attendeeUriBuilder(auth.publicKey, `optimistic-${now}`), // Placeholder - real ID from builder
                         partstat: input.partstat.toUpperCase(),
-                        x_pubky_event_uri: `pubky://${input.eventAuthorId}/pub/eventky.app/events/${input.eventId}`,
+                        x_pubky_event_uri: eventUriBuilder(input.eventAuthorId, input.eventId),
                         created_at: now,
                         last_modified: now,
                         recurrence_id: input.recurrenceId,

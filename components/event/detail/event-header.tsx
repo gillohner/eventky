@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { config } from "@/lib/config";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
+import { parse_uri } from "pubky-app-specs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -219,10 +220,14 @@ function truncateId(id: string): string {
 }
 
 function getCalendarPageUrl(uri: string): string {
-    // Parse pubky://authorId/pub/eventky.app/calendars/calendarId
-    const match = uri.match(/pubky:\/\/([^/]+)\/pub\/eventky\.app\/calendars\/([^/]+)/);
-    if (match) {
-        return `/calendar/${match[1]}/${match[2]}`;
+    // Parse pubky://authorId/pub/eventky.app/calendars/calendarId using pubky-app-specs
+    try {
+        const parsed = parse_uri(uri);
+        if (parsed.resource === "calendars" && parsed.resource_id) {
+            return `/calendar/${parsed.user_id}/${parsed.resource_id}`;
+        }
+    } catch {
+        // Fall through to default
     }
     return "/calendars";
 }

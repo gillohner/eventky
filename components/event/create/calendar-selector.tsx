@@ -5,6 +5,7 @@ import type { EventFormData } from "@/types/event";
 import { useUserCalendars, type UserCalendar } from "@/hooks/use-user-calendars";
 import { useCalendar } from "@/hooks/use-calendar-optimistic";
 import { useAuth } from "@/components/providers/auth-provider";
+import { parse_uri } from "pubky-app-specs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { X, Calendar, Plus, Loader2 } from "lucide-react";
@@ -54,9 +55,13 @@ interface CalendarSelectorInnerProps {
  */
 function parseCalendarUri(uri: string): { authorId: string; calendarId: string } | null {
     // Format: pubky://{authorId}/pub/eventky.app/calendars/{calendarId}
-    const match = uri.match(/^pubky:\/\/([^/]+)\/pub\/eventky\.app\/calendars\/([^/]+)$/);
-    if (match) {
-        return { authorId: match[1], calendarId: match[2] };
+    try {
+        const parsed = parse_uri(uri);
+        if (parsed.resource === "calendars" && parsed.resource_id) {
+            return { authorId: parsed.user_id, calendarId: parsed.resource_id };
+        }
+    } catch {
+        // Fall through to return null
     }
     return null;
 }
