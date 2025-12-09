@@ -3,6 +3,8 @@
 import { use } from "react";
 import { useSearchParams } from "next/navigation";
 import { useEvent } from "@/hooks/use-event-optimistic";
+import { useRsvpMutation } from "@/hooks/use-rsvp-mutation";
+import { useAddTagMutation, useRemoveTagMutation } from "@/hooks/use-tag-mutation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { EventDetailLayout } from "@/components/event/detail";
 import { SyncBadge } from "@/components/ui/sync-status-indicator";
@@ -10,7 +12,6 @@ import { DevJsonView } from "@/components/dev-json-view";
 import { Button } from "@/components/ui/button";
 import { Bug } from "lucide-react";
 import { useState } from "react";
-import { addTagToEvent, removeTagFromEvent } from "@/lib/pubky/tags";
 import { toast } from "sonner";
 
 interface EventPageProps {
@@ -25,62 +26,63 @@ export default function EventPage({ params }: EventPageProps) {
   const searchParams = useSearchParams();
   const instanceDate = searchParams.get("instance") || undefined;
 
-  const { data: event, isLoading, error, syncStatus, isOptimistic } = useEvent(authorId, eventId);
+  const { data: event, isLoading, error, syncStatus, isOptimistic } = useEvent(authorId, eventId, {
+    limitTags: 50,
+    limitAttendees: 100,
+  });
   const { auth } = useAuth();
   const [showDevView, setShowDevView] = useState(false);
+
+  // RSVP mutation hook
+  const { mutate: rsvp, isPending: isRsvpLoading } = useRsvpMutation();
+
+  // Tag mutation hooks
+  const { mutate: addTag } = useAddTagMutation();
+  const { mutate: removeTag } = useRemoveTagMutation();
 
   const currentUserId = auth?.publicKey;
   const isLoggedIn = Boolean(auth?.publicKey);
 
-  // TODO: Implement RSVP mutation
-  const handleRsvp = async (status: string) => {
-    console.log("RSVP:", status, instanceDate);
-    // Will implement with pubky client
+  // Handle RSVP submission
+  const handleRsvp = (status: string) => {
+    if (!currentUserId) {
+      toast.error("Please sign in to RSVP");
+      return;
+    }
+
+    rsvp({
+      eventAuthorId: authorId,
+      eventId: eventId,
+      partstat: status,
+      recurrenceId: instanceDate,
+    });
   };
 
-  // Tag mutations
-  const handleAddTag = async (label: string) => {
-    if (!auth?.session || !currentUserId) {
+  // Tag handlers
+  const handleAddTag = (label: string) => {
+    if (!currentUserId) {
       toast.error("Please sign in to add tags");
       return;
     }
 
-    try {
-      await addTagToEvent(
-        auth.session,
-        currentUserId,
-        authorId,
-        eventId,
-        label
-      );
-      toast.success(`Tag "${label}" added`);
-      // TODO: Invalidate queries to refresh tag data
-    } catch (error) {
-      console.error("Failed to add tag:", error);
-      toast.error("Failed to add tag");
-    }
+    addTag({
+      eventAuthorId: authorId,
+      eventId: eventId,
+      label: label,
+    });
   };
 
-  const handleRemoveTag = async (label: string) => {
-    if (!auth?.session || !currentUserId) {
+  const handleRemoveTag = (label: string) => {
+    if (!currentUserId) {
       toast.error("Please sign in to remove tags");
       return;
     }
 
-    try {
-      await removeTagFromEvent(
-        auth.session,
-        currentUserId,
-        authorId,
-        eventId,
-        label
-      );
-      toast.success(`Tag "${label}" removed`);
-      // TODO: Invalidate queries to refresh tag data
-    } catch (error) {
-      console.error("Failed to remove tag:", error);
-      toast.error("Failed to remove tag");
-    }
+    removeTag({
+      eventAuthorId: authorId,
+      eventId: eventId,
+      label: label,
+    });
   };
 
   return (
@@ -120,6 +122,7 @@ export default function EventPage({ params }: EventPageProps) {
         isLoggedIn={isLoggedIn}
         instanceDate={instanceDate}
         onRsvp={handleRsvp}
+        isRsvpLoading={isRsvpLoading}
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
       />

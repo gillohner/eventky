@@ -49,6 +49,14 @@ export {
     type DeleteCalendarInput,
 } from "./use-calendar-mutations";
 
+// RSVP/Attendance mutations
+export {
+    useRsvpMutation,
+    getPartstatLabel,
+    type RsvpInput,
+    type RsvpMutationOptions,
+} from "./use-rsvp-mutation";
+
 // User calendars (where user is owner or admin)
 export {
     useUserCalendars,

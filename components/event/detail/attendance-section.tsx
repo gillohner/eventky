@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { config } from "@/lib/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,16 @@ import {
     Check,
     X,
     HelpCircle,
-    Calendar,
     ChevronDown,
     ChevronUp,
+    Info,
 } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { getPendingRsvp } from "@/hooks/use-rsvp-mutation";
 
 interface Attendee {
     id: string;
@@ -24,7 +30,7 @@ interface Attendee {
     indexed_at: number;
     created_at: number;
     last_modified?: number;
-    recurrence_id?: number;
+    recurrence_id?: string; // ISO datetime string for recurring event instances
 }
 
 interface AttendanceSectionProps {
@@ -38,6 +44,10 @@ interface AttendanceSectionProps {
     rsvpAccess?: string;
     /** Whether this is for a specific instance (recurring) */
     instanceDate?: string;
+    /** Event author ID (for pending write lookup) */
+    eventAuthorId?: string;
+    /** Event ID (for pending write lookup) */
+    eventId?: string;
     /** Callback when user RSVPs */
     onRsvp?: (status: string) => void;
     /** Whether RSVP is in progress */
@@ -57,14 +67,118 @@ export function AttendanceSection({
     canRsvp = true,
     rsvpAccess,
     instanceDate,
+    eventAuthorId,
+    eventId,
     onRsvp,
     isRsvpLoading = false,
     className,
 }: AttendanceSectionProps) {
     const [expanded, setExpanded] = useState(false);
 
+    // Check for pending writes that haven't been indexed yet
+    // Include instanceDate for recurring events
+    const pendingWrite = useMemo(() => {
+        if (!eventAuthorId || !eventId || !currentUserId) return undefined;
+        return getPendingRsvp(eventAuthorId, eventId, currentUserId, instanceDate);
+    }, [eventAuthorId, eventId, currentUserId, instanceDate]);
+
+    // Filter and deduplicate attendees for this instance
+    // Priority: instance-specific RSVP > global event RSVP
+    const deduplicatedAttendees = useMemo(() => {
+        const map = new Map<string, Attendee>();
+        
+        console.log("[AttendanceSection] Filtering attendees:", {
+            instanceDate,
+            totalAttendees: attendees.length,
+            attendees: attendees.map(a => ({
+                author: a.author.slice(0, 8),
+                partstat: a.partstat,
+                recurrence_id: a.recurrence_id,
+            })),
+        });
+        
+        for (const attendee of attendees) {
+            const existing = map.get(attendee.author);
+            
+            if (instanceDate) {
+                // For recurring event instance view:
+                // 1. Instance-specific RSVP (recurrence_id matches) takes priority
+                // 2. Fall back to global RSVP (no recurrence_id) if no instance-specific
+                const isInstanceSpecific = attendee.recurrence_id === instanceDate;
+                const isGlobal = !attendee.recurrence_id;
+                
+                console.log(`[AttendanceSection] Processing ${attendee.author.slice(0, 8)}:`, {
+                    recurrence_id: attendee.recurrence_id,
+                    isInstanceSpecific,
+                    isGlobal,
+                    willSkip: !isInstanceSpecific && !isGlobal,
+                });
+                
+                if (!isInstanceSpecific && !isGlobal) {
+                    // Skip RSVPs for other instances
+                    continue;
+                }
+                
+                if (!existing) {
+                    map.set(attendee.author, attendee);
+                } else {
+                    const existingIsInstance = existing.recurrence_id === instanceDate;
+                    // Prefer instance-specific over global, then by timestamp
+                    if (isInstanceSpecific && !existingIsInstance) {
+                        map.set(attendee.author, attendee);
+                    } else if (isInstanceSpecific === existingIsInstance && attendee.indexed_at > existing.indexed_at) {
+                        map.set(attendee.author, attendee);
+                    }
+                }
+            } else {
+                // For non-recurring or series view: only show global RSVPs
+                if (attendee.recurrence_id) continue;
+                
+                if (!existing || attendee.indexed_at > existing.indexed_at) {
+                    map.set(attendee.author, attendee);
+                }
+            }
+        }
+        
+        // Override current user's status with pending write if exists
+        if (pendingWrite && currentUserId) {
+            const existing = map.get(currentUserId);
+            if (existing) {
+                // Update existing entry with pending write status
+                map.set(currentUserId, {
+                    ...existing,
+                    partstat: pendingWrite.partstat,
+                    indexed_at: pendingWrite.timestamp,
+                    recurrence_id: pendingWrite.recurrenceId,
+                });
+            } else {
+                // Add new entry for current user from pending write
+                map.set(currentUserId, {
+                    id: `pending-${currentUserId}`,
+                    author: currentUserId,
+                    partstat: pendingWrite.partstat,
+                    indexed_at: pendingWrite.timestamp,
+                    created_at: pendingWrite.timestamp,
+                    recurrence_id: pendingWrite.recurrenceId,
+                });
+            }
+        }
+        
+        const result = Array.from(map.values());
+        console.log("[AttendanceSection] Filtered result:", {
+            instanceDate,
+            resultCount: result.length,
+            result: result.map(a => ({
+                author: a.author.slice(0, 8),
+                partstat: a.partstat,
+                recurrence_id: a.recurrence_id,
+            })),
+        });
+        return result;
+    }, [attendees, pendingWrite, currentUserId, instanceDate]);
+
     // Group attendees by status
-    const groupedAttendees = attendees.reduce(
+    const groupedAttendees = deduplicatedAttendees.reduce(
         (acc, attendee) => {
             const status = (attendee.partstat?.toUpperCase() || "NEEDS-ACTION") as PartStat;
             acc[status] = acc[status] || [];
@@ -77,19 +191,20 @@ export function AttendanceSection({
     const acceptedCount = groupedAttendees["ACCEPTED"]?.length || 0;
     const declinedCount = groupedAttendees["DECLINED"]?.length || 0;
     const tentativeCount = groupedAttendees["TENTATIVE"]?.length || 0;
-    const totalCount = attendees.length;
+    const totalCount = deduplicatedAttendees.length;
 
     // Find current user's RSVP status
-    const currentUserAttendance = attendees.find((a) => a.author === currentUserId);
+    const currentUserAttendance = deduplicatedAttendees.find((a) => a.author === currentUserId);
     const currentUserStatus = currentUserAttendance?.partstat?.toUpperCase() as PartStat | undefined;
 
     // Determine if RSVPs are open
-    const isRsvpOpen = !rsvpAccess || rsvpAccess.toUpperCase() === "OPEN" || rsvpAccess.toUpperCase() === "FOLLOWERS";
+    // TODO: Currently defaulting to PUBLIC only. Extend when full RSVP access rhythm is implemented.
+    const isRsvpOpen = !rsvpAccess || rsvpAccess.toUpperCase() === "PUBLIC";
     const showRsvpControls = canRsvp && isRsvpOpen && currentUserId;
 
     // Attendees to show (limited when collapsed)
-    const displayLimit = expanded ? attendees.length : 5;
-    const displayAttendees = attendees.slice(0, displayLimit);
+    const displayLimit = expanded ? deduplicatedAttendees.length : 5;
+    const displayAttendees = deduplicatedAttendees.slice(0, displayLimit);
 
     return (
         <Card className={cn("", className)}>
@@ -102,6 +217,16 @@ export function AttendanceSection({
                             <Badge variant="secondary" className="ml-1">
                                 {totalCount}
                             </Badge>
+                        )}
+                        {instanceDate && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Showing RSVPs for this instance only</p>
+                                </TooltipContent>
+                            </Tooltip>
                         )}
                     </CardTitle>
 
@@ -125,14 +250,6 @@ export function AttendanceSection({
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                {/* Instance Notice */}
-                {instanceDate && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
-                        <Calendar className="h-3 w-3" />
-                        <span>Showing RSVPs for this instance only</span>
-                    </div>
-                )}
-
                 {/* RSVP Controls */}
                 {showRsvpControls && (
                     <div className="space-y-2">
