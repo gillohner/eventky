@@ -29,12 +29,40 @@ export function EventDescription({
     styledDescription,
     className,
 }: EventDescriptionProps) {
-    const { content, format, attachments } = useMemo(() => {
+    const { content, format, attachments } = useMemo((): { content: string; format: string; attachments: string[] } => {
         // Parse styled description if provided
         if (styledDescription) {
+            // If it's a JSON string, try to parse it first
             if (typeof styledDescription === "string") {
-                return { content: styledDescription, format: "text/plain", attachments: [] as string[] };
+                // Check if it looks like JSON (starts with { or [)
+                const trimmed = styledDescription.trim();
+                if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                    try {
+                        const parsed = JSON.parse(styledDescription);
+                        if (parsed && typeof parsed === "object") {
+                            if ("content" in parsed) {
+                                return {
+                                    content: parsed.content as string,
+                                    format: (parsed.format as string) || "text/html",
+                                    attachments: (parsed.attachments as string[]) || [],
+                                };
+                            }
+                            if ("value" in parsed && "fmttype" in parsed) {
+                                return {
+                                    content: parsed.value as string,
+                                    format: parsed.fmttype as string,
+                                    attachments: [],
+                                };
+                            }
+                        }
+                    } catch {
+                        // Not valid JSON, treat as plain text
+                    }
+                }
+                // Not JSON or failed to parse - treat as plain text content
+                return { content: styledDescription, format: "text/plain", attachments: [] };
             }
+            // Already an object
             if ("content" in styledDescription) {
                 return {
                     content: styledDescription.content,
@@ -46,7 +74,7 @@ export function EventDescription({
                 return {
                     content: styledDescription.value,
                     format: styledDescription.fmttype,
-                    attachments: [] as string[],
+                    attachments: [],
                 };
             }
         }
