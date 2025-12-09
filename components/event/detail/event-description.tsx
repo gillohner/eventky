@@ -8,7 +8,7 @@ import { FileText } from "lucide-react";
 interface StyledDescription {
     content: string;
     format: string;
-    attachments?: string[];
+    attachments?: string[] | null;
 }
 
 interface EventDescriptionProps {
@@ -21,6 +21,89 @@ interface EventDescriptionProps {
 }
 
 /**
+ * Recursively parse styled description that may have been double/triple JSON encoded
+ * Returns the final HTML content and format
+ */
+function parseStyledDescription(input: unknown): { content: string; format: string; attachments: string[] } {
+    // Base case: null or undefined
+    if (input === null || input === undefined) {
+        return { content: "", format: "text/plain", attachments: [] };
+    }
+
+    // If it's a string, try to parse as JSON
+    if (typeof input === "string") {
+        const trimmed = input.trim();
+
+        // Check if it looks like JSON
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                // Recursively parse the result
+                return parseStyledDescription(parsed);
+            } catch {
+                // Not valid JSON, return as plain text content
+                return { content: trimmed, format: "text/plain", attachments: [] };
+            }
+        }
+
+        // Check if it looks like HTML (has tags)
+        if (trimmed.includes("<") && trimmed.includes(">")) {
+            return { content: trimmed, format: "text/html", attachments: [] };
+        }
+
+        // Plain text
+        return { content: trimmed, format: "text/plain", attachments: [] };
+    }
+
+    // If it's an object, extract content
+    if (typeof input === "object") {
+        const obj = input as Record<string, unknown>;
+
+        // Format: { content, format, attachments }
+        if ("content" in obj) {
+            const content = obj.content;
+            const format = (obj.format as string) || "text/plain";
+            const attachments = (obj.attachments as string[]) || [];
+
+            // If content is a string that might be further encoded, recurse
+            if (typeof content === "string") {
+                const trimmed = content.trim();
+
+                // If content looks like JSON, parse it recursively
+                if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        return parseStyledDescription(parsed);
+                    } catch {
+                        // Not JSON, check format
+                    }
+                }
+
+                // If format is text/html or the content looks like HTML, return as-is
+                if (format === "text/html" || (trimmed.includes("<") && trimmed.includes(">"))) {
+                    return { content: trimmed, format: "text/html", attachments };
+                }
+
+                return { content: trimmed, format, attachments };
+            }
+
+            // Content is not a string, recurse
+            return parseStyledDescription(content);
+        }
+
+        // Format: { value, fmttype } (alternative format)
+        if ("value" in obj && "fmttype" in obj) {
+            const content = obj.value as string;
+            const format = obj.fmttype as string;
+            return { content, format, attachments: [] };
+        }
+    }
+
+    // Fallback
+    return { content: String(input), format: "text/plain", attachments: [] };
+}
+
+/**
  * Display event description with proper formatting
  * Supports plain text, HTML, and Markdown formats
  */
@@ -30,57 +113,13 @@ export function EventDescription({
     className,
 }: EventDescriptionProps) {
     const { content, format, attachments } = useMemo((): { content: string; format: string; attachments: string[] } => {
-        // Parse styled description if provided
+        // Parse styled description if provided (handles nested JSON encoding)
         if (styledDescription) {
-            // If it's a JSON string, try to parse it first
-            if (typeof styledDescription === "string") {
-                // Check if it looks like JSON (starts with { or [)
-                const trimmed = styledDescription.trim();
-                if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-                    try {
-                        const parsed = JSON.parse(styledDescription);
-                        if (parsed && typeof parsed === "object") {
-                            if ("content" in parsed) {
-                                return {
-                                    content: parsed.content as string,
-                                    format: (parsed.format as string) || "text/html",
-                                    attachments: (parsed.attachments as string[]) || [],
-                                };
-                            }
-                            if ("value" in parsed && "fmttype" in parsed) {
-                                return {
-                                    content: parsed.value as string,
-                                    format: parsed.fmttype as string,
-                                    attachments: [],
-                                };
-                            }
-                        }
-                    } catch {
-                        // Not valid JSON, treat as plain text
-                    }
-                }
-                // Not JSON or failed to parse - treat as plain text content
-                return { content: styledDescription, format: "text/plain", attachments: [] };
-            }
-            // Already an object
-            if ("content" in styledDescription) {
-                return {
-                    content: styledDescription.content,
-                    format: styledDescription.format,
-                    attachments: styledDescription.attachments || [],
-                };
-            }
-            if ("value" in styledDescription && "fmttype" in styledDescription) {
-                return {
-                    content: styledDescription.value,
-                    format: styledDescription.fmttype,
-                    attachments: [],
-                };
-            }
+            return parseStyledDescription(styledDescription);
         }
 
         // Fall back to plain description
-        return { content: description || "", format: "text/plain", attachments: [] as string[] };
+        return { content: description || "", format: "text/plain", attachments: [] };
     }, [description, styledDescription]);
 
     // Don't render if no content

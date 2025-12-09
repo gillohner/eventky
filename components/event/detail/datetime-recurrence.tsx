@@ -138,23 +138,26 @@ export function DateTimeRecurrence({
         return parseRRuleToLabel(rrule);
     }, [rrule]);
 
+    // Determine the display start date (selected instance or dtstart)
+    const displayDtstart = selectedInstance || dtstart;
+
     // Calculate end time from duration if needed
     const calculatedDtend = useMemo(() => {
-        if (dtend) return dtend;
+        if (dtend && !selectedInstance) return dtend;
         if (!duration) return undefined;
         try {
-            const startDate = parseIsoDateTime(dtstart, dtstartTzid);
+            const startDate = parseIsoDateTime(displayDtstart, dtstartTzid);
             const durationMs = parseDuration(duration);
             return new Date(startDate.getTime() + durationMs).toISOString();
         } catch {
             return undefined;
         }
-    }, [dtstart, dtend, duration, dtstartTzid]);
+    }, [displayDtstart, dtend, duration, dtstartTzid, selectedInstance]);
 
-    // Format times
+    // Format times using the display start date (selected instance or dtstart)
     const formattedStart = useMemo(() => {
-        return formatDateTime(dtstart, displayTimezone, dtstartTzid);
-    }, [dtstart, displayTimezone, dtstartTzid]);
+        return formatDateTime(displayDtstart, displayTimezone, dtstartTzid);
+    }, [displayDtstart, displayTimezone, dtstartTzid]);
 
     const formattedEnd = useMemo(() => {
         if (!calculatedDtend) return null;
@@ -163,10 +166,10 @@ export function DateTimeRecurrence({
 
     const isSameDay = useMemo(() => {
         if (!calculatedDtend) return true;
-        const startDate = parseIsoDateTime(dtstart, dtstartTzid);
+        const startDate = parseIsoDateTime(displayDtstart, dtstartTzid);
         const endDate = parseIsoDateTime(calculatedDtend, dtendTzid || dtstartTzid);
         return startDate.toDateString() === endDate.toDateString();
-    }, [dtstart, calculatedDtend, dtstartTzid, dtendTzid]);
+    }, [displayDtstart, calculatedDtend, dtstartTzid, dtendTzid]);
 
     const durationDisplay = useMemo(() => {
         if (duration) return formatDuration(duration);
@@ -178,7 +181,8 @@ export function DateTimeRecurrence({
         return null;
     }, [dtstart, calculatedDtend, duration, dtstartTzid, dtendTzid]);
 
-    const hasEventTimezone = Boolean(dtstartTzid && dtstartTzid !== localTimezone);
+    // Only show timezone toggle if event has a timezone AND it's different from local
+    const hasEventTimezone = Boolean(dtstartTzid) && dtstartTzid !== localTimezone;
 
     // Navigation for recurring events
     const selectedIndex = useMemo(() => {
@@ -327,8 +331,6 @@ export function DateTimeRecurrence({
                                                 isPast={isPast}
                                                 userStatus={userStatus}
                                                 href={`/event/${authorId}/${eventId}?instance=${encodeURIComponent(occ)}`}
-                                                index={index}
-                                                selectedIndex={selectedIndex}
                                             />
                                         );
                                     })}
@@ -365,8 +367,6 @@ function OccurrenceChip({
     isPast,
     userStatus,
     href,
-    index,
-    selectedIndex,
 }: {
     date: string;
     timezone: string;
@@ -375,8 +375,6 @@ function OccurrenceChip({
     isPast: boolean;
     userStatus?: string;
     href: string;
-    index: number;
-    selectedIndex: number;
 }) {
     const chipRef = useRef<HTMLAnchorElement>(null);
 
