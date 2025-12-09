@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getPendingTagsForEvent } from "@/hooks/use-tag-mutation";
 
 interface EventTag {
     label: string;
@@ -35,6 +36,12 @@ interface TagsSectionProps {
     tags: EventTag[];
     /** Whether user is logged in */
     isLoggedIn?: boolean;
+    /** Current user's public key (for pending writes) */
+    currentUserId?: string;
+    /** Event author ID (for pending writes) */
+    eventAuthorId?: string;
+    /** Event ID (for pending writes) */
+    eventId?: string;
     /** Callback to add a tag */
     onAddTag?: (label: string) => void;
     /** Callback to remove a tag */
@@ -52,6 +59,9 @@ interface TagsSectionProps {
 export function TagsSection({
     tags,
     isLoggedIn = false,
+    currentUserId,
+    eventAuthorId,
+    eventId,
     onAddTag,
     onRemoveTag,
     isTagLoading = false,
@@ -61,15 +71,70 @@ export function TagsSection({
     const [newTag, setNewTag] = useState("");
     const [expanded, setExpanded] = useState(false);
 
+    // Get pending tag writes that haven't been indexed by Nexus yet
+    const pendingTags = useMemo(() => {
+        if (!eventAuthorId || !eventId || !currentUserId) return [];
+        return getPendingTagsForEvent(eventAuthorId, eventId, currentUserId);
+    }, [eventAuthorId, eventId, currentUserId]);
+
+    // Merge Nexus tags with pending writes and determine if user tagged each
+    const mergedTags = useMemo(() => {
+        const tagMap = new Map<string, EventTag & { userTagged: boolean }>();
+        
+        for (const tag of tags) {
+            // Check if current user is in taggers array OR relationship is true
+            const userTagged = currentUserId 
+                ? (tag.taggers.includes(currentUserId) || tag.relationship)
+                : false;
+            tagMap.set(tag.label.toLowerCase(), { ...tag, userTagged });
+        }
+
+        // Apply pending writes
+        for (const pending of pendingTags) {
+            const label = pending.label.toLowerCase();
+            const existing = tagMap.get(label);
+
+            if (pending.action === 'add') {
+                if (existing) {
+                    // Tag exists - ensure current user is marked
+                    if (!existing.taggers.includes(currentUserId!)) {
+                        existing.taggers = [...existing.taggers, currentUserId!];
+                        existing.taggers_count = existing.taggers.length;
+                    }
+                    existing.userTagged = true;
+                } else {
+                    // New tag from pending write
+                    tagMap.set(label, {
+                        label: pending.label,
+                        taggers: [currentUserId!],
+                        taggers_count: 1,
+                        relationship: true,
+                        userTagged: true,
+                    });
+                }
+            } else if (pending.action === 'remove') {
+                if (existing) {
+                    // Remove current user from taggers
+                    const newTaggers = existing.taggers.filter(t => t !== currentUserId);
+                    if (newTaggers.length === 0) {
+                        tagMap.delete(label);
+                    } else {
+                        existing.taggers = newTaggers;
+                        existing.taggers_count = newTaggers.length;
+                        existing.userTagged = false;
+                    }
+                }
+            }
+        }
+
+        return Array.from(tagMap.values());
+    }, [tags, pendingTags, currentUserId]);
+
     // Sort tags by count (most popular first)
-    const sortedTags = [...tags].sort((a, b) => b.taggers_count - a.taggers_count);
+    const sortedTags = [...mergedTags].sort((a, b) => b.taggers_count - a.taggers_count);
 
-    // Limit display when collapsed
-    const displayLimit = expanded ? sortedTags.length : 8;
-    const displayTags = sortedTags.slice(0, displayLimit);
-
-    // Find tags the current user has applied
-    const userTags = tags.filter((t) => t.relationship);
+    // Increased display limit from 8 to 20
+    const displayTags = expanded ? sortedTags : sortedTags.slice(0, 20);
 
     const handleAddTag = () => {
         const trimmed = newTag.trim().toLowerCase();
@@ -96,9 +161,9 @@ export function TagsSection({
                     <CardTitle className="text-lg flex items-center gap-2">
                         <Tag className="h-5 w-5 text-muted-foreground" />
                         Tags
-                        {tags.length > 0 && (
+                        {mergedTags.length > 0 && (
                             <Badge variant="secondary" className="ml-1">
-                                {tags.length}
+                                {mergedTags.length}
                             </Badge>
                         )}
                         <TooltipProvider>
@@ -127,7 +192,7 @@ export function TagsSection({
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="space-y-0">
+            <CardContent className="space-y-4">
                 {/* Tag Input */}
                 {showInput && (
                     <div className="flex items-center gap-2">
@@ -165,21 +230,21 @@ export function TagsSection({
                 )}
 
                 {/* Tags Display */}
-                {tags.length > 0 ? (
+                {mergedTags.length > 0 ? (
                     <div className="space-y-3">
                         <div className="flex flex-wrap gap-2">
                             {displayTags.map((tag) => (
                                 <TagBadge
                                     key={tag.label}
                                     tag={tag}
-                                    isUserTag={tag.relationship}
+                                    isUserTag={tag.userTagged}
                                     onRemove={
-                                        tag.relationship && onRemoveTag
+                                        tag.userTagged && onRemoveTag
                                             ? () => onRemoveTag(tag.label)
                                             : undefined
                                     }
                                     onAdd={
-                                        !tag.relationship && isLoggedIn && onAddTag
+                                        !tag.userTagged && isLoggedIn && onAddTag
                                             ? () => onAddTag(tag.label)
                                             : undefined
                                     }
@@ -188,7 +253,7 @@ export function TagsSection({
                         </div>
 
                         {/* Show more/less toggle */}
-                        {sortedTags.length > 8 && (
+                        {sortedTags.length > 20 && (
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -214,26 +279,6 @@ export function TagsSection({
                         {isLoggedIn ? "Be the first to add one!" : "Sign in to add tags."}
                     </div>
                 )}
-
-                {/* User's Tags Summary */}
-                {userTags.length > 0 && (
-                    <div className="pt-3 border-t">
-                        <p className="text-xs text-muted-foreground mb-2">
-                            Your tags ({userTags.length}):
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                            {userTags.map((tag) => (
-                                <Badge
-                                    key={tag.label}
-                                    variant="default"
-                                    className="text-xs"
-                                >
-                                    {tag.label}
-                                </Badge>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </CardContent>
         </Card>
     );
@@ -241,6 +286,7 @@ export function TagsSection({
 
 /**
  * Individual tag badge with interactions
+ * User's tags are highlighted in orange
  */
 function TagBadge({
     tag,
@@ -248,7 +294,7 @@ function TagBadge({
     onRemove,
     onAdd,
 }: {
-    tag: EventTag;
+    tag: EventTag & { userTagged?: boolean };
     isUserTag: boolean;
     onRemove?: () => void;
     onAdd?: () => void;
@@ -262,9 +308,11 @@ function TagBadge({
             onMouseLeave={() => setShowTooltip(false)}
         >
             <Badge
-                variant={isUserTag ? "default" : "secondary"}
+                variant="secondary"
                 className={cn(
                     "text-sm flex items-center gap-1.5 cursor-pointer transition-colors",
+                    // Orange highlight for tags the user has added
+                    isUserTag && "bg-orange-500 text-white hover:bg-orange-600",
                     !isUserTag && onAdd && "hover:bg-primary hover:text-primary-foreground",
                     isUserTag && onRemove && "pr-1"
                 )}
@@ -284,7 +332,7 @@ function TagBadge({
                     </span>
                 )}
                 {isUserTag && onRemove && (
-                    <X className="h-3 w-3 ml-0.5 hover:text-destructive" />
+                    <X className="h-3 w-3 ml-0.5 hover:text-red-200" />
                 )}
             </Badge>
 

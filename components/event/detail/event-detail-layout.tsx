@@ -167,6 +167,8 @@ export function EventDetailLayout({
                         canRsvp={isLoggedIn && !isOwner}
                         rsvpAccess={details.x_pubky_rsvp_access}
                         instanceDate={isRecurring ? displayInstanceDate : undefined}
+                        eventAuthorId={details.author}
+                        eventId={details.id}
                         onRsvp={onRsvp}
                         isRsvpLoading={isRsvpLoading}
                     />
@@ -175,6 +177,9 @@ export function EventDetailLayout({
                     <TagsSection
                         tags={tags}
                         isLoggedIn={isLoggedIn}
+                        currentUserId={currentUserId}
+                        eventAuthorId={details.author}
+                        eventId={details.id}
                         onAddTag={onAddTag}
                         onRemoveTag={onRemoveTag}
                         isTagLoading={isTagLoading}
