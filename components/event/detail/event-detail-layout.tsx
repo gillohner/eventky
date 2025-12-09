@@ -2,9 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { EventHeader } from "./event-header";
-import { DateTimeDisplay } from "./datetime-display";
+import { DateTimeRecurrence } from "./datetime-recurrence";
 import { LocationDisplay } from "./location-display";
-import { UpcomingOccurrences } from "./upcoming-occurrences";
 import { EventDescription } from "./event-description";
 import { EventMetadata } from "./event-metadata";
 import { AttendanceSection } from "./attendance-section";
@@ -120,35 +119,23 @@ export function EventDetailLayout({
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Main Info */}
+                {/* Left Column - DateTime/Recurrence, Description, Location, Details */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Date & Time */}
-                    <DateTimeDisplay
+                    {/* Unified Date & Time with Recurrence - Full width for better readability */}
+                    <DateTimeRecurrence
                         dtstart={details.dtstart}
                         dtend={details.dtend}
                         duration={details.duration}
                         dtstartTzid={details.dtstart_tzid}
                         dtendTzid={details.dtend_tzid}
-                    />
-
-                    {/* Recurring Events - Upcoming Occurrences */}
-                    {isRecurring && details.rrule && (
-                        <UpcomingOccurrences
-                            rrule={details.rrule}
-                            dtstart={details.dtstart}
-                            dtstartTzid={details.dtstart_tzid}
-                            rdate={details.rdate}
-                            exdate={details.exdate}
-                            authorId={details.author}
-                            eventId={details.id}
-                            selectedInstance={displayInstanceDate}
-                        />
-                    )}
-
-                    {/* Location */}
-                    <LocationDisplay
-                        location={details.location}
-                        geo={details.geo}
+                        rrule={details.rrule}
+                        rdate={details.rdate}
+                        exdate={details.exdate}
+                        authorId={details.author}
+                        eventId={details.id}
+                        selectedInstance={displayInstanceDate}
+                        currentUserId={currentUserId}
+                        attendees={attendees}
                     />
 
                     {/* Description */}
@@ -156,9 +143,15 @@ export function EventDetailLayout({
                         description={details.description}
                         styledDescription={details.styled_description}
                     />
+
+                    {/* Location */}
+                    <LocationDisplay
+                        location={details.location}
+                        geo={details.geo}
+                    />
                 </div>
 
-                {/* Right Column - Sidebar */}
+                {/* Right Column - Attendance, Tags */}
                 <div className="space-y-6">
                     {/* Attendance */}
                     <AttendanceSection
@@ -185,7 +178,8 @@ export function EventDetailLayout({
                         isTagLoading={isTagLoading}
                     />
 
-                    {/* Metadata */}
+
+                    {/* Metadata/Details */}
                     <EventMetadata
                         url={details.url}
                         status={details.status}
