@@ -157,7 +157,7 @@ export function EventDetailLayout({
                     <AttendanceSection
                         attendees={attendees}
                         currentUserId={currentUserId}
-                        canRsvp={isLoggedIn && !isOwner}
+                        canRsvp={isLoggedIn}
                         rsvpAccess={details.x_pubky_rsvp_access}
                         instanceDate={isRecurring ? displayInstanceDate : undefined}
                         eventAuthorId={details.author}

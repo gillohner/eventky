@@ -150,13 +150,30 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             await session.storage.putText("/pub/pubky.app/profile.json", JSON.stringify(defaultProfile));
             console.log("Default profile created for user:", publicKey);
 
+            // Generate and download recovery file for the new account
+            const testPassphrase = "testnet123"; // Simple passphrase for testnet accounts
+            const recoveryFileData = keypair.createRecoveryFile(testPassphrase);
+
+            // Create and trigger download
+            const blob = new Blob([new Uint8Array(recoveryFileData)], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `testnet-${publicKey.substring(0, 8)}.pkarr`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            console.log("Recovery file downloaded for user:", publicKey);
+
             // Ingest user into Nexus to start monitoring this homeserver
             await ingestUserIntoNexus(publicKey);
 
             // Sign in with the new account
             signin(publicKey, keypair, session);
 
-            toast.success(`Account created! User ID: ${publicKey.substring(0, 8)}...`);
+            toast.success(`Account created! Recovery file downloaded (passphrase: ${testPassphrase})`);
             router.push(returnPath);
         } catch (error) {
             console.error("Testnet signup error:", error);
@@ -478,7 +495,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                 {/* Note */}
                 <div className="w-full max-w-md mx-auto text-center">
                     <p className="text-sm text-muted-foreground">
-                        Don&apos;t have a Pubky account? Check out <a href="https://pubky.app" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">pubky.app</a> to create one.
+                        Don&apos;t have a Pubky account? Check out <a href="http://homegate.live/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">homegate.live</a>
                     </p>
                 </div>
             </div>
