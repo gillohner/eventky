@@ -3,7 +3,7 @@
  * Re-exports validation functions for consistent usage across the app
  */
 
-import {
+export {
     validateTimezone,
     validateGeoCoordinates,
     validateRrule,
@@ -13,69 +13,3 @@ import {
     getValidRsvpStatuses,
 } from "pubky-app-specs";
 
-// Re-export WASM validation functions
-export {
-    validateTimezone,
-    validateGeoCoordinates,
-    validateRrule,
-    validateColor,
-    validateDuration,
-    getValidEventStatuses,
-    getValidRsvpStatuses,
-};
-
-/**
- * Validate URL format
- */
-export function validateUrl(url: string): boolean {
-    try {
-        new URL(url);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-/**
- * Get validation error message for a field
- */
-export function getFieldValidationError(
-    field: string,
-    value: unknown
-): string | undefined {
-    switch (field) {
-        case "geo":
-            if (value && typeof value === "string" && !validateGeoCoordinates(value)) {
-                return "Invalid coordinates format (expected: lat;lon)";
-            }
-            break;
-        case "url":
-        case "image_uri":
-            if (value && typeof value === "string" && !validateUrl(value)) {
-                return "Invalid URL format";
-            }
-            break;
-        case "duration":
-            if (value && typeof value === "string" && !validateDuration(value)) {
-                return "Invalid duration format (expected: PT2H30M)";
-            }
-            break;
-        case "rrule":
-            if (value && typeof value === "string" && !validateRrule(value)) {
-                return "Invalid recurrence rule format";
-            }
-            break;
-        case "dtstart_tzid":
-        case "dtend_tzid":
-            if (value && typeof value === "string" && !validateTimezone(value)) {
-                return "Invalid timezone (use IANA timezone format)";
-            }
-            break;
-        case "status":
-            if (value && typeof value === "string" && !getValidEventStatuses().includes(value)) {
-                return `Invalid status (must be one of: ${getValidEventStatuses().join(", ")})`;
-            }
-            break;
-    }
-    return undefined;
-}

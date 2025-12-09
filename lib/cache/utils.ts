@@ -11,6 +11,7 @@
  */
 
 import type { PubkyAppEvent, PubkyAppCalendar, StyledDescription } from "pubky-app-specs";
+import { eventUriBuilder, calendarUriBuilder } from "pubky-app-specs";
 import type { NexusEventResponse } from "@/lib/nexus/events";
 import type { NexusCalendarResponse } from "@/lib/nexus/calendars";
 
@@ -128,7 +129,7 @@ export function pubkyEventToNexusFormat(
     return {
         details: {
             id: eventId,
-            uri: `pubky://${authorId}/pub/eventky.app/events/${eventId}`,
+            uri: eventUriBuilder(authorId, eventId),
             author: authorId,
             indexed_at: now, // Local timestamp, will be updated when Nexus indexes
             uid: event.uid,
@@ -177,7 +178,7 @@ export function pubkyCalendarToNexusFormat(
     return {
         details: {
             id: calendarId,
-            uri: `pubky://${authorId}/pub/eventky.app/calendars/${calendarId}`,
+            uri: calendarUriBuilder(authorId, calendarId),
             author: authorId,
             indexed_at: now,
             name: calendar.name,

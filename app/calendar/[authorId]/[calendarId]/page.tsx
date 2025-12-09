@@ -6,6 +6,7 @@ import { DevJsonView } from "@/components/dev-json-view";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { calendarUriBuilder } from "pubky-app-specs";
 import { Edit, Plus } from "lucide-react";
 import { SyncBadge } from "@/components/ui/sync-status-indicator";
 
@@ -27,7 +28,7 @@ export default function CalendarPage({ params }: CalendarPageProps) {
     const canManage = isOwner || isAdmin;
 
     // Build the calendar URI for the "Add Event" link
-    const calendarUri = calendar?.details.uri || `pubky://${authorId}/pub/eventky.app/calendars/${calendarId}`;
+    const calendarUri = calendar?.details.uri || calendarUriBuilder(authorId, calendarId);
 
     return (
         <div className="container mx-auto py-8 px-4">
