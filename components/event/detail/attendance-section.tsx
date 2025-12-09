@@ -86,7 +86,7 @@ export function AttendanceSection({
     // Priority: instance-specific RSVP > global event RSVP
     const deduplicatedAttendees = useMemo(() => {
         const map = new Map<string, Attendee>();
-        
+
         console.log("[AttendanceSection] Filtering attendees:", {
             instanceDate,
             totalAttendees: attendees.length,
@@ -96,29 +96,29 @@ export function AttendanceSection({
                 recurrence_id: a.recurrence_id,
             })),
         });
-        
+
         for (const attendee of attendees) {
             const existing = map.get(attendee.author);
-            
+
             if (instanceDate) {
                 // For recurring event instance view:
                 // 1. Instance-specific RSVP (recurrence_id matches) takes priority
                 // 2. Fall back to global RSVP (no recurrence_id) if no instance-specific
                 const isInstanceSpecific = attendee.recurrence_id === instanceDate;
                 const isGlobal = !attendee.recurrence_id;
-                
+
                 console.log(`[AttendanceSection] Processing ${attendee.author.slice(0, 8)}:`, {
                     recurrence_id: attendee.recurrence_id,
                     isInstanceSpecific,
                     isGlobal,
                     willSkip: !isInstanceSpecific && !isGlobal,
                 });
-                
+
                 if (!isInstanceSpecific && !isGlobal) {
                     // Skip RSVPs for other instances
                     continue;
                 }
-                
+
                 if (!existing) {
                     map.set(attendee.author, attendee);
                 } else {
@@ -133,13 +133,13 @@ export function AttendanceSection({
             } else {
                 // For non-recurring or series view: only show global RSVPs
                 if (attendee.recurrence_id) continue;
-                
+
                 if (!existing || attendee.indexed_at > existing.indexed_at) {
                     map.set(attendee.author, attendee);
                 }
             }
         }
-        
+
         // Override current user's status with pending write if exists
         if (pendingWrite && currentUserId) {
             const existing = map.get(currentUserId);
@@ -163,7 +163,7 @@ export function AttendanceSection({
                 });
             }
         }
-        
+
         const result = Array.from(map.values());
         console.log("[AttendanceSection] Filtered result:", {
             instanceDate,
