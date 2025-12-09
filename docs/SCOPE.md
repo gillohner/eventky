@@ -28,12 +28,12 @@ flowchart LR
 | **Nexus Endoints**       | New Nexus endpoints for event/calendar indexing and querying |
 | **Calendar grouping** | Group events into calendars with admins; Admins can add Events referencing the Calendar which get indexed by Nexus |
 | **Basic recurrence**  | RRULE, RDATE, EXDATE (RFC 5545). Allows date recurrences but no per-instance metadata overrides             |
-| **RSVP system**       | Accept/Decline/Tentative per event/instance using PubkyAppAttendee. |
+| **RSVP system**       | Accept/Decline/Tentative per event/instance using PubkyAppAttendee |
 | **Tagging**           | Allow PubkyAppTag for PubkyAppEvent and PubkyAppCalendar                 |
 | **Event discovery**   | `/events` feed listing events in a Card based layout with basic filtering using Nexus filters        |
 | **Calendar discovery**   | `/calendars` feed listing calendars with basic filtering using Nexus filters. Calendar-View and Card based UI       |
-| **Event pages**   | Event detail view with RSVP and tags; Create/edit forms       |
-| **Calendar  pages**   | Calendar detail view with events - Calendar-View and Card based UI; Create/edit forms       |
+| **Event pages**   | Event detail view with RSVP and tags; See next and previous event in recurrence and allow setting attendee default status and overrides per instance; Create/edit forms       |
+| **Calendar  pages**   | Calendar detail view with events - Either Calendar-View or Card based UI rendering recurring events; Create/edit forms       |
 | **Multi-homeserver**  | Attendees and Tags from different homeservers using Nexus        |
 | **Image uploads**     | Event images via Pubky files                |
 | **Rich descriptions** | HTML formatted event descriptions           |
