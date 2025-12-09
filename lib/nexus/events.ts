@@ -55,7 +55,7 @@ export interface NexusEventResponse {
     x_pubky_event_uri: string;
     created_at: number;
     last_modified?: number;
-    recurrence_id?: number;
+    recurrence_id?: string;
   }>;
 }
 
