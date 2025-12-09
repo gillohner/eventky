@@ -1,0 +1,492 @@
+"use client";
+
+import { useState, useMemo, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+    Clock,
+    Calendar,
+    Globe,
+    ArrowRight,
+    Repeat,
+    ChevronLeft,
+    ChevronRight,
+} from "lucide-react";
+import Link from "next/link";
+import {
+    parseIsoDateTime,
+    formatDateTime,
+    getLocalTimezone,
+    getShortTimezone,
+    getLongTimezone,
+    parseDuration,
+    formatDuration,
+    formatDurationMs,
+    parseRRuleToLabel,
+} from "@/lib/datetime";
+import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
+
+interface Attendee {
+    author: string;
+    partstat: string;
+    recurrence_id?: string;
+}
+
+interface DateTimeRecurrenceProps {
+    /** Start datetime in ISO format */
+    dtstart: string;
+    /** End datetime in ISO format */
+    dtend?: string;
+    /** Duration string (ISO 8601) */
+    duration?: string;
+    /** Start timezone */
+    dtstartTzid?: string;
+    /** End timezone */
+    dtendTzid?: string;
+    /** RRULE string for recurring events */
+    rrule?: string;
+    /** Additional dates (RDATE) */
+    rdate?: string[];
+    /** Excluded dates (EXDATE) */
+    exdate?: string[];
+    /** Event author ID */
+    authorId: string;
+    /** Event ID */
+    eventId: string;
+    /** Currently selected instance date */
+    selectedInstance?: string;
+    /** Current user's ID for attendance coloring */
+    currentUserId?: string;
+    /** Attendees list for showing user's attendance per instance */
+    attendees?: Attendee[];
+    /** Maximum occurrences to show */
+    maxOccurrences?: number;
+    /** Additional CSS classes */
+    className?: string;
+}
+
+type TimezoneMode = "local" | "event";
+
+/**
+ * Unified DateTime and Recurrence display
+ * Shows date/time info with recurring event occurrences in a single card
+ */
+export function DateTimeRecurrence({
+    dtstart,
+    dtend,
+    duration,
+    dtstartTzid,
+    dtendTzid,
+    rrule,
+    rdate,
+    exdate,
+    authorId,
+    eventId,
+    selectedInstance,
+    currentUserId,
+    attendees = [],
+    maxOccurrences = 10,
+    className,
+}: DateTimeRecurrenceProps) {
+    const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("local");
+
+    const isRecurring = Boolean(rrule);
+    const localTimezone = getLocalTimezone();
+    const displayTimezone = timezoneMode === "local" ? localTimezone : (dtstartTzid || localTimezone);
+
+    // Calculate occurrences for recurring events
+    const occurrences = useMemo(() => {
+        if (!rrule) return [];
+        return calculateNextOccurrences({
+            rrule,
+            dtstart,
+            rdate,
+            exdate,
+            maxCount: maxOccurrences,
+        });
+    }, [rrule, dtstart, rdate, exdate, maxOccurrences]);
+
+    // Build a map of user's attendance per instance
+    const userAttendanceMap = useMemo(() => {
+        const map = new Map<string, string>();
+        if (!currentUserId) return map;
+
+        for (const att of attendees) {
+            if (att.author === currentUserId) {
+                const key = att.recurrence_id || "global";
+                map.set(key, att.partstat.toUpperCase());
+            }
+        }
+        return map;
+    }, [attendees, currentUserId]);
+
+    // Get user's attendance for a specific occurrence
+    const getUserAttendance = (occDate: string): string | undefined => {
+        // First check for instance-specific attendance
+        const instanceStatus = userAttendanceMap.get(occDate);
+        if (instanceStatus) return instanceStatus;
+        // Fall back to global attendance
+        return userAttendanceMap.get("global");
+    };
+
+    // Recurrence label
+    const recurrenceLabel = useMemo(() => {
+        if (!rrule) return null;
+        return parseRRuleToLabel(rrule);
+    }, [rrule]);
+
+    // Calculate end time from duration if needed
+    const calculatedDtend = useMemo(() => {
+        if (dtend) return dtend;
+        if (!duration) return undefined;
+        try {
+            const startDate = parseIsoDateTime(dtstart, dtstartTzid);
+            const durationMs = parseDuration(duration);
+            return new Date(startDate.getTime() + durationMs).toISOString();
+        } catch {
+            return undefined;
+        }
+    }, [dtstart, dtend, duration, dtstartTzid]);
+
+    // Format times
+    const formattedStart = useMemo(() => {
+        return formatDateTime(dtstart, displayTimezone, dtstartTzid);
+    }, [dtstart, displayTimezone, dtstartTzid]);
+
+    const formattedEnd = useMemo(() => {
+        if (!calculatedDtend) return null;
+        return formatDateTime(calculatedDtend, displayTimezone, dtendTzid || dtstartTzid);
+    }, [calculatedDtend, displayTimezone, dtendTzid, dtstartTzid]);
+
+    const isSameDay = useMemo(() => {
+        if (!calculatedDtend) return true;
+        const startDate = parseIsoDateTime(dtstart, dtstartTzid);
+        const endDate = parseIsoDateTime(calculatedDtend, dtendTzid || dtstartTzid);
+        return startDate.toDateString() === endDate.toDateString();
+    }, [dtstart, calculatedDtend, dtstartTzid, dtendTzid]);
+
+    const durationDisplay = useMemo(() => {
+        if (duration) return formatDuration(duration);
+        if (calculatedDtend) {
+            const startDate = parseIsoDateTime(dtstart, dtstartTzid);
+            const endDate = parseIsoDateTime(calculatedDtend, dtendTzid || dtstartTzid);
+            return formatDurationMs(endDate.getTime() - startDate.getTime());
+        }
+        return null;
+    }, [dtstart, calculatedDtend, duration, dtstartTzid, dtendTzid]);
+
+    const hasEventTimezone = Boolean(dtstartTzid && dtstartTzid !== localTimezone);
+
+    // Navigation for recurring events
+    const selectedIndex = useMemo(() => {
+        if (!selectedInstance) return 0;
+        return occurrences.findIndex((occ) => occ === selectedInstance);
+    }, [occurrences, selectedInstance]);
+
+    const navigation = useMemo(() => {
+        if (!isRecurring) return { prev: null, next: null };
+        const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : null;
+        const nextIndex = selectedIndex < occurrences.length - 1 ? selectedIndex + 1 : null;
+        return {
+            prev: prevIndex !== null ? occurrences[prevIndex] : null,
+            next: nextIndex !== null ? occurrences[nextIndex] : null,
+        };
+    }, [isRecurring, occurrences, selectedIndex]);
+
+    return (
+        <Card className={cn("", className)}>
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-muted-foreground" />
+                        Date & Time
+                        {isRecurring && (
+                            <Badge variant="secondary" className="ml-2 flex items-center gap-1">
+                                <Repeat className="h-3 w-3" />
+                                {recurrenceLabel}
+                            </Badge>
+                        )}
+                    </CardTitle>
+                    {hasEventTimezone && (
+                        <TimezoneToggle
+                            mode={timezoneMode}
+                            onModeChange={setTimezoneMode}
+                            localTimezone={localTimezone}
+                            eventTimezone={dtstartTzid!}
+                        />
+                    )}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {/* Start Date/Time */}
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <span className="font-medium">{formattedStart.date}</span>
+                    </div>
+                    <div className="flex items-center gap-2 pl-6">
+                        <span className="text-lg font-semibold">{formattedStart.time}</span>
+                        {formattedEnd && (
+                            <>
+                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                {isSameDay ? (
+                                    <span className="text-lg font-semibold">{formattedEnd.time}</span>
+                                ) : (
+                                    <span className="text-lg font-semibold">
+                                        {formattedEnd.date} {formattedEnd.time}
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Timezone Info */}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Globe className="h-4 w-4" />
+                    <span>{getLongTimezone(displayTimezone)}</span>
+                    {timezoneMode === "event" && dtstartTzid !== localTimezone && (
+                        <Badge variant="outline" className="text-xs ml-2">
+                            Event timezone
+                        </Badge>
+                    )}
+                </div>
+
+                {/* Duration */}
+                {durationDisplay && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>Duration: {durationDisplay}</span>
+                    </div>
+                )}
+
+                {/* Recurring Events - Instance Navigation & Occurrences */}
+                {isRecurring && occurrences.length > 1 && (
+                    <div className="pt-3 border-t space-y-3">
+                        {/* Instance Navigation */}
+                        {selectedInstance && (
+                            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
+                                <Link
+                                    href={navigation.prev
+                                        ? `/event/${authorId}/${eventId}?instance=${encodeURIComponent(navigation.prev)}`
+                                        : "#"
+                                    }
+                                    className={cn(
+                                        "flex items-center gap-1 text-sm px-2 py-1 rounded transition-colors",
+                                        navigation.prev
+                                            ? "hover:bg-muted cursor-pointer"
+                                            : "text-muted-foreground/50 cursor-not-allowed pointer-events-none"
+                                    )}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Prev</span>
+                                </Link>
+
+                                <span className="text-sm font-medium">
+                                    Instance {selectedIndex + 1} of {occurrences.length}
+                                </span>
+
+                                <Link
+                                    href={navigation.next
+                                        ? `/event/${authorId}/${eventId}?instance=${encodeURIComponent(navigation.next)}`
+                                        : "#"
+                                    }
+                                    className={cn(
+                                        "flex items-center gap-1 text-sm px-2 py-1 rounded transition-colors",
+                                        navigation.next
+                                            ? "hover:bg-muted cursor-pointer"
+                                            : "text-muted-foreground/50 cursor-not-allowed pointer-events-none"
+                                    )}
+                                >
+                                    <span className="hidden sm:inline">Next</span>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
+                            </div>
+                        )}
+
+                        {/* Occurrences List */}
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-2">Upcoming instances:</p>
+                            <ScrollArea className="w-full whitespace-nowrap">
+                                <div className="flex gap-2 pb-3">
+                                    {occurrences.map((occ, index) => {
+                                        const isSelected = selectedInstance ? occ === selectedInstance : index === 0;
+                                        const isPast = new Date(occ) < new Date();
+                                        const userStatus = getUserAttendance(occ);
+
+                                        return (
+                                            <OccurrenceChip
+                                                key={occ}
+                                                date={occ}
+                                                timezone={displayTimezone}
+                                                eventTimezone={dtstartTzid}
+                                                isSelected={isSelected}
+                                                isPast={isPast}
+                                                userStatus={userStatus}
+                                                href={`/event/${authorId}/${eventId}?instance=${encodeURIComponent(occ)}`}
+                                                index={index}
+                                                selectedIndex={selectedIndex}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                                <ScrollBar orientation="horizontal" />
+                            </ScrollArea>
+                        </div>
+
+                        {/* Link to series overview */}
+                        {selectedInstance && (
+                            <Link
+                                href={`/event/${authorId}/${eventId}`}
+                                className="text-sm text-primary hover:underline flex items-center gap-1"
+                            >
+                                <Repeat className="h-3 w-3" />
+                                View full series
+                            </Link>
+                        )}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+/**
+ * Occurrence chip with attendance coloring
+ */
+function OccurrenceChip({
+    date,
+    timezone,
+    eventTimezone,
+    isSelected,
+    isPast,
+    userStatus,
+    href,
+    index,
+    selectedIndex,
+}: {
+    date: string;
+    timezone: string;
+    eventTimezone?: string;
+    isSelected: boolean;
+    isPast: boolean;
+    userStatus?: string;
+    href: string;
+    index: number;
+    selectedIndex: number;
+}) {
+    const chipRef = useRef<HTMLAnchorElement>(null);
+
+    // Scroll into view when selected
+    useEffect(() => {
+        if (isSelected && chipRef.current) {
+            chipRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [isSelected]);
+
+    const formatted = useMemo(() => {
+        return formatDateTime(date, timezone, eventTimezone, {
+            compact: true,
+            includeYear: false,
+            includeWeekday: true,
+        });
+    }, [date, timezone, eventTimezone]);
+
+    // Determine border/background color based on user attendance
+    // Using dark-mode-only colors since the app is dark theme only
+    const getAttendanceStyles = () => {
+        if (isSelected) {
+            // Selected always uses primary colors
+            return "bg-primary text-primary-foreground border-primary";
+        }
+
+        // Color based on user's attendance status (dark mode colors)
+        switch (userStatus) {
+            case "ACCEPTED":
+                return "border-green-500 bg-green-950/50 text-green-100 hover:bg-green-900/60";
+            case "TENTATIVE":
+                return "border-orange-500 bg-orange-950/50 text-orange-100 hover:bg-orange-900/60";
+            case "DECLINED":
+                return "border-red-500 bg-red-950/50 text-red-100 hover:bg-red-900/60";
+            default:
+                // No response or not logged in
+                if (isPast) {
+                    return "bg-muted/50 text-muted-foreground border-muted";
+                }
+                return "hover:bg-muted border-border";
+        }
+    };
+
+    return (
+        <Link
+            ref={chipRef}
+            href={href}
+            className={cn(
+                "flex flex-col items-center p-2 rounded-lg border min-w-[80px] transition-colors",
+                getAttendanceStyles()
+            )}
+        >
+            <span className={cn(
+                "text-xs font-medium",
+                isSelected && "text-primary-foreground",
+                isPast && !isSelected && !userStatus && "text-muted-foreground",
+                // Ensure text is visible for attendance status colors
+                userStatus && !isSelected && "text-inherit"
+            )}>
+                {formatted.date}
+            </span>
+            <span className={cn(
+                "text-xs",
+                isSelected ? "opacity-90" : "opacity-80",
+                isPast && !isSelected && !userStatus && "text-muted-foreground",
+                // Ensure text is visible for attendance status colors
+                userStatus && !isSelected && "text-inherit opacity-80"
+            )}>
+                {formatted.time}
+            </span>
+        </Link>
+    );
+}
+
+/**
+ * Timezone toggle button component
+ */
+function TimezoneToggle({
+    mode,
+    onModeChange,
+    localTimezone,
+    eventTimezone,
+}: {
+    mode: TimezoneMode;
+    onModeChange: (mode: TimezoneMode) => void;
+    localTimezone: string;
+    eventTimezone: string;
+}) {
+    return (
+        <div className="flex items-center gap-1 rounded-lg border p-1">
+            <Button
+                variant={mode === "local" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => onModeChange("local")}
+            >
+                {getShortTimezone(localTimezone)}
+            </Button>
+            <Button
+                variant={mode === "event" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => onModeChange("event")}
+            >
+                {getShortTimezone(eventTimezone)}
+            </Button>
+        </div>
+    );
+}

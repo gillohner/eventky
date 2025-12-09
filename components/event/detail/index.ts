@@ -5,6 +5,7 @@
 
 export { EventHeader } from "./event-header";
 export { DateTimeDisplay, TimezoneToggle } from "./datetime-display";
+export { DateTimeRecurrence } from "./datetime-recurrence";
 export { LocationDisplay } from "./location-display";
 export { UpcomingOccurrences } from "./upcoming-occurrences";
 export { EventDescription } from "./event-description";
