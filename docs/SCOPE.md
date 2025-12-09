@@ -78,6 +78,7 @@ GET /v0/event/{authorId}/{eventId}
 
 // User ingest (trigger indexing)
 POST /v0/user/{userId}/ingest
+...
 ```
 
 ### Data Paths (Homeserver)
