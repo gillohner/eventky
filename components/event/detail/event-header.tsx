@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { config } from "@/lib/config";
+import { getPubkyImageUrl } from "@/lib/pubky/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,14 +71,17 @@ export function EventHeader({
 
     const statusVariant = getStatusVariant(status);
 
+    // Get the proper image URL from Nexus gateway
+    const heroImageUrl = imageUri ? getPubkyImageUrl(imageUri, "main") : undefined;
+
     return (
         <div className={cn("rounded-xl overflow-hidden border bg-card", className)}>
             {/* Hero Image/Color Banner */}
             <div
                 className="h-32 sm:h-48 w-full bg-cover bg-center relative"
                 style={{
-                    backgroundImage: imageUri ? `url(${imageUri})` : fallbackGradient,
-                    backgroundColor: !imageUri && calendarColor ? calendarColor : undefined,
+                    backgroundImage: heroImageUrl ? `url(${heroImageUrl})` : fallbackGradient,
+                    backgroundColor: !heroImageUrl && calendarColor ? calendarColor : undefined,
                 }}
             >
                 {/* Overlay for text readability */}

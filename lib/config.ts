@@ -96,6 +96,16 @@ const DEFAULT_PUBKY_APP_URLS: Record<PubkyEnvironment, string> = {
 };
 
 /**
+ * Default Eventky App Base URLs for each environment
+ * Used for internal app links
+ */
+const DEFAULT_EVENTKY_BASE_URLS: Record<PubkyEnvironment, string> = {
+    testnet: "http://localhost:3000",
+    staging: "https://eventky.staging.app", // placeholder
+    production: "https://eventky.app", // placeholder
+};
+
+/**
  * Get the current environment from env variables
  */
 function getEnvironment(): PubkyEnvironment {

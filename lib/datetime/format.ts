@@ -8,7 +8,11 @@
  * Handles both ISO strings with and without timezone info
  */
 export function parseIsoDateTime(isoString: string, _timezone?: string): Date {
-    // If the string has no timezone info, treat it as the specified timezone
+    // Note: _timezone parameter is reserved for future use when we need to
+    // convert between timezones. Currently we parse the datetime as-is.
+    void _timezone; // Explicitly mark as intentionally unused
+    
+    // If the string has no timezone info, treat it as local time
     if (!isoString.includes("Z") && !isoString.includes("+") && !isoString.includes("-", 10)) {
         // Parse manually to avoid timezone conversion issues
         const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
