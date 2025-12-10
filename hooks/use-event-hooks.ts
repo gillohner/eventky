@@ -1,71 +1,57 @@
 /**
- * React Query hooks for event operations with optimistic caching
+ * Event Hooks with Optimistic Caching
  *
- * Production-grade features:
+ * TanStack Query-based hooks for event operations with:
  * - Optimistic updates: Instant UI after create/edit
- * - Smart cache merging: Local data + Nexus data
- * - Version-aware: Uses sequence/last_modified for freshness
- * - Background sync: Polls Nexus until indexed
- * - Stale-while-revalidate: Shows cached data while fetching
+ * - Smart merging: Local data + Nexus data with version comparison
+ * - Background sync: Polls Nexus until changes are indexed
+ * - localStorage persistence: Survives page refresh
  *
  * Architecture:
- * 1. Check optimistic cache for local writes
- * 2. Merge with TanStack Query cache (Nexus data)
- * 3. Return best available data immediately
- * 4. Background: Continue polling Nexus for updates
+ * 1. On fetch: Check pending writes, merge with Nexus response
+ * 2. Return best available data with sync metadata
+ * 3. Background: Continue polling Nexus until synced
+ * 4. All state managed via TanStack Query (no Zustand)
  */
 
 import { useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
-import {
-    fetchEventFromNexus,
-    fetchEventsStream,
-    type NexusEventResponse,
-    type NexusEventStreamResponse,
-} from "@/lib/nexus";
-import {
-    useOptimisticCache,
-    mergeEventData,
-    compareEventVersions,
-    type SyncStatus,
-} from "@/stores/optimistic-cache-store";
+import { fetchEventFromNexus, fetchEventsStream } from "@/lib/nexus";
 import {
     queryKeys,
-    decideEventDataSource,
-    SYNC_CONFIG,
+    mergeEventData,
+    getSyncStatusFromMeta,
     calculateSyncDelay,
     isNotFoundError,
+    SYNC_CONFIG,
+    decideDataSource,
+    getPendingEvent,
 } from "@/lib/cache";
+import type {
+    CachedEvent,
+    SyncStatus,
+    NexusEventStreamItem,
+} from "@/types/nexus";
 
-/**
- * Options for useEvent hook
- */
+// =============================================================================
+// Types
+// =============================================================================
+
 export interface UseEventOptions {
     viewerId?: string;
     limitTags?: number;
     limitTaggers?: number;
     limitAttendees?: number;
-    /**
-     * Enable optimistic caching (default: true)
-     * When true, local writes are shown immediately before Nexus indexes
-     */
-    enableOptimistic?: boolean;
-    /**
-     * Enable background sync polling (default: true)
-     * When true, polls Nexus until local data is confirmed indexed
-     */
+    /** Enable background sync polling (default: true) */
     enableBackgroundSync?: boolean;
     queryOptions?: Omit<
-        UseQueryOptions<NexusEventResponse | null, Error>,
+        UseQueryOptions<CachedEvent | null, Error>,
         "queryKey" | "queryFn"
     >;
 }
 
-/**
- * Extended return type with sync status
- */
 export interface UseEventResult {
-    data: NexusEventResponse | null | undefined;
+    data: CachedEvent | null | undefined;
     isLoading: boolean;
     isFetching: boolean;
     error: Error | null;
@@ -77,18 +63,18 @@ export interface UseEventResult {
     refetch: () => Promise<void>;
 }
 
+// =============================================================================
+// useEvent Hook
+// =============================================================================
+
 /**
- * Hook to fetch a single event with optimistic caching
- *
- * This hook provides instant UI updates after create/edit operations
- * by merging local cache data with Nexus API responses.
+ * Fetch a single event with optimistic caching
  *
  * @example
  * ```tsx
- * const { data, isLoading, syncStatus, isOptimistic } = useEvent(authorId, eventId);
+ * const { data, syncStatus, isOptimistic } = useEvent(authorId, eventId);
  *
- * // Show sync indicator when data is optimistic
- * {isOptimistic && <SyncingBadge status={syncStatus} />}
+ * {isOptimistic && <SyncBadge status={syncStatus} />}
  * ```
  */
 export function useEvent(
@@ -97,21 +83,9 @@ export function useEvent(
     options?: UseEventOptions
 ): UseEventResult {
     const queryClient = useQueryClient();
-    const enableOptimistic = options?.enableOptimistic ?? true;
     const enableBackgroundSync = options?.enableBackgroundSync ?? true;
 
-    // Access optimistic cache store
-    const getEvent = useOptimisticCache((state) => state.getEvent);
-    const setEvent = useOptimisticCache((state) => state.setEvent);
-    const markEventSynced = useOptimisticCache((state) => state.markEventSynced);
-    const markEventSyncAttempt = useOptimisticCache((state) => state.markEventSyncAttempt);
-    const getSyncStatus = useOptimisticCache((state) => state.getSyncStatus);
-
-    // Get local cached data
-    const localCached = enableOptimistic ? getEvent(authorId, eventId) : undefined;
-    const localSynced = localCached?.meta.synced ?? true;
-
-    // Build query key using factory
+    // Build query key
     const queryKey = queryKeys.events.detail(authorId, eventId, {
         viewerId: options?.viewerId,
         limitTags: options?.limitTags,
@@ -119,10 +93,14 @@ export function useEvent(
         limitAttendees: options?.limitAttendees,
     });
 
-    // TanStack Query for Nexus data
+    // Get existing cached data for comparison
+    const existingData = queryClient.getQueryData<CachedEvent>(queryKey);
+
+    // Main query
     const query = useQuery({
         queryKey,
-        queryFn: async () => {
+        queryFn: async (): Promise<CachedEvent | null> => {
+            // Fetch from Nexus
             const nexusData = await fetchEventFromNexus(
                 authorId,
                 eventId,
@@ -132,34 +110,17 @@ export function useEvent(
                 options?.limitAttendees
             );
 
-            // If we got data from Nexus, update optimistic cache
-            if (nexusData && enableOptimistic) {
-                const localData = getEvent(authorId, eventId);
+            // Get current cached data and pending writes
+            const currentCached = queryClient.getQueryData<CachedEvent>(queryKey);
 
-                if (localData && !localData.meta.synced) {
-                    // Check if Nexus has caught up with our local version
-                    const comparison = compareEventVersions(localData.data, nexusData);
-
-                    if (comparison <= 0) {
-                        // Nexus has same or newer version - mark as synced
-                        markEventSynced(authorId, eventId);
-                    } else {
-                        // Local is still newer - mark sync attempt
-                        markEventSyncAttempt(authorId, eventId);
-                    }
-                }
-
-                // Store Nexus data in cache
-                setEvent(authorId, eventId, nexusData, "nexus");
-            }
-
-            return nexusData;
+            // Merge with pending writes and existing cache
+            return mergeEventData(currentCached ?? undefined, nexusData, authorId, eventId);
         },
         // Shorter stale time when we have unsynced local data
-        staleTime: localSynced
-            ? 2 * 60 * 1000 // 2 minutes for synced data
-            : SYNC_CONFIG.OPTIMISTIC_STALE_TIME, // 30 seconds for unsynced
-        gcTime: 10 * 60 * 1000, // 10 minutes cache time
+        staleTime: existingData?._syncMeta?.source === "local" && !existingData._syncMeta.syncedAt
+            ? SYNC_CONFIG.OPTIMISTIC_STALE_TIME
+            : SYNC_CONFIG.NORMAL_STALE_TIME,
+        gcTime: SYNC_CONFIG.GC_TIME,
         retry: (failureCount, error) => {
             // Don't retry 404s - event doesn't exist in Nexus yet
             if (isNotFoundError(error)) {
@@ -167,34 +128,43 @@ export function useEvent(
             }
             return failureCount < 2;
         },
-        // Return local cache as placeholder while fetching
-        placeholderData: localCached?.data,
         ...options?.queryOptions,
     });
 
     // Background sync polling for unsynced local data
-    const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const syncIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const syncAttemptRef = useRef(0);
 
+    // Extract sync state to stable values for useEffect dependency
+    const syncSource = query.data?._syncMeta?.source;
+    const syncedAt = query.data?._syncMeta?.syncedAt;
+    const needsSync = syncSource === "local" && !syncedAt;
+
     useEffect(() => {
-        if (!enableBackgroundSync || !localCached || localCached.meta.synced) {
-            // Clear any existing interval
+        if (!enableBackgroundSync || !needsSync) {
+            // Clear any existing timeout
             if (syncIntervalRef.current) {
-                clearInterval(syncIntervalRef.current);
+                clearTimeout(syncIntervalRef.current);
                 syncIntervalRef.current = null;
             }
             syncAttemptRef.current = 0;
             return;
         }
 
-        // Start background polling
+        // Check if we have a pending write
+        const pendingWrite = getPendingEvent(authorId, eventId);
+        if (!pendingWrite) {
+            // No pending write, no need to poll
+            return;
+        }
+
         const pollNexus = async () => {
             syncAttemptRef.current++;
 
             if (syncAttemptRef.current > SYNC_CONFIG.MAX_SYNC_ATTEMPTS) {
                 // Give up after max attempts
                 if (syncIntervalRef.current) {
-                    clearInterval(syncIntervalRef.current);
+                    clearTimeout(syncIntervalRef.current);
                     syncIntervalRef.current = null;
                 }
                 return;
@@ -205,19 +175,22 @@ export function useEvent(
         };
 
         // Start polling with exponential backoff
-        const startPolling = () => {
+        const scheduleNextPoll = () => {
             const delay = calculateSyncDelay(syncAttemptRef.current);
             syncIntervalRef.current = setTimeout(() => {
-                pollNexus();
-                // Continue polling if not synced
-                if (!localCached.meta.synced) {
-                    startPolling();
-                }
+                pollNexus().then(() => {
+                    // Check if still needs sync after poll
+                    const currentData = queryClient.getQueryData<CachedEvent>(queryKey);
+                    const stillNeedsSync = currentData?._syncMeta?.source === "local" && !currentData._syncMeta.syncedAt;
+                    if (stillNeedsSync) {
+                        scheduleNextPoll();
+                    }
+                });
             }, delay);
         };
 
         // Initial delay before first poll
-        setTimeout(startPolling, SYNC_CONFIG.INITIAL_SYNC_DELAY);
+        setTimeout(scheduleNextPoll, SYNC_CONFIG.INITIAL_SYNC_DELAY);
 
         return () => {
             if (syncIntervalRef.current) {
@@ -227,23 +200,16 @@ export function useEvent(
         };
     }, [
         enableBackgroundSync,
-        localCached?.meta.synced,
-        localCached,
+        needsSync,
+        authorId,
+        eventId,
         queryClient,
         queryKey,
     ]);
 
-    // Merge local and Nexus data
-    const mergedData = enableOptimistic
-        ? mergeEventData(localCached, query.data ?? undefined)
-        : query.data;
-
-    // Determine data source
-    const decision = decideEventDataSource(
-        localCached?.data,
-        query.data ?? undefined,
-        localSynced
-    );
+    // Determine sync status and data source
+    const decision = decideDataSource(query.data);
+    const syncStatus = getSyncStatusFromMeta(query.data?._syncMeta);
 
     // Force refetch function
     const refetch = useCallback(async () => {
@@ -251,19 +217,20 @@ export function useEvent(
     }, [queryClient, queryKey]);
 
     return {
-        data: mergedData ?? null,
-        isLoading: query.isLoading && !localCached,
+        data: query.data,
+        isLoading: query.isLoading,
         isFetching: query.isFetching,
         error: query.error,
-        syncStatus: getSyncStatus(authorId, eventId, "event"),
-        isOptimistic: decision.source === "local" || decision.source === "merged",
+        syncStatus,
+        isOptimistic: decision.source === "local",
         refetch,
     };
 }
 
-/**
- * Options for useEventsStream hook
- */
+// =============================================================================
+// useEventsStream Hook
+// =============================================================================
+
 export interface UseEventsStreamOptions {
     limit?: number;
     skip?: number;
@@ -274,19 +241,12 @@ export interface UseEventsStreamOptions {
 }
 
 /**
- * Hook to fetch events stream from Nexus
- *
- * Features:
- * - Paginated results support
- * - Calendar, status, and date range filtering
- * - Automatic refetching on window focus
- *
- * @param params - Stream parameters (limit, skip, calendar, status, dates)
+ * Fetch events stream from Nexus
  */
 export function useEventsStream(
     params?: UseEventsStreamOptions,
     options?: Omit<
-        UseQueryOptions<NexusEventStreamResponse[], Error>,
+        UseQueryOptions<NexusEventStreamItem[], Error>,
         "queryKey" | "queryFn"
     >
 ) {
@@ -302,10 +262,12 @@ export function useEventsStream(
     });
 }
 
+// =============================================================================
+// Utility Hooks
+// =============================================================================
+
 /**
- * Hook to prefetch an event
- *
- * Use this to prefetch events on hover or when they're likely to be viewed
+ * Prefetch an event (use on hover)
  */
 export function usePrefetchEvent() {
     const queryClient = useQueryClient();
@@ -321,16 +283,18 @@ export function usePrefetchEvent() {
 
             queryClient.prefetchQuery({
                 queryKey,
-                queryFn: () =>
-                    fetchEventFromNexus(
+                queryFn: async () => {
+                    const nexusData = await fetchEventFromNexus(
                         authorId,
                         eventId,
                         options?.viewerId,
                         options?.limitTags,
                         options?.limitTaggers,
                         options?.limitAttendees
-                    ),
-                staleTime: 2 * 60 * 1000,
+                    );
+                    return mergeEventData(undefined, nexusData, authorId, eventId);
+                },
+                staleTime: SYNC_CONFIG.NORMAL_STALE_TIME,
             });
         },
         [queryClient]
@@ -338,9 +302,7 @@ export function usePrefetchEvent() {
 }
 
 /**
- * Hook to invalidate event queries
- *
- * Use after mutations to ensure fresh data
+ * Invalidate event queries
  */
 export function useInvalidateEvents() {
     const queryClient = useQueryClient();
@@ -357,6 +319,30 @@ export function useInvalidateEvents() {
             await queryClient.invalidateQueries({
                 queryKey: queryKeys.events.all,
             });
+        },
+        [queryClient]
+    );
+}
+
+/**
+ * Set optimistic event data directly in cache
+ * Used by mutation hooks after successful writes
+ */
+export function useSetEventCache() {
+    const queryClient = useQueryClient();
+
+    return useCallback(
+        (authorId: string, eventId: string, data: CachedEvent) => {
+            // Update all variants of the event query
+            const queryKey = queryKeys.events.detail(authorId, eventId, {});
+
+            queryClient.setQueryData(queryKey, data);
+
+            // Also set without options for simpler lookups
+            queryClient.setQueryData(
+                ["nexus", "event", authorId, eventId],
+                data
+            );
         },
         [queryClient]
     );

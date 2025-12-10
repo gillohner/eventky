@@ -4,7 +4,7 @@
  * Production-grade features:
  * - Optimistic updates with rollback on error
  * - Automatic cache invalidation
- * - Integration with optimistic cache store
+ * - TanStack Query caching
  * - Type-safe mutations
  */
 
@@ -12,10 +12,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PubkyAppCalendar } from "pubky-app-specs";
 import { useAuth } from "@/components/providers/auth-provider";
 import { saveCalendar } from "@/lib/pubky/calendars";
-import { useOptimisticCache } from "@/stores/optimistic-cache-store";
-import { queryKeys, pubkyCalendarToNexusFormat } from "@/lib/cache";
+import {
+    queryKeys,
+    pubkyCalendarToNexusFormat,
+    setPendingCalendar,
+    clearPendingCalendar,
+    createLocalSyncMeta,
+} from "@/lib/cache";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 import { toast } from "sonner";
+import type { CachedCalendar } from "@/types/nexus";
 
 /**
  * Input for creating a calendar
@@ -53,7 +59,6 @@ export interface MutationOptions<TResult> {
 export function useCreateCalendar(options?: MutationOptions<CreateCalendarResult>) {
     const queryClient = useQueryClient();
     const { auth } = useAuth();
-    const setCalendar = useOptimisticCache((state) => state.setCalendar);
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -84,19 +89,24 @@ export function useCreateCalendar(options?: MutationOptions<CreateCalendarResult
                 queryKey: queryKeys.calendars.all,
             });
 
-            // Create optimistic cache entry
-            const optimisticData = pubkyCalendarToNexusFormat(
+            // Create optimistic cache entry with sync metadata
+            const nexusData = pubkyCalendarToNexusFormat(
                 input.calendar,
                 auth.publicKey,
                 calendarId
             );
 
-            // Store in optimistic cache
-            setCalendar(auth.publicKey, calendarId, optimisticData, "local");
+            const optimisticData: CachedCalendar = {
+                ...nexusData,
+                _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
+            };
 
-            // Also update TanStack Query cache
+            // Update TanStack Query cache
             const queryKey = queryKeys.calendars.detail(auth.publicKey, calendarId, {});
             queryClient.setQueryData(queryKey, optimisticData);
+
+            // Track pending write
+            setPendingCalendar(auth.publicKey, calendarId, nexusData, nexusData.details.sequence ?? 0);
 
             return { calendarId, previousData: undefined };
         },
@@ -124,6 +134,7 @@ export function useCreateCalendar(options?: MutationOptions<CreateCalendarResult
             if (context?.calendarId && auth?.publicKey) {
                 const queryKey = queryKeys.calendars.detail(auth.publicKey, context.calendarId, {});
                 queryClient.removeQueries({ queryKey });
+                clearPendingCalendar(auth.publicKey, context.calendarId);
             }
 
             options?.onError?.(error);
@@ -147,8 +158,6 @@ export interface UpdateCalendarInput {
 export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult>) {
     const queryClient = useQueryClient();
     const { auth } = useAuth();
-    const setCalendar = useOptimisticCache((state) => state.setCalendar);
-    const getCalendar = useOptimisticCache((state) => state.getCalendar);
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -171,18 +180,27 @@ export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult
             const queryKey = queryKeys.calendars.detail(auth.publicKey, input.calendarId, {});
             await queryClient.cancelQueries({ queryKey });
 
-            const previousCached = getCalendar(auth.publicKey, input.calendarId);
+            // Snapshot previous value for rollback
+            const previousData = queryClient.getQueryData<CachedCalendar>(queryKey);
 
-            const optimisticData = pubkyCalendarToNexusFormat(
+            // Create optimistic cache entry with sync metadata
+            const nexusData = pubkyCalendarToNexusFormat(
                 input.calendar,
                 auth.publicKey,
                 input.calendarId
             );
 
-            setCalendar(auth.publicKey, input.calendarId, optimisticData, "local");
+            const optimisticData: CachedCalendar = {
+                ...nexusData,
+                _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
+            };
+
             queryClient.setQueryData(queryKey, optimisticData);
 
-            return { previousCached };
+            // Track pending write
+            setPendingCalendar(auth.publicKey, input.calendarId, nexusData, nexusData.details.sequence ?? 0);
+
+            return { previousData };
         },
 
         onSuccess: (result) => {
@@ -205,13 +223,12 @@ export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult
                 toast.error(`Failed to update calendar: ${error.message}`);
             }
 
-            if (context?.previousCached && auth?.publicKey) {
-                setCalendar(
-                    auth.publicKey,
-                    input.calendarId,
-                    context.previousCached.data,
-                    context.previousCached.meta.source
-                );
+            if (context?.previousData && auth?.publicKey) {
+                const queryKey = queryKeys.calendars.detail(auth.publicKey, input.calendarId, {});
+                queryClient.setQueryData(queryKey, context.previousData);
+            }
+            if (auth?.publicKey) {
+                clearPendingCalendar(auth.publicKey, input.calendarId);
             }
 
             options?.onError?.(error);
@@ -232,31 +249,27 @@ export interface DeleteCalendarInput {
 export function useDeleteCalendar(options?: MutationOptions<void>) {
     const queryClient = useQueryClient();
     const { auth } = useAuth();
-    const removeCalendar = useOptimisticCache((state) => state.removeCalendar);
-    const getCalendar = useOptimisticCache((state) => state.getCalendar);
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
-        mutationFn: async (input: DeleteCalendarInput): Promise<void> => {
+        mutationFn: async (_input: DeleteCalendarInput): Promise<void> => {
             if (!auth?.session || !auth?.publicKey) {
                 throw new Error("Authentication required. Please sign in.");
             }
 
             // TODO: Implement actual deletion from Pubky Homeserver
-            removeCalendar(auth.publicKey, input.calendarId);
+            // await deleteCalendar(auth.session, _input.calendarId, auth.publicKey);
         },
 
         onMutate: async (input) => {
             if (!auth?.publicKey) return;
 
-            const previousCached = getCalendar(auth.publicKey, input.calendarId);
-
-            removeCalendar(auth.publicKey, input.calendarId);
-
             const queryKey = queryKeys.calendars.detail(auth.publicKey, input.calendarId, {});
+            const previousData = queryClient.getQueryData<CachedCalendar>(queryKey);
+
             queryClient.removeQueries({ queryKey });
 
-            return { previousCached };
+            return { previousData, calendarId: input.calendarId };
         },
 
         onSuccess: () => {
@@ -281,14 +294,9 @@ export function useDeleteCalendar(options?: MutationOptions<void>) {
                 toast.error(`Failed to delete calendar: ${error.message}`);
             }
 
-            if (context?.previousCached && auth?.publicKey) {
-                const { setCalendar } = useOptimisticCache.getState();
-                setCalendar(
-                    auth.publicKey,
-                    input.calendarId,
-                    context.previousCached.data,
-                    context.previousCached.meta.source
-                );
+            if (context?.previousData && auth?.publicKey) {
+                const queryKey = queryKeys.calendars.detail(auth.publicKey, input.calendarId, {});
+                queryClient.setQueryData(queryKey, context.previousData);
             }
 
             options?.onError?.(error);

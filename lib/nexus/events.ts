@@ -4,94 +4,15 @@
  */
 
 import { nexusClient, getErrorMessage, isAxiosError } from "./client";
+import type {
+  NexusEventResponse,
+  NexusEventStreamItem,
+} from "@/types/nexus";
 
-/**
- * Response structure from Nexus API for a single event
- * Matches EventView from pubky-nexus
- */
-export interface NexusEventResponse {
-  details: {
-    id: string;
-    uri: string;
-    author: string;
-    indexed_at: number;
-    uid: string;
-    dtstamp: number;
-    dtstart: string;
-    summary: string;
-    dtend?: string;
-    duration?: string;
-    dtstart_tzid?: string;
-    dtend_tzid?: string;
-    rrule?: string;
-    rdate?: string[];
-    exdate?: string[];
-    description?: string;
-    status?: string;
-    location?: string;
-    geo?: string;
-    url?: string;
-    sequence?: number;
-    last_modified?: number;
-    created?: number;
-    recurrence_id?: number;
-    image_uri?: string;
-    styled_description?: string | { fmttype: string; value: string };
-    x_pubky_calendar_uris?: string[];
-    x_pubky_rsvp_access?: string;
-  };
-  tags: Array<{
-    label: string;
-    taggers: string[];
-    taggers_count: number;
-    relationship: boolean;
-  }>;
-  attendees: Array<{
-    id: string;
-    indexed_at: number;
-    author: string;
-    uri: string;
-    partstat: string;
-    x_pubky_event_uri: string;
-    created_at: number;
-    last_modified?: number;
-    recurrence_id?: string;
-  }>;
-}
-
-/**
- * Response structure from Nexus API for event stream
- */
-export interface NexusEventStreamResponse {
-  id: string;
-  uri: string;
-  author: string;
-  indexed_at: number;
-  uid: string;
-  dtstamp: number;
-  dtstart: string;
-  summary: string;
-  dtend?: string;
-  duration?: string;
-  dtstart_tzid?: string;
-  dtend_tzid?: string;
-  rrule?: string;
-  rdate?: string[];
-  exdate?: string[];
-  description?: string;
-  status?: string;
-  location?: string;
-  geo?: string;
-  url?: string;
-  sequence?: number;
-  last_modified?: number;
-  created?: number;
-  recurrence_id?: number;
-  image_uri?: string;
-  styled_description?: string | { fmttype: string; value: string };
-  x_pubky_calendar_uris?: string[];
-  x_pubky_rsvp_access?: string;
-}
+// Re-export types for backwards compatibility
+export type { NexusEventResponse, NexusEventStreamItem };
+/** @deprecated Use NexusEventStreamItem instead */
+export type NexusEventStreamResponse = NexusEventStreamItem;
 
 /**
  * Fetch a single event from Nexus API by author and event ID

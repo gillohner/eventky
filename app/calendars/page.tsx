@@ -1,6 +1,6 @@
 "use client";
 
-import { useCalendarsStream } from "@/hooks/use-calendar-optimistic";
+import { useCalendarsStream } from "@/hooks/use-calendar-hooks";
 import { DevJsonView } from "@/components/dev-json-view";
 import Link from "next/link";
 

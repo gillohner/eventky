@@ -4,16 +4,17 @@
  * Central export for all application hooks
  */
 
-// Event hooks
+// Event hooks - NEW unified implementation
 export {
     useEvent,
     useEventsStream,
     usePrefetchEvent,
     useInvalidateEvents,
+    useSetEventCache,
     type UseEventOptions,
     type UseEventResult,
     type UseEventsStreamOptions,
-} from "./use-event-optimistic";
+} from "./use-event-hooks";
 
 // Event mutations
 export {
@@ -27,16 +28,17 @@ export {
     type MutationOptions,
 } from "./use-event-mutations";
 
-// Calendar hooks
+// Calendar hooks - NEW unified implementation
 export {
     useCalendar,
     useCalendarsStream,
     usePrefetchCalendar,
     useInvalidateCalendars,
+    useSetCalendarCache,
     type UseCalendarOptions,
     type UseCalendarResult,
     type UseCalendarsStreamOptions,
-} from "./use-calendar-optimistic";
+} from "./use-calendar-hooks";
 
 // Calendar mutations
 export {

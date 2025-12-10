@@ -6,7 +6,54 @@
  * Exports:
  * - Query key factories
  * - Cache utilities
- * - Type definitions
+ * - Sync utilities
+ * - Pending writes management
  */
 
-export * from "./utils";
+// Query keys and conversion utilities
+export { queryKeys, pubkyEventToNexusFormat, pubkyCalendarToNexusFormat } from "./utils";
+
+// Sync utilities - version comparison, merge logic
+export {
+    SYNC_CONFIG,
+    extractEventVersion,
+    extractCalendarVersion,
+    compareVersions,
+    isNexusVersionCurrent,
+    getSyncStatusFromMeta,
+    calculateSyncDelay,
+    createLocalSyncMeta,
+    createNexusSyncMeta,
+    mergeEventData,
+    mergeCalendarData,
+    decideDataSource,
+    isNetworkError,
+    isNotFoundError,
+} from "./sync";
+
+// Pending writes management
+export {
+    buildRsvpKey,
+    buildTagKey,
+    buildResourceKey,
+    setPendingRsvp,
+    getPendingRsvp,
+    clearPendingRsvp,
+    hasPendingRsvp,
+    setPendingTag,
+    getPendingTag,
+    getPendingTagsForEvent,
+    clearPendingTag,
+    setPendingEvent,
+    getPendingEvent,
+    clearPendingEvent,
+    isEventSynced,
+    setPendingCalendar,
+    getPendingCalendar,
+    clearPendingCalendar,
+    isCalendarSynced,
+    getPendingWriteCount,
+    clearAllPendingWrites,
+    clearStalePendingWrites,
+} from "./pending-writes";
+

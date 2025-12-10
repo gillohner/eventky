@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEvent } from "@/hooks/use-event-optimistic";
+import { useEvent } from "@/hooks/use-event-hooks";
 import { useRsvpMutation } from "@/hooks/use-rsvp-mutation";
 import { useAddTagMutation, useRemoveTagMutation } from "@/hooks/use-tag-mutation";
 import { useAuth } from "@/components/providers/auth-provider";
