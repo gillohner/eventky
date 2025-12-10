@@ -102,9 +102,16 @@ export function useCreateEvent(options?: MutationOptions<CreateEventResult>) {
 
             const eventId = input.eventId ?? input.event.createId();
 
-            // Cancel any outgoing refetches
+            // Cancel any outgoing refetches for this event
             await queryClient.cancelQueries({
-                queryKey: queryKeys.events.all,
+                predicate: (query) => {
+                    const key = query.queryKey;
+                    // Match event detail queries: ["nexus", "event", authorId, eventId, ...]
+                    return key[0] === "nexus" &&
+                        key[1] === "event" &&
+                        key[2] === auth.publicKey &&
+                        key[3] === eventId;
+                },
             });
 
             // Create optimistic cache entry with sync metadata
@@ -119,9 +126,28 @@ export function useCreateEvent(options?: MutationOptions<CreateEventResult>) {
                 _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
             };
 
-            // Update TanStack Query cache for immediate display
-            const queryKey = queryKeys.events.detail(auth.publicKey, eventId, {});
-            queryClient.setQueryData(queryKey, optimisticData);
+            // Update ALL matching event detail queries (different limit options, etc.)
+            queryClient.setQueriesData<CachedEvent>(
+                {
+                    predicate: (query) => {
+                        const key = query.queryKey;
+                        return key[0] === "nexus" &&
+                            key[1] === "event" &&
+                            key[2] === auth.publicKey &&
+                            key[3] === eventId;
+                    },
+                },
+                (oldData) => ({
+                    ...optimisticData,
+                    // Preserve social data (tags, attendees) from existing cache if available
+                    tags: oldData?.tags ?? [],
+                    attendees: oldData?.attendees ?? [],
+                })
+            );
+
+            // Also set the base query key for new fetches
+            const baseQueryKey = queryKeys.events.detail(auth.publicKey, eventId, {});
+            queryClient.setQueryData(baseQueryKey, optimisticData);
 
             // Track pending write
             setPendingEvent(auth.publicKey, eventId, nexusData, nexusData.details.sequence ?? 0);
@@ -200,12 +226,32 @@ export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
         onMutate: async (input) => {
             if (!auth?.publicKey) return;
 
-            // Cancel any outgoing refetches
-            const queryKey = queryKeys.events.detail(auth.publicKey, input.eventId, {});
-            await queryClient.cancelQueries({ queryKey });
+            // Cancel any outgoing refetches for this event (all query variations)
+            await queryClient.cancelQueries({
+                predicate: (query) => {
+                    const key = query.queryKey;
+                    return key[0] === "nexus" &&
+                        key[1] === "event" &&
+                        key[2] === auth.publicKey &&
+                        key[3] === input.eventId;
+                },
+            });
 
-            // Snapshot previous value for rollback
-            const previousData = queryClient.getQueryData<CachedEvent>(queryKey);
+            // Snapshot previous values for rollback (from any matching query)
+            let previousData: CachedEvent | undefined;
+            queryClient.getQueriesData<CachedEvent>({
+                predicate: (query) => {
+                    const key = query.queryKey;
+                    return key[0] === "nexus" &&
+                        key[1] === "event" &&
+                        key[2] === auth.publicKey &&
+                        key[3] === input.eventId;
+                },
+            }).forEach(([, data]) => {
+                if (data && !previousData) {
+                    previousData = data;
+                }
+            });
 
             // Create optimistic cache entry with sync metadata
             const nexusData = pubkyEventToNexusFormat(
@@ -219,8 +265,24 @@ export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
                 _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
             };
 
-            // Update TanStack Query cache
-            queryClient.setQueryData(queryKey, optimisticData);
+            // Update ALL matching event detail queries (different limit options, etc.)
+            queryClient.setQueriesData<CachedEvent>(
+                {
+                    predicate: (query) => {
+                        const key = query.queryKey;
+                        return key[0] === "nexus" &&
+                            key[1] === "event" &&
+                            key[2] === auth.publicKey &&
+                            key[3] === input.eventId;
+                    },
+                },
+                (oldData) => ({
+                    ...optimisticData,
+                    // Preserve social data from existing cache
+                    tags: oldData?.tags ?? previousData?.tags ?? [],
+                    attendees: oldData?.attendees ?? previousData?.attendees ?? [],
+                })
+            );
 
             // Track pending write
             setPendingEvent(auth.publicKey, input.eventId, nexusData, nexusData.details.sequence ?? 0);
@@ -249,10 +311,20 @@ export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
                 toast.error(`Failed to update event: ${error.message}`);
             }
 
-            // Rollback to previous cached value
+            // Rollback ALL matching queries to previous cached value
             if (context?.previousData && auth?.publicKey) {
-                const queryKey = queryKeys.events.detail(auth.publicKey, input.eventId, {});
-                queryClient.setQueryData(queryKey, context.previousData);
+                queryClient.setQueriesData<CachedEvent>(
+                    {
+                        predicate: (query) => {
+                            const key = query.queryKey;
+                            return key[0] === "nexus" &&
+                                key[1] === "event" &&
+                                key[2] === auth.publicKey &&
+                                key[3] === input.eventId;
+                        },
+                    },
+                    () => context.previousData
+                );
             }
             if (auth?.publicKey) {
                 clearPendingEvent(auth.publicKey, input.eventId);
