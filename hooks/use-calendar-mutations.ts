@@ -84,9 +84,15 @@ export function useCreateCalendar(options?: MutationOptions<CreateCalendarResult
 
             const calendarId = input.calendarId;
 
-            // Cancel any outgoing refetches
+            // Cancel any outgoing refetches for this calendar
             await queryClient.cancelQueries({
-                queryKey: queryKeys.calendars.all,
+                predicate: (query) => {
+                    const key = query.queryKey;
+                    return key[0] === "nexus" &&
+                        key[1] === "calendar" &&
+                        key[2] === auth.publicKey &&
+                        key[3] === calendarId;
+                },
             });
 
             // Create optimistic cache entry with sync metadata
@@ -101,9 +107,27 @@ export function useCreateCalendar(options?: MutationOptions<CreateCalendarResult
                 _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
             };
 
-            // Update TanStack Query cache
-            const queryKey = queryKeys.calendars.detail(auth.publicKey, calendarId, {});
-            queryClient.setQueryData(queryKey, optimisticData);
+            // Update ALL matching calendar detail queries
+            queryClient.setQueriesData<CachedCalendar>(
+                {
+                    predicate: (query) => {
+                        const key = query.queryKey;
+                        return key[0] === "nexus" &&
+                            key[1] === "calendar" &&
+                            key[2] === auth.publicKey &&
+                            key[3] === calendarId;
+                    },
+                },
+                (oldData) => ({
+                    ...optimisticData,
+                    tags: oldData?.tags ?? [],
+                    events: oldData?.events ?? [],
+                })
+            );
+
+            // Also set the base query key for new fetches
+            const baseQueryKey = queryKeys.calendars.detail(auth.publicKey, calendarId, {});
+            queryClient.setQueryData(baseQueryKey, optimisticData);
 
             // Track pending write
             setPendingCalendar(auth.publicKey, calendarId, nexusData, nexusData.details.sequence ?? 0);
@@ -177,11 +201,32 @@ export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult
         onMutate: async (input) => {
             if (!auth?.publicKey) return;
 
-            const queryKey = queryKeys.calendars.detail(auth.publicKey, input.calendarId, {});
-            await queryClient.cancelQueries({ queryKey });
+            // Cancel any outgoing refetches for this calendar
+            await queryClient.cancelQueries({
+                predicate: (query) => {
+                    const key = query.queryKey;
+                    return key[0] === "nexus" &&
+                        key[1] === "calendar" &&
+                        key[2] === auth.publicKey &&
+                        key[3] === input.calendarId;
+                },
+            });
 
-            // Snapshot previous value for rollback
-            const previousData = queryClient.getQueryData<CachedCalendar>(queryKey);
+            // Snapshot previous values for rollback
+            let previousData: CachedCalendar | undefined;
+            queryClient.getQueriesData<CachedCalendar>({
+                predicate: (query) => {
+                    const key = query.queryKey;
+                    return key[0] === "nexus" &&
+                        key[1] === "calendar" &&
+                        key[2] === auth.publicKey &&
+                        key[3] === input.calendarId;
+                },
+            }).forEach(([, data]) => {
+                if (data && !previousData) {
+                    previousData = data;
+                }
+            });
 
             // Create optimistic cache entry with sync metadata
             const nexusData = pubkyCalendarToNexusFormat(
@@ -195,7 +240,23 @@ export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult
                 _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
             };
 
-            queryClient.setQueryData(queryKey, optimisticData);
+            // Update ALL matching calendar detail queries
+            queryClient.setQueriesData<CachedCalendar>(
+                {
+                    predicate: (query) => {
+                        const key = query.queryKey;
+                        return key[0] === "nexus" &&
+                            key[1] === "calendar" &&
+                            key[2] === auth.publicKey &&
+                            key[3] === input.calendarId;
+                    },
+                },
+                (oldData) => ({
+                    ...optimisticData,
+                    tags: oldData?.tags ?? previousData?.tags ?? [],
+                    events: oldData?.events ?? previousData?.events ?? [],
+                })
+            );
 
             // Track pending write
             setPendingCalendar(auth.publicKey, input.calendarId, nexusData, nexusData.details.sequence ?? 0);
@@ -223,9 +284,20 @@ export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult
                 toast.error(`Failed to update calendar: ${error.message}`);
             }
 
+            // Rollback ALL matching queries to previous cached value
             if (context?.previousData && auth?.publicKey) {
-                const queryKey = queryKeys.calendars.detail(auth.publicKey, input.calendarId, {});
-                queryClient.setQueryData(queryKey, context.previousData);
+                queryClient.setQueriesData<CachedCalendar>(
+                    {
+                        predicate: (query) => {
+                            const key = query.queryKey;
+                            return key[0] === "nexus" &&
+                                key[1] === "calendar" &&
+                                key[2] === auth.publicKey &&
+                                key[3] === input.calendarId;
+                        },
+                    },
+                    () => context.previousData
+                );
             }
             if (auth?.publicKey) {
                 clearPendingCalendar(auth.publicKey, input.calendarId);
