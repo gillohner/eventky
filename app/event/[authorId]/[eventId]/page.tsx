@@ -1,10 +1,11 @@
 "use client";
 
 import { use } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useEvent } from "@/hooks/use-event-hooks";
 import { useRsvpMutation } from "@/hooks/use-rsvp-mutation";
 import { useAddTagMutation, useRemoveTagMutation } from "@/hooks/use-tag-mutation";
+import { useDeleteEvent } from "@/hooks/use-event-mutations";
 import { useAuth } from "@/components/providers/auth-provider";
 import { EventDetailLayout } from "@/components/event/detail";
 import { SyncBadge } from "@/components/ui/sync-status-indicator";
@@ -24,6 +25,7 @@ interface EventPageProps {
 export default function EventPage({ params }: EventPageProps) {
   const { authorId, eventId } = use(params);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const instanceDate = searchParams.get("instance") || undefined;
 
   const { data: event, isLoading, error, syncStatus, isOptimistic } = useEvent(authorId, eventId, {
@@ -39,6 +41,13 @@ export default function EventPage({ params }: EventPageProps) {
   // Tag mutation hooks
   const { mutate: addTag } = useAddTagMutation();
   const { mutate: removeTag } = useRemoveTagMutation();
+
+  // Delete mutation hook
+  const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent({
+    onSuccess: () => {
+      router.push("/events");
+    },
+  });
 
   const currentUserId = auth?.publicKey;
   const isLoggedIn = Boolean(auth?.publicKey);
@@ -85,6 +94,18 @@ export default function EventPage({ params }: EventPageProps) {
     });
   };
 
+  // Delete handler
+  const handleDelete = () => {
+    if (!currentUserId) {
+      toast.error("Please sign in to delete events");
+      return;
+    }
+
+    deleteEvent({
+      eventId: eventId,
+    });
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       {/* Sync Status & Dev Toggle */}
@@ -125,6 +146,8 @@ export default function EventPage({ params }: EventPageProps) {
         isRsvpLoading={isRsvpLoading}
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
+        onDelete={handleDelete}
+        isDeleting={isDeleting}
       />
     </div>
   );

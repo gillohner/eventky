@@ -53,3 +53,25 @@ export async function saveCalendar(
         throw error;
     }
 }
+
+/**
+ * Delete a calendar from Pubky Homeserver
+ */
+export async function deleteCalendar(
+    session: Session,
+    calendarId: string,
+    userId: string
+): Promise<boolean> {
+    try {
+        const calendarUri = calendarUriBuilder(userId, calendarId);
+        const calendarPath = calendarUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
+
+        // Delete from Pubky storage
+        await session.storage.delete(calendarPath);
+
+        return true;
+    } catch (error) {
+        console.error("Error deleting calendar:", error);
+        throw error;
+    }
+}
