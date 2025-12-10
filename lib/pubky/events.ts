@@ -27,6 +27,28 @@ export async function getEvent(
 }
 
 /**
+ * Delete an event from Pubky Homeserver
+ */
+export async function deleteEvent(
+  session: Session,
+  eventId: string,
+  userId: string
+): Promise<boolean> {
+  try {
+    const eventUri = eventUriBuilder(userId, eventId);
+    const eventPath = eventUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
+
+    // Delete from Pubky storage
+    await session.storage.delete(eventPath);
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    throw error;
+  }
+}
+
+/**
  * Create or update an event on Pubky Homeserver
  */
 export async function saveEvent(

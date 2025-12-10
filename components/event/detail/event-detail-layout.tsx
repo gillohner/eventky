@@ -36,6 +36,10 @@ interface EventDetailLayoutProps {
     onRemoveTag?: (label: string) => void;
     /** Whether tag operation is in progress */
     isTagLoading?: boolean;
+    /** Callback to delete the event */
+    onDelete?: () => void;
+    /** Whether delete is in progress */
+    isDeleting?: boolean;
     /** Additional CSS classes */
     className?: string;
 }
@@ -56,6 +60,8 @@ export function EventDetailLayout({
     onAddTag,
     onRemoveTag,
     isTagLoading,
+    onDelete,
+    isDeleting,
     className,
 }: EventDetailLayoutProps) {
     // Loading state
@@ -114,6 +120,8 @@ export function EventDetailLayout({
                 instanceDate={instanceDate}
                 isOwner={isOwner}
                 eventId={details.id}
+                onDelete={onDelete}
+                isDeleting={isDeleting}
                 calendarUri={details.x_pubky_calendar_uris?.[0]}
             />
 

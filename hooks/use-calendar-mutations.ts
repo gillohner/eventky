@@ -11,7 +11,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PubkyAppCalendar } from "pubky-app-specs";
 import { useAuth } from "@/components/providers/auth-provider";
-import { saveCalendar } from "@/lib/pubky/calendars";
+import { saveCalendar, deleteCalendar } from "@/lib/pubky/calendars";
 import {
     queryKeys,
     pubkyCalendarToNexusFormat,
@@ -324,13 +324,13 @@ export function useDeleteCalendar(options?: MutationOptions<void>) {
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
-        mutationFn: async (_input: DeleteCalendarInput): Promise<void> => {
+        mutationFn: async (input: DeleteCalendarInput): Promise<void> => {
             if (!auth?.session || !auth?.publicKey) {
                 throw new Error("Authentication required. Please sign in.");
             }
 
-            // TODO: Implement actual deletion from Pubky Homeserver
-            // await deleteCalendar(auth.session, _input.calendarId, auth.publicKey);
+            // Delete from Pubky Homeserver
+            await deleteCalendar(auth.session, input.calendarId, auth.publicKey);
         },
 
         onMutate: async (input) => {

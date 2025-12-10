@@ -23,7 +23,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PubkyAppEvent } from "pubky-app-specs";
 import { useAuth } from "@/components/providers/auth-provider";
-import { saveEvent } from "@/lib/pubky/events";
+import { saveEvent, deleteEvent } from "@/lib/pubky/events";
 import {
     queryKeys,
     pubkyEventToNexusFormat,
@@ -354,13 +354,13 @@ export function useDeleteEvent(options?: MutationOptions<void>) {
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
-        mutationFn: async (_input: DeleteEventInput): Promise<void> => {
+        mutationFn: async (input: DeleteEventInput): Promise<void> => {
             if (!auth?.session || !auth?.publicKey) {
                 throw new Error("Authentication required. Please sign in.");
             }
 
-            // TODO: Implement actual deletion from Pubky Homeserver
-            // await deleteEvent(auth.session, _input.eventId, auth.publicKey);
+            // Delete from Pubky Homeserver
+            await deleteEvent(auth.session, input.eventId, auth.publicKey);
         },
 
         onMutate: async (input) => {

@@ -1,13 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { config } from "@/lib/config";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
 import { parse_uri } from "pubky-app-specs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetFooter,
+} from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Calendar, Repeat } from "lucide-react";
+import { Edit, Calendar, Repeat, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface EventHeaderProps {
@@ -35,6 +44,10 @@ interface EventHeaderProps {
     isOwner?: boolean;
     /** Event ID for edit link */
     eventId?: string;
+    /** Handler for delete action */
+    onDelete?: () => void;
+    /** Whether delete is in progress */
+    isDeleting?: boolean;
     /** Optional calendar URI for calendar link */
     calendarUri?: string;
     /** Additional CSS classes */
@@ -58,9 +71,12 @@ export function EventHeader({
     instanceDate,
     isOwner,
     eventId,
+    onDelete,
+    isDeleting,
     calendarUri,
     className,
 }: EventHeaderProps) {
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     // Generate a fallback gradient based on calendar color or author ID
     const fallbackGradient = calendarColor
         ? `linear-gradient(135deg, ${calendarColor}40, ${calendarColor}80)`
@@ -107,14 +123,23 @@ export function EventHeader({
                     </div>
                 )}
 
-                {/* Edit Button (overlay) */}
+                {/* Edit and Delete Buttons (overlay) */}
                 {isOwner && eventId && (
-                    <div className="absolute bottom-3 right-3">
+                    <div className="absolute bottom-3 right-3 flex gap-2">
                         <Button asChild size="sm" variant="secondary">
                             <Link href={`/event/${authorId}/${eventId}/edit`}>
                                 <Edit className="h-4 w-4 mr-1" />
                                 Edit
                             </Link>
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setShowDeleteDialog(true)}
+                            disabled={isDeleting}
+                        >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            {isDeleting ? "Deleting..." : "Delete"}
                         </Button>
                     </div>
                 )}
@@ -167,6 +192,35 @@ export function EventHeader({
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Sheet */}
+            <Sheet open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>Delete Event</SheetTitle>
+                        <SheetDescription>
+                            Are you sure you want to delete &quot;{summary}&quot;? This action cannot be undone.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <SheetFooter className="mt-6">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowDeleteDialog(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                onDelete?.();
+                            }}
+                        >
+                            Delete Event
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }
