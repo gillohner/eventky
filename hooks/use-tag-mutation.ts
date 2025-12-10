@@ -15,60 +15,44 @@ import { addTagToEvent, removeTagFromEvent } from "@/lib/pubky/tags";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 import { toast } from "sonner";
 import type { NexusEventResponse } from "@/lib/nexus/events";
-
-/**
- * In-memory store of successful tag writes that haven't been indexed yet.
- * Used to prevent stale Nexus refetches from overwriting optimistic updates.
- * Key format: `${eventAuthorId}:${eventId}:${userPublicKey}:${label}`
- */
-const pendingTagWrites = new Map<string, { label: string; timestamp: number; action: 'add' | 'remove' }>();
-
-/**
- * Build a key for pending tag writes
- */
-function buildPendingKey(eventAuthorId: string, eventId: string, userPublicKey: string, label: string): string {
-    return `${eventAuthorId}:${eventId}:${userPublicKey}:${label.toLowerCase()}`;
-}
+import {
+    setPendingTag,
+    getPendingTag as getPendingTagFromCache,
+    getPendingTagsForEvent as getPendingTagsForEventFromCache,
+    clearPendingTag as clearPendingTagFromCache,
+} from "@/lib/cache/pending-writes";
 
 /**
  * Check if there's a pending write for this user/event/label combo
+ * Re-exported for backwards compatibility
  */
 export function getPendingTag(
     eventAuthorId: string,
     eventId: string,
     userPublicKey: string,
     label: string
-): { label: string; timestamp: number; action: 'add' | 'remove' } | undefined {
-    const key = buildPendingKey(eventAuthorId, eventId, userPublicKey, label);
-    return pendingTagWrites.get(key);
+) {
+    return getPendingTagFromCache(eventAuthorId, eventId, userPublicKey, label);
 }
 
 /**
  * Get all pending tags for an event/user combo
+ * Re-exported for backwards compatibility
  */
 export function getPendingTagsForEvent(
     eventAuthorId: string,
     eventId: string,
     userPublicKey: string
-): Array<{ label: string; action: 'add' | 'remove' }> {
-    const prefix = `${eventAuthorId}:${eventId}:${userPublicKey}:`;
-    const results: Array<{ label: string; action: 'add' | 'remove' }> = [];
-
-    for (const [key, value] of pendingTagWrites.entries()) {
-        if (key.startsWith(prefix)) {
-            results.push({ label: value.label, action: value.action });
-        }
-    }
-
-    return results;
+) {
+    return getPendingTagsForEventFromCache(eventAuthorId, eventId, userPublicKey);
 }
 
 /**
  * Clear pending write (call when Nexus data is confirmed to be up-to-date)
+ * Re-exported for backwards compatibility
  */
 export function clearPendingTag(eventAuthorId: string, eventId: string, userPublicKey: string, label: string): void {
-    const key = buildPendingKey(eventAuthorId, eventId, userPublicKey, label);
-    pendingTagWrites.delete(key);
+    clearPendingTagFromCache(eventAuthorId, eventId, userPublicKey, label);
 }
 
 /**
@@ -209,18 +193,15 @@ export function useAddTagMutation(options?: TagMutationOptions) {
             }
 
             // Store successful write to prevent stale Nexus data from overwriting
+            // (auto-clears after TTL defined in pending-writes manager)
             if (auth?.publicKey) {
-                const key = buildPendingKey(input.eventAuthorId, input.eventId, auth.publicKey, input.label);
-                pendingTagWrites.set(key, {
-                    label: input.label.toLowerCase(),
-                    timestamp: Date.now(),
-                    action: 'add',
-                });
-
-                // Auto-clear after 30 seconds (Nexus should be synced by then)
-                setTimeout(() => {
-                    pendingTagWrites.delete(key);
-                }, 30000);
+                setPendingTag(
+                    input.eventAuthorId,
+                    input.eventId,
+                    auth.publicKey,
+                    input.label,
+                    'add'
+                );
             }
 
             // Trigger Nexus ingest
@@ -350,18 +331,15 @@ export function useRemoveTagMutation(options?: TagMutationOptions) {
             }
 
             // Store successful write to prevent stale Nexus data from overwriting
+            // (auto-clears after TTL defined in pending-writes manager)
             if (auth?.publicKey) {
-                const key = buildPendingKey(input.eventAuthorId, input.eventId, auth.publicKey, input.label);
-                pendingTagWrites.set(key, {
-                    label: input.label.toLowerCase(),
-                    timestamp: Date.now(),
-                    action: 'remove',
-                });
-
-                // Auto-clear after 30 seconds (Nexus should be synced by then)
-                setTimeout(() => {
-                    pendingTagWrites.delete(key);
-                }, 30000);
+                setPendingTag(
+                    input.eventAuthorId,
+                    input.eventId,
+                    auth.publicKey,
+                    input.label,
+                    'remove'
+                );
             }
 
             // Trigger Nexus ingest

@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BasicInfoFields } from "./basic-info";
 import { SettingsFields } from "./settings";
-import { PubkySpecsBuilder, PubkyAppCalendar } from "pubky-app-specs";
+import { PubkySpecsBuilder, PubkyAppCalendar, parse_uri } from "pubky-app-specs";
 import { config } from "@/lib/config";
 import { useCreateCalendar, useUpdateCalendar } from "@/hooks/use-calendar-mutations";
-import { useCalendar } from "@/hooks/use-calendar-optimistic";
+import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { NexusCalendarResponse } from "@/lib/nexus/calendars";
 
 interface CreateCalendarPageLayoutProps {
@@ -24,9 +24,30 @@ interface CreateCalendarPageLayoutProps {
 }
 
 /**
+ * Extract user ID from a pubky URI or return as-is if already a plain ID
+ */
+function extractUserIdFromUri(uri: string): string {
+    // If it's already a plain user ID (no pubky:// prefix), return as-is
+    if (!uri.startsWith("pubky://")) {
+        return uri;
+    }
+    // Use parse_uri from pubky-app-specs for proper parsing
+    try {
+        const parsed = parse_uri(uri);
+        return parsed.user_id;
+    } catch {
+        // Fallback to returning the original if parsing fails
+        return uri;
+    }
+}
+
+/**
  * Convert NexusCalendarResponse to CalendarFormData for the form
  */
 function calendarToFormData(calendar: NexusCalendarResponse): CalendarFormData {
+    // Convert admin URIs to user IDs for the form
+    const adminIds = calendar.details.x_pubky_admins?.map(extractUserIdFromUri);
+
     return {
         name: calendar.details.name,
         timezone: calendar.details.timezone,
@@ -34,7 +55,7 @@ function calendarToFormData(calendar: NexusCalendarResponse): CalendarFormData {
         image_uri: calendar.details.image_uri,
         description: calendar.details.description || "",
         url: calendar.details.url || "",
-        x_pubky_admins: calendar.details.x_pubky_admins,
+        x_pubky_admins: adminIds,
     };
 }
 
@@ -101,6 +122,9 @@ export function CreateCalendarPageLayout({
             return;
         }
 
+        // x_pubky_admins can be plain user IDs - pubky-app-specs accepts both IDs and URIs
+        const admins = data.x_pubky_admins?.length ? data.x_pubky_admins : null;
+
         if (mode === "edit" && calendarId) {
             // Create PubkyAppCalendar from form data for update
             // Increment sequence for versioning
@@ -112,7 +136,7 @@ export function CreateCalendarPageLayout({
                 image_uri: data.image_uri || null,
                 description: data.description || null,
                 url: data.url || null,
-                x_pubky_admins: data.x_pubky_admins || null,
+                x_pubky_admins: admins,
                 created: existingCalendar?.details.created || Date.now() * 1000,  // microseconds
                 sequence: currentSequence + 1,  // Increment sequence on edit
                 last_modified: Date.now() * 1000,  // Current time in microseconds
@@ -133,7 +157,7 @@ export function CreateCalendarPageLayout({
                 data.image_uri || null,
                 data.description || null,
                 data.url || null,
-                data.x_pubky_admins || null
+                admins
             );
 
             createCalendar.mutate({

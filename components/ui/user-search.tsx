@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { Search, X, Loader2, User, Key } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useUserSearch, type SelectedUser } from "@/hooks/use-user-search";
@@ -47,7 +46,9 @@ export function UserSearch({
     description,
 }: UserSearchProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const inputRef = useRef<HTMLInputElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
     const {
         searchTerm,
         setSearchTerm,
@@ -79,7 +80,13 @@ export function UserSearch({
         selectedUsers.some((selected) => selected.id === pubkyValidation.pubkyId)
     );
 
-    const handleSelect = (user: NexusUserDetails) => {
+    // Show "add public key" option if valid and not already selected
+    const showAddPubkyOption = pubkyValidation.isValid && !pubkyIdAlreadySelected;
+
+    // Calculate total selectable items for keyboard nav
+    const totalItems = (showAddPubkyOption ? 1 : 0) + filteredUsers.length;
+
+    const handleSelect = useCallback((user: NexusUserDetails) => {
         if (selectedUsers.length >= maxSelections) {
             return;
         }
@@ -90,10 +97,11 @@ export function UserSearch({
         };
         onSelectionChange([...selectedUsers, newUser]);
         setSearchTerm("");
-    };
+        setHighlightedIndex(-1);
+    }, [selectedUsers, maxSelections, onSelectionChange, setSearchTerm]);
 
     // Handle adding a raw public key (not from search results)
-    const handleAddPubkyId = () => {
+    const handleAddPubkyId = useCallback(() => {
         if (!pubkyValidation.isValid || pubkyIdAlreadySelected) {
             return;
         }
@@ -107,11 +115,63 @@ export function UserSearch({
         };
         onSelectionChange([...selectedUsers, newUser]);
         setSearchTerm("");
-    };
+        setHighlightedIndex(-1);
+    }, [pubkyValidation, pubkyIdAlreadySelected, selectedUsers, maxSelections, onSelectionChange, setSearchTerm]);
 
     const handleRemove = (userId: string) => {
         onSelectionChange(selectedUsers.filter((user) => user.id !== userId));
     };
+
+    // Keyboard navigation handler
+    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!isOpen || totalItems === 0) return;
+
+        switch (e.key) {
+            case "ArrowDown":
+                e.preventDefault();
+                setHighlightedIndex((prev) => {
+                    const next = prev < totalItems - 1 ? prev + 1 : 0;
+                    // Scroll highlighted item into view
+                    setTimeout(() => {
+                        const item = listRef.current?.querySelector(`[data-index="${next}"]`);
+                        item?.scrollIntoView({ block: "nearest" });
+                    }, 0);
+                    return next;
+                });
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                setHighlightedIndex((prev) => {
+                    const next = prev > 0 ? prev - 1 : totalItems - 1;
+                    setTimeout(() => {
+                        const item = listRef.current?.querySelector(`[data-index="${next}"]`);
+                        item?.scrollIntoView({ block: "nearest" });
+                    }, 0);
+                    return next;
+                });
+                break;
+            case "Enter":
+                e.preventDefault();
+                if (highlightedIndex >= 0) {
+                    if (showAddPubkyOption && highlightedIndex === 0) {
+                        handleAddPubkyId();
+                        setIsOpen(false);
+                    } else {
+                        const userIndex = showAddPubkyOption ? highlightedIndex - 1 : highlightedIndex;
+                        if (filteredUsers[userIndex]) {
+                            handleSelect(filteredUsers[userIndex]);
+                            setIsOpen(false);
+                        }
+                    }
+                }
+                break;
+            case "Escape":
+                e.preventDefault();
+                setIsOpen(false);
+                setHighlightedIndex(-1);
+                break;
+        }
+    }, [isOpen, totalItems, highlightedIndex, showAddPubkyOption, filteredUsers, handleAddPubkyId, handleSelect]);
 
     const canAddMore = selectedUsers.length < maxSelections;
 
@@ -150,6 +210,7 @@ export function UserSearch({
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
+                                    setHighlightedIndex(-1); // Reset highlight when typing
                                     if (e.target.value.length >= 2) {
                                         setIsOpen(true);
                                     }
@@ -159,8 +220,13 @@ export function UserSearch({
                                         setIsOpen(true);
                                     }
                                 }}
+                                onKeyDown={handleKeyDown}
                                 disabled={disabled}
                                 className="pl-9 pr-4"
+                                role="combobox"
+                                aria-expanded={isOpen}
+                                aria-haspopup="listbox"
+                                aria-autocomplete="list"
                             />
                             {isSearching && (
                                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -168,11 +234,13 @@ export function UserSearch({
                         </div>
                     </PopoverTrigger>
                     <PopoverContent
-                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        className="w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden"
                         align="start"
                         onOpenAutoFocus={(e) => e.preventDefault()}
+                        sideOffset={4}
                     >
                         <UserSearchResults
+                            ref={listRef}
                             users={filteredUsers}
                             isLoading={isLoading}
                             searchTerm={searchTerm}
@@ -181,12 +249,13 @@ export function UserSearch({
                                 setIsOpen(false);
                             }}
                             pubkyValidation={pubkyValidation}
-                            pubkyIdAlreadySelected={pubkyIdAlreadySelected}
                             inputLooksLikePubky={inputLooksLikePubky}
                             onAddPubkyId={() => {
                                 handleAddPubkyId();
                                 setIsOpen(false);
                             }}
+                            highlightedIndex={highlightedIndex}
+                            showAddPubkyOption={showAddPubkyOption}
                         />
                     </PopoverContent>
                 </Popover>
@@ -248,28 +317,33 @@ function UserChip({
 /**
  * Search results dropdown content
  */
-function UserSearchResults({
-    users,
-    isLoading,
-    searchTerm,
-    onSelect,
-    pubkyValidation,
-    pubkyIdAlreadySelected,
-    inputLooksLikePubky,
-    onAddPubkyId,
-}: {
-    users: NexusUserDetails[];
-    isLoading: boolean;
-    searchTerm: string;
-    onSelect: (user: NexusUserDetails) => void;
-    pubkyValidation: { isValid: boolean; pubkyId: string };
-    pubkyIdAlreadySelected: boolean;
-    inputLooksLikePubky: boolean;
-    onAddPubkyId: () => void;
-}) {
-    // Show "add public key" option if valid and not already selected
-    const showAddPubkyOption = pubkyValidation.isValid && !pubkyIdAlreadySelected;
-
+const UserSearchResults = React.forwardRef<
+    HTMLDivElement,
+    {
+        users: NexusUserDetails[];
+        isLoading: boolean;
+        searchTerm: string;
+        onSelect: (user: NexusUserDetails) => void;
+        pubkyValidation: { isValid: boolean; pubkyId: string };
+        inputLooksLikePubky: boolean;
+        onAddPubkyId: () => void;
+        highlightedIndex: number;
+        showAddPubkyOption: boolean;
+    }
+>(function UserSearchResults(
+    {
+        users,
+        isLoading,
+        searchTerm,
+        onSelect,
+        pubkyValidation,
+        inputLooksLikePubky,
+        onAddPubkyId,
+        highlightedIndex,
+        showAddPubkyOption,
+    },
+    ref
+) {
     if (searchTerm.length < 2) {
         return (
             <div className="p-4 text-center text-sm text-muted-foreground">
@@ -306,24 +380,32 @@ function UserSearchResults({
     }
 
     return (
-        <ScrollArea className="max-h-[200px]">
+        <div
+            ref={ref}
+            className="max-h-[200px] overflow-y-auto overscroll-contain"
+            role="listbox"
+        >
             <div className="p-1">
                 {/* Add public key option */}
                 {showAddPubkyOption && (
                     <button
                         type="button"
+                        data-index={0}
                         className={cn(
                             "w-full flex items-center gap-3 px-3 py-2 rounded-sm text-left",
                             "hover:bg-accent hover:text-accent-foreground",
                             "focus:bg-accent focus:text-accent-foreground focus:outline-none",
-                            "border-b border-border mb-1"
+                            "border-b border-border mb-1",
+                            highlightedIndex === 0 && "bg-accent text-accent-foreground"
                         )}
                         onClick={onAddPubkyId}
+                        role="option"
+                        aria-selected={highlightedIndex === 0}
                     >
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                             <Key className="h-4 w-4 text-primary" />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 overflow-hidden">
                             <div className="font-medium">Add by Public Key</div>
                             <div className="text-xs text-muted-foreground truncate">
                                 {pubkyValidation.pubkyId.slice(0, 8)}...{pubkyValidation.pubkyId.slice(-8)}
@@ -333,28 +415,34 @@ function UserSearchResults({
                 )}
 
                 {/* Search results */}
-                {users.map((user) => {
+                {users.map((user, index) => {
                     const avatarUrl = user.image ? getPubkyAvatarUrl(user.id) : null;
                     const initials = getInitials(user.name);
+                    const itemIndex = showAddPubkyOption ? index + 1 : index;
+                    const isHighlighted = highlightedIndex === itemIndex;
 
                     return (
                         <button
                             key={user.id}
                             type="button"
+                            data-index={itemIndex}
                             className={cn(
                                 "w-full flex items-center gap-3 px-3 py-2 rounded-sm text-left",
                                 "hover:bg-accent hover:text-accent-foreground",
-                                "focus:bg-accent focus:text-accent-foreground focus:outline-none"
+                                "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+                                isHighlighted && "bg-accent text-accent-foreground"
                             )}
                             onClick={() => onSelect(user)}
+                            role="option"
+                            aria-selected={isHighlighted}
                         >
-                            <Avatar className="h-8 w-8">
+                            <Avatar className="h-8 w-8 flex-shrink-0">
                                 {avatarUrl && <AvatarImage src={avatarUrl} alt={user.name} />}
                                 <AvatarFallback>
                                     {initials || <User className="h-4 w-4" />}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="font-medium truncate">{user.name}</div>
                                 <div className="text-xs text-muted-foreground truncate">
                                     {user.id.slice(0, 8)}...{user.id.slice(-8)}
@@ -364,6 +452,6 @@ function UserSearchResults({
                     );
                 })}
             </div>
-        </ScrollArea>
+        </div>
     );
-}
+});

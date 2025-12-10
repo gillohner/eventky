@@ -27,40 +27,31 @@ import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 import { eventUriBuilder, attendeeUriBuilder } from "pubky-app-specs";
 import { toast } from "sonner";
 import type { NexusEventResponse } from "@/lib/nexus/events";
-
-/**
- * In-memory store of successful RSVP writes that haven't been indexed yet.
- * Used to prevent stale Nexus refetches from overwriting optimistic updates.
- * Key format: `${eventAuthorId}:${eventId}:${userPublicKey}:${recurrenceId || ''}`
- */
-const pendingRsvpWrites = new Map<string, { partstat: string; timestamp: number; recurrenceId?: string }>();
-
-/**
- * Build a key for pending RSVP writes
- */
-function buildPendingKey(eventAuthorId: string, eventId: string, userPublicKey: string, recurrenceId?: string): string {
-    return `${eventAuthorId}:${eventId}:${userPublicKey}:${recurrenceId || ''}`;
-}
+import {
+    setPendingRsvp,
+    getPendingRsvp as getPendingRsvpFromCache,
+    clearPendingRsvp as clearPendingRsvpFromCache,
+} from "@/lib/cache/pending-writes";
 
 /**
  * Check if there's a pending write for this user/event/instance combo
+ * Re-exported for backwards compatibility
  */
 export function getPendingRsvp(
     eventAuthorId: string,
     eventId: string,
     userPublicKey: string,
     recurrenceId?: string
-): { partstat: string; timestamp: number; recurrenceId?: string } | undefined {
-    const key = buildPendingKey(eventAuthorId, eventId, userPublicKey, recurrenceId);
-    return pendingRsvpWrites.get(key);
+) {
+    return getPendingRsvpFromCache(eventAuthorId, eventId, userPublicKey, recurrenceId);
 }
 
 /**
  * Clear pending write (call when Nexus data is confirmed to be up-to-date)
+ * Re-exported for backwards compatibility
  */
 export function clearPendingRsvp(eventAuthorId: string, eventId: string, userPublicKey: string, recurrenceId?: string): void {
-    const key = buildPendingKey(eventAuthorId, eventId, userPublicKey, recurrenceId);
-    pendingRsvpWrites.delete(key);
+    clearPendingRsvpFromCache(eventAuthorId, eventId, userPublicKey, recurrenceId);
 }
 
 /**
@@ -210,18 +201,15 @@ export function useRsvpMutation(options?: RsvpMutationOptions) {
             }
 
             // Store successful write to prevent stale Nexus data from overwriting
+            // (auto-clears after TTL defined in pending-writes manager)
             if (auth?.publicKey) {
-                const key = buildPendingKey(input.eventAuthorId, input.eventId, auth.publicKey, input.recurrenceId);
-                pendingRsvpWrites.set(key, {
-                    partstat: result.partstat,
-                    timestamp: Date.now(),
-                    recurrenceId: input.recurrenceId,
-                });
-
-                // Auto-clear after 30 seconds (Nexus should be synced by then)
-                setTimeout(() => {
-                    pendingRsvpWrites.delete(key);
-                }, 30000);
+                setPendingRsvp(
+                    input.eventAuthorId,
+                    input.eventId,
+                    auth.publicKey,
+                    result.partstat,
+                    input.recurrenceId
+                );
             }
 
             // Trigger Nexus ingest for both the attendee's user and the event author

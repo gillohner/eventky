@@ -41,6 +41,8 @@ export function formDataToEventData(
             ? eventDetails.uid
             : `event-${Date.now()}`;
 
+    const newSequence = mode === "edit" ? (eventDetails?.sequence || 0) + 1 : 0;
+
     return {
         uid,
         dtstamp,
@@ -56,7 +58,7 @@ export function formDataToEventData(
         geo: data.geo || null,
         image_uri: data.image_uri || null,
         url: data.url || null,
-        sequence: mode === "edit" ? (eventDetails?.sequence || 0) + 1 : 0,
+        sequence: newSequence,
         last_modified: dtstamp,
         created: mode === "edit" ? eventDetails?.created : dtstamp,
         rrule: data.rrule || null,

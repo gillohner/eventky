@@ -4,57 +4,15 @@
  */
 
 import { nexusClient, getErrorMessage, isAxiosError } from "./client";
+import type {
+    NexusCalendarResponse,
+    NexusCalendarStreamItem,
+} from "@/types/nexus";
 
-/**
- * Response structure from Nexus API for a single calendar
- * Matches CalendarView from pubky-nexus
- */
-export interface NexusCalendarResponse {
-    details: {
-        id: string;
-        uri: string;
-        author: string;
-        indexed_at: number;
-        name: string;
-        timezone: string;
-        color?: string;
-        description?: string;
-        url?: string;
-        image_uri?: string;
-        x_pubky_admins?: string[];
-        created?: number;
-        sequence?: number;        // Versioning: incremented on each edit
-        last_modified?: number;   // Versioning: timestamp of last modification
-    };
-    tags: Array<{
-        label: string;
-        taggers: string[];
-        taggers_count: number;
-        relationship: boolean;
-    }>;
-    /** Event URIs belonging to this calendar (via x_pubky_calendar_uris) */
-    events: string[];
-}
-
-/**
- * Response structure from Nexus API for calendar stream
- */
-export interface NexusCalendarStreamResponse {
-    id: string;
-    uri: string;
-    author: string;
-    indexed_at: number;
-    name: string;
-    timezone: string;
-    color?: string;
-    description?: string;
-    url?: string;
-    image_uri?: string;
-    x_pubky_admins?: string[];
-    created?: number;
-    sequence?: number;        // Versioning: incremented on each edit
-    last_modified?: number;   // Versioning: timestamp of last modification
-}
+// Re-export types for backwards compatibility
+export type { NexusCalendarResponse, NexusCalendarStreamItem };
+/** @deprecated Use NexusCalendarStreamItem instead */
+export type NexusCalendarStreamResponse = NexusCalendarStreamItem;
 
 /**
  * Fetch a single calendar from Nexus API by author and calendar ID

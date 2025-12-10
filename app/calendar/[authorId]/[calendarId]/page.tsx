@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useCalendar } from "@/hooks/use-calendar-optimistic";
+import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { DevJsonView } from "@/components/dev-json-view";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";

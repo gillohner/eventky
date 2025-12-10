@@ -3,7 +3,7 @@
 import { Control, Controller } from "react-hook-form";
 import type { EventFormData } from "@/types/event";
 import { useUserCalendars, type UserCalendar } from "@/hooks/use-user-calendars";
-import { useCalendar } from "@/hooks/use-calendar-optimistic";
+import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { useAuth } from "@/components/providers/auth-provider";
 import { parse_uri } from "pubky-app-specs";
 import { Badge } from "@/components/ui/badge";

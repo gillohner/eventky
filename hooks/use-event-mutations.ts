@@ -4,7 +4,7 @@
  * Production-grade features:
  * - Optimistic updates with rollback on error
  * - Automatic cache invalidation
- * - Integration with optimistic cache store
+ * - TanStack Query-only caching (no Zustand)
  * - Type-safe mutations
  *
  * Usage:
@@ -24,10 +24,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PubkyAppEvent } from "pubky-app-specs";
 import { useAuth } from "@/components/providers/auth-provider";
 import { saveEvent } from "@/lib/pubky/events";
-import { useOptimisticCache } from "@/stores/optimistic-cache-store";
-import { queryKeys, pubkyEventToNexusFormat } from "@/lib/cache";
+import {
+    queryKeys,
+    pubkyEventToNexusFormat,
+    setPendingEvent,
+    clearPendingEvent,
+    createLocalSyncMeta,
+} from "@/lib/cache";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 import { toast } from "sonner";
+import type { CachedEvent } from "@/types/nexus";
 
 /**
  * Input for creating an event
@@ -64,14 +70,13 @@ export interface MutationOptions<TResult> {
  *
  * Features:
  * - Writes to Pubky Homeserver
- * - Updates optimistic cache immediately
+ * - Updates TanStack Query cache immediately
  * - Invalidates relevant queries
  * - Background sync with Nexus
  */
 export function useCreateEvent(options?: MutationOptions<CreateEventResult>) {
     const queryClient = useQueryClient();
     const { auth } = useAuth();
-    const setEvent = useOptimisticCache((state) => state.setEvent);
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -102,19 +107,24 @@ export function useCreateEvent(options?: MutationOptions<CreateEventResult>) {
                 queryKey: queryKeys.events.all,
             });
 
-            // Create optimistic cache entry
-            const optimisticData = pubkyEventToNexusFormat(
+            // Create optimistic cache entry with sync metadata
+            const nexusData = pubkyEventToNexusFormat(
                 input.event,
                 auth.publicKey,
                 eventId
             );
 
-            // Store in optimistic cache (will show immediately)
-            setEvent(auth.publicKey, eventId, optimisticData, "local");
+            const optimisticData: CachedEvent = {
+                ...nexusData,
+                _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
+            };
 
-            // Also update TanStack Query cache for immediate display
+            // Update TanStack Query cache for immediate display
             const queryKey = queryKeys.events.detail(auth.publicKey, eventId, {});
             queryClient.setQueryData(queryKey, optimisticData);
+
+            // Track pending write
+            setPendingEvent(auth.publicKey, eventId, nexusData, nexusData.details.sequence ?? 0);
 
             return { eventId, previousData: undefined };
         },
@@ -144,6 +154,7 @@ export function useCreateEvent(options?: MutationOptions<CreateEventResult>) {
             if (context?.eventId && auth?.publicKey) {
                 const queryKey = queryKeys.events.detail(auth.publicKey, context.eventId, {});
                 queryClient.removeQueries({ queryKey });
+                clearPendingEvent(auth.publicKey, context.eventId);
             }
 
             options?.onError?.(error);
@@ -169,8 +180,6 @@ export interface UpdateEventInput {
 export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
     const queryClient = useQueryClient();
     const { auth } = useAuth();
-    const setEvent = useOptimisticCache((state) => state.setEvent);
-    const getEvent = useOptimisticCache((state) => state.getEvent);
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -196,22 +205,27 @@ export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
             await queryClient.cancelQueries({ queryKey });
 
             // Snapshot previous value for rollback
-            const previousCached = getEvent(auth.publicKey, input.eventId);
+            const previousData = queryClient.getQueryData<CachedEvent>(queryKey);
 
-            // Create optimistic cache entry
-            const optimisticData = pubkyEventToNexusFormat(
+            // Create optimistic cache entry with sync metadata
+            const nexusData = pubkyEventToNexusFormat(
                 input.event,
                 auth.publicKey,
                 input.eventId
             );
 
-            // Store in optimistic cache
-            setEvent(auth.publicKey, input.eventId, optimisticData, "local");
+            const optimisticData: CachedEvent = {
+                ...nexusData,
+                _syncMeta: createLocalSyncMeta(nexusData.details.sequence ?? 0),
+            };
 
             // Update TanStack Query cache
             queryClient.setQueryData(queryKey, optimisticData);
 
-            return { previousCached };
+            // Track pending write
+            setPendingEvent(auth.publicKey, input.eventId, nexusData, nexusData.details.sequence ?? 0);
+
+            return { previousData };
         },
 
         onSuccess: (result) => {
@@ -236,13 +250,12 @@ export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
             }
 
             // Rollback to previous cached value
-            if (context?.previousCached && auth?.publicKey) {
-                setEvent(
-                    auth.publicKey,
-                    input.eventId,
-                    context.previousCached.data,
-                    context.previousCached.meta.source
-                );
+            if (context?.previousData && auth?.publicKey) {
+                const queryKey = queryKeys.events.detail(auth.publicKey, input.eventId, {});
+                queryClient.setQueryData(queryKey, context.previousData);
+            }
+            if (auth?.publicKey) {
+                clearPendingEvent(auth.publicKey, input.eventId);
             }
 
             options?.onError?.(error);
@@ -266,37 +279,29 @@ export interface DeleteEventInput {
 export function useDeleteEvent(options?: MutationOptions<void>) {
     const queryClient = useQueryClient();
     const { auth } = useAuth();
-    const removeEvent = useOptimisticCache((state) => state.removeEvent);
-    const getEvent = useOptimisticCache((state) => state.getEvent);
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
-        mutationFn: async (input: DeleteEventInput): Promise<void> => {
+        mutationFn: async (_input: DeleteEventInput): Promise<void> => {
             if (!auth?.session || !auth?.publicKey) {
                 throw new Error("Authentication required. Please sign in.");
             }
 
             // TODO: Implement actual deletion from Pubky Homeserver
-            // await deleteEvent(auth.session, input.eventId, auth.publicKey);
-
-            // For now, just remove from local cache
-            removeEvent(auth.publicKey, input.eventId);
+            // await deleteEvent(auth.session, _input.eventId, auth.publicKey);
         },
 
         onMutate: async (input) => {
             if (!auth?.publicKey) return;
 
             // Snapshot for rollback
-            const previousCached = getEvent(auth.publicKey, input.eventId);
-
-            // Optimistically remove from cache
-            removeEvent(auth.publicKey, input.eventId);
-
-            // Remove from query cache
             const queryKey = queryKeys.events.detail(auth.publicKey, input.eventId, {});
+            const previousData = queryClient.getQueryData<CachedEvent>(queryKey);
+
+            // Optimistically remove from query cache
             queryClient.removeQueries({ queryKey });
 
-            return { previousCached };
+            return { previousData, eventId: input.eventId };
         },
 
         onSuccess: () => {
@@ -322,14 +327,9 @@ export function useDeleteEvent(options?: MutationOptions<void>) {
             }
 
             // Rollback deletion
-            if (context?.previousCached && auth?.publicKey) {
-                const { setEvent } = useOptimisticCache.getState();
-                setEvent(
-                    auth.publicKey,
-                    input.eventId,
-                    context.previousCached.data,
-                    context.previousCached.meta.source
-                );
+            if (context?.previousData && auth?.publicKey) {
+                const queryKey = queryKeys.events.detail(auth.publicKey, input.eventId, {});
+                queryClient.setQueryData(queryKey, context.previousData);
             }
 
             options?.onError?.(error);

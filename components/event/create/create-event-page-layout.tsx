@@ -1,6 +1,6 @@
 "use client";
 
-import { useEvent } from "@/hooks/use-event-optimistic";
+import { useEvent } from "@/hooks/use-event-hooks";
 import { useCreateEvent, useUpdateEvent } from "@/hooks/use-event-mutations";
 import { useAuth } from "@/components/providers/auth-provider";
 import { AuthGuard } from "@/components/auth/auth-guard";
@@ -71,17 +71,17 @@ export function CreateEventPageLayout({
 
     // In create mode, check if we have persisted data for this event
     if (mode === "create" && persistedFormData && !persistedEventId) {
-      // If we have an initial calendar URI, merge it with persisted data
-      if (initialCalendarUri) {
-        const existingUris = persistedFormData.x_pubky_calendar_uris || [];
-        if (!existingUris.includes(initialCalendarUri)) {
-          return {
-            ...persistedFormData,
-            x_pubky_calendar_uris: [initialCalendarUri, ...existingUris],
-          };
-        }
-      }
-      return persistedFormData;
+      // Restore persisted form data, but handle calendar URIs specially:
+      // - If initialCalendarUri is provided (coming from a calendar page), use it
+      // - Otherwise, clear any persisted calendar selection to start fresh
+      const calendarUris = initialCalendarUri
+        ? [initialCalendarUri]
+        : undefined;
+
+      return {
+        ...persistedFormData,
+        x_pubky_calendar_uris: calendarUris,
+      };
     }
 
     // Default empty form with optional initial calendar

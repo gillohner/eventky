@@ -2,10 +2,11 @@
  * Cache Sync Provider
  *
  * Background service that:
- * - Clears stale cache entries periodically
- * - Monitors pending syncs
- * - Handles cache hydration from localStorage
+ * - Monitors pending syncs via TanStack Query
  * - Provides cache status context
+ * - Handles cache clearing
+ *
+ * Note: TanStack Query now handles cache persistence via localStorage persister.
  */
 
 "use client";
@@ -13,23 +14,16 @@
 import {
     createContext,
     useContext,
-    useEffect,
     useCallback,
     type ReactNode,
 } from "react";
-import {
-    useOptimisticCache,
-    usePendingSyncCount,
-} from "@/stores/optimistic-cache-store";
-import { SYNC_CONFIG } from "@/lib/cache";
+import { useQueryClient, useIsFetching, useIsMutating } from "@tanstack/react-query";
 
 interface CacheSyncContextValue {
     /** Number of items pending sync with Nexus */
     pendingSyncCount: number;
     /** Clear all cache data */
     clearCache: () => void;
-    /** Clear only stale entries */
-    clearStaleEntries: () => void;
     /** Whether any items are currently syncing */
     isSyncing: boolean;
 }
@@ -38,65 +32,25 @@ const CacheSyncContext = createContext<CacheSyncContextValue | null>(null);
 
 interface CacheSyncProviderProps {
     children: ReactNode;
-    /**
-     * Interval for cleaning stale entries (ms)
-     * Default: 5 minutes
-     */
-    cleanupInterval?: number;
-    /**
-     * Max age for stale entries (ms)
-     * Default: 24 hours
-     */
-    maxStaleAge?: number;
 }
 
 export function CacheSyncProvider({
     children,
-    cleanupInterval = 5 * 60 * 1000, // 5 minutes
-    maxStaleAge = 24 * 60 * 60 * 1000, // 24 hours
 }: CacheSyncProviderProps) {
-    const clearAll = useOptimisticCache((state) => state.clearAll);
-    const clearStaleEntries = useOptimisticCache((state) => state.clearStaleEntries);
-    const pendingSyncCount = usePendingSyncCount();
+    const queryClient = useQueryClient();
 
-    // Periodic cleanup of stale entries
-    useEffect(() => {
-        const cleanup = () => {
-            clearStaleEntries(maxStaleAge);
-        };
-
-        // Initial cleanup on mount
-        cleanup();
-
-        // Set up periodic cleanup
-        const intervalId = setInterval(cleanup, cleanupInterval);
-
-        return () => clearInterval(intervalId);
-    }, [cleanupInterval, maxStaleAge, clearStaleEntries]);
-
-    // Clear cache on window unload if there are too many entries
-    useEffect(() => {
-        const handleBeforeUnload = () => {
-            // Clean up very old entries before page unload
-            clearStaleEntries(SYNC_CONFIG.MAX_SYNC_TIME * 2);
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [clearStaleEntries]);
+    // Track pending operations via TanStack Query
+    const fetchingCount = useIsFetching();
+    const mutatingCount = useIsMutating();
+    const pendingSyncCount = fetchingCount + mutatingCount;
 
     const clearCache = useCallback(() => {
-        clearAll();
-    }, [clearAll]);
-
-    const handleClearStaleEntries = useCallback(() => {
-        clearStaleEntries(maxStaleAge);
-    }, [clearStaleEntries, maxStaleAge]);
+        queryClient.clear();
+    }, [queryClient]);
 
     const value: CacheSyncContextValue = {
         pendingSyncCount,
         clearCache,
-        clearStaleEntries: handleClearStaleEntries,
         isSyncing: pendingSyncCount > 0,
     };
 

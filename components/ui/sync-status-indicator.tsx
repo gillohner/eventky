@@ -8,7 +8,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { type SyncStatus } from "@/stores/optimistic-cache-store";
+import { type SyncStatus } from "@/types/nexus";
 import { Cloud, CloudOff, Loader2, AlertCircle, Check } from "lucide-react";
 import {
     Tooltip,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEventsStream } from "@/hooks/use-event-optimistic";
+import { useEventsStream } from "@/hooks/use-event-hooks";
 import { DevJsonView } from "@/components/dev-json-view";
 import Link from "next/link";
 
