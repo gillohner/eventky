@@ -48,6 +48,8 @@ interface TagsSectionProps {
     onRemoveTag?: (label: string) => void;
     /** Whether tag operation is in progress */
     isTagLoading?: boolean;
+    /** Override pending tags (for calendar support) */
+    _pendingTags?: Array<{ label: string; action: 'add' | 'remove' }>;
     /** Additional CSS classes */
     className?: string;
 }
@@ -65,6 +67,7 @@ export function TagsSection({
     onAddTag,
     onRemoveTag,
     isTagLoading = false,
+    _pendingTags,
     className,
 }: TagsSectionProps) {
     const [showInput, setShowInput] = useState(false);
@@ -72,10 +75,13 @@ export function TagsSection({
     const [expanded, setExpanded] = useState(false);
 
     // Get pending tag writes that haven't been indexed by Nexus yet
-    const pendingTags = useMemo(() => {
+    const fetchedPendingTags = useMemo(() => {
+        if (_pendingTags !== undefined) return _pendingTags;
         if (!eventAuthorId || !eventId || !currentUserId) return [];
         return getPendingTagsForEvent(eventAuthorId, eventId, currentUserId);
-    }, [eventAuthorId, eventId, currentUserId]);
+    }, [eventAuthorId, eventId, currentUserId, _pendingTags]);
+
+    const pendingTags = _pendingTags !== undefined ? _pendingTags : fetchedPendingTags;
 
     // Merge Nexus tags with pending writes and determine if user tagged each
     const mergedTags = useMemo(() => {
