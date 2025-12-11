@@ -7,6 +7,7 @@ graph TB
     subgraph "User A Homeserver"
         CA[Calendar<br/>x_pubky_admins: User B, C]
         AA[Attendee<br/>partstat: ACCEPTED<br/>→ Event on User B]
+        TA[Tag<br/>label: conference<br/>→ Event on User B]
     end
     
     subgraph "Nexus Aggregation"
@@ -15,16 +16,18 @@ graph TB
     
     subgraph "User B Homeserver"
         EB[Event<br/>x_pubky_calendar_uris: Calendar A]
-        AB[Attendee<br/>partstat: TENTATIVE<br/>→ Event on User B]
+        AB[Attendee<br/>recurrence_id: 2025-01-15T10:00:00<br/>partstat: DECLINED<br/>→ Event on User B]
     end
     
     CA -->|watches| N
     AA -->|watches| N
+    TA -->|watches| N
     EB -->|watches| N
     AB -->|watches| N
     EB -.references.-> CA
-    AA -.references.-> EB
-    AB -.references.-> EB
+    AA -.general event.-> EB
+    AB -.specific instance.-> EB
+    TA -.general event.-> EB
 ```
 
 ## Data Models
@@ -40,13 +43,22 @@ graph TB
 - **Storage**: Creator's homeserver
 - **Required**: `uid`, `summary`, `dtstart`, `dtstamp`
 - **Optional**: `dtend`, `duration`, `location`, `description`, `rrule` (recurrence), `x_pubky_calendar_uris`
-- **RFC 5545 compliant**
 
 ### Attendee (RSVP)
 - **Path**: `/pub/eventky.app/attendees/:attendee_id` (hash of event URI + recurrence_id)
 - **Storage**: Attendee's homeserver
 - **Required**: `x_pubky_event_uri`, `partstat` (NEEDS-ACTION | ACCEPTED | DECLINED | TENTATIVE)
 - **Optional**: `recurrence_id` (for specific recurring instances)
+- **Examples**:
+  - General event: `{ "x_pubky_event_uri": "pubky://user/.../events/123", "partstat": "ACCEPTED" }`
+  - Single instance: `{ "x_pubky_event_uri": "pubky://user/.../events/123", "partstat": "DECLINED", "recurrence_id": "2025-01-15T10:00:00" }`
+
+### Tag
+- **Path**: `/pub/eventky.app/tags/:tag_id` (hash of URI + label)
+- **Storage**: User's homeserver (tagger)
+- **Required**: `uri` (tagged object), `label` (lowercase, trimmed), `created_at`
+- **Example**: `{ "uri": "pubky://user/.../events/123", "label": "conference", "created_at": 1733932800000000 }`
+- **Note**: Tags are always general (apply to entire event, not specific instances)
 
 ## Relationships
 
@@ -56,10 +68,14 @@ graph LR
     E[Event<br/>User B Homeserver]
     AT1[Attendee<br/>User C Homeserver]
     AT2[Attendee<br/>User D Homeserver]
+    T1[Tag<br/>User E Homeserver]
+    T2[Tag<br/>User F Homeserver]
     
     E -.x_pubky_calendar_uris.-> A
     AT1 -.x_pubky_event_uri.-> E
     AT2 -.x_pubky_event_uri.-> E
+    T1 -.uri.-> E
+    T2 -.uri.-> E
 ```
 
 ### Calendar ← Events (Many-to-Many)
@@ -72,7 +88,13 @@ graph LR
 - Attendees reference events via `x_pubky_event_uri`
 - Each user's RSVP stored on their homeserver
 - No event modification needed when users RSVP
-- Supports instance-specific RSVPs with `recurrence_id`
+- Supports instance-specific RSVPs with `recurrence_id` (ISO datetime)
+
+### Calendar/Event ← Tags (One-to-Many)
+- Tags reference any object (calendar, event) via `uri`
+- Each user's tags stored on their homeserver
+- Tags are always general (entire event/calendar, not instances)
+- Multiple users can tag the same object with different labels
 
 ## Data Flow
 
@@ -81,6 +103,7 @@ sequenceDiagram
     participant UA as User A<br/>(Calendar Owner)
     participant UB as User B<br/>(Admin)
     participant UC as User C<br/>(Attendee)
+    participant UD as User D<br/>(Tagger)
     participant N as Nexus
     
     UA->>UA: PUT /calendars/:id<br/>x_pubky_admins: [User B]
@@ -89,8 +112,14 @@ sequenceDiagram
     UB->>UB: PUT /events/:id<br/>x_pubky_calendar_uris: [Calendar A]
     UB->>N: Homeserver watched
     
-    UC->>UC: PUT /attendees/:id<br/>x_pubky_event_uri: Event B<br/>partstat: ACCEPTED
+    UC->>UC: PUT /attendees/:id<br/>x_pubky_event_uri: Event B<br/>partstat: ACCEPTED<br/>(general)
     UC->>N: Homeserver watched
+    
+    UC->>UC: PUT /attendees/:id2<br/>x_pubky_event_uri: Event B<br/>recurrence_id: 2025-01-15T10:00:00<br/>partstat: DECLINED<br/>(specific instance)
+    UC->>N: Homeserver watched
+    
+    UD->>UD: PUT /tags/:id<br/>uri: Event B<br/>label: conference<br/>(general)
+    UD->>N: Homeserver watched
     
     N->>N: Aggregate & Index
 ```
