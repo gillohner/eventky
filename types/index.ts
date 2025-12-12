@@ -5,6 +5,7 @@
 export * from './auth';
 export * from './event';
 export * from './calendar';
+export * from './calendar-view';
 export * from './image';
 export * from './recurrence';
 export * from './nexus';

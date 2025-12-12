@@ -77,5 +77,12 @@ export {
     type SelectedUser,
 } from "./use-user-search";
 
+// Calendar view hook - UI state management for calendar display
+export {
+    useCalendarView,
+    type UseCalendarViewOptions,
+    type UseCalendarViewResult,
+} from "./use-calendar-view";
+
 // Utility hooks
 export { useIsMobile } from "./use-mobile";

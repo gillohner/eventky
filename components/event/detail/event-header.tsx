@@ -4,7 +4,6 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { config } from "@/lib/config";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
-import { parse_uri } from "pubky-app-specs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +72,6 @@ export function EventHeader({
     eventId,
     onDelete,
     isDeleting,
-    calendarUri,
     className,
 }: EventHeaderProps) {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);

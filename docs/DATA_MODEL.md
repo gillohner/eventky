@@ -54,7 +54,7 @@ graph TB
   - Single instance: `{ "x_pubky_event_uri": "pubky://user/.../events/123", "partstat": "DECLINED", "recurrence_id": "2025-01-15T10:00:00" }`
 
 ### Tag
-- **Path**: `/pub/eventky.app/tags/:tag_id` (hash of URI + label)
+- **Path**: `/pub/pubky.app/tags/:tag_id` (hash of URI + label)
 - **Storage**: User's homeserver (tagger)
 - **Required**: `uri` (tagged object), `label` (lowercase, trimmed), `created_at`
 - **Example**: `{ "uri": "pubky://user/.../events/123", "label": "conference", "created_at": 1733932800000000 }`
