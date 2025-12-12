@@ -23,8 +23,12 @@ interface CalendarMetadataProps {
     description?: string;
     /** Calendar timezone */
     timezone?: string;
-    /** Calendar URI for sharing */
+    /** Calendar URI for sharing (pubky:// format) */
     calendarUri?: string;
+    /** Calendar author ID */
+    authorId?: string;
+    /** Calendar ID */
+    calendarId?: string;
     /** List of admin public keys */
     admins?: string[];
     /** Calendar sequence number (version) */
@@ -45,6 +49,8 @@ export function CalendarMetadata({
     description,
     timezone,
     calendarUri,
+    authorId,
+    calendarId,
     admins,
     sequence,
     lastModified,
@@ -54,8 +60,12 @@ export function CalendarMetadata({
     const [copied, setCopied] = useState(false);
 
     const handleCopyUri = async () => {
-        if (!calendarUri) return;
-        await navigator.clipboard.writeText(calendarUri);
+        if (!authorId || !calendarId) return;
+        // Use app base URL instead of pubky:// URI
+        const appUrl = typeof window !== 'undefined'
+            ? `${window.location.origin}/calendar/${authorId}/${calendarId}`
+            : '';
+        await navigator.clipboard.writeText(appUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -134,33 +144,6 @@ export function CalendarMetadata({
                     </div>
                 )}
 
-                {/* Calendar URI (for sharing) */}
-                {calendarUri && (
-                    <div className="flex items-start gap-3">
-                        <Copy className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium mb-1">Calendar URI</p>
-                            <div className="flex items-center gap-2">
-                                <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
-                                    {calendarUri}
-                                </code>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleCopyUri}
-                                    className="flex-shrink-0"
-                                >
-                                    {copied ? (
-                                        <Check className="h-4 w-4 text-green-600" />
-                                    ) : (
-                                        <Copy className="h-4 w-4" />
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {/* Timestamps */}
                 {(created || lastModified) && (
                     <div className="pt-2 border-t text-xs text-muted-foreground space-y-1">
@@ -179,6 +162,30 @@ export function CalendarMetadata({
                                 Version: {sequence}
                             </p>
                         )}
+                    </div>
+                )}
+
+                {/* Share URL */}
+                {calendarUri && (
+                    <div className="pt-3 border-t">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={handleCopyUri}
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Copy Calendar URL
+                                </>
+                            )}
+                        </Button>
                     </div>
                 )}
             </CardContent>

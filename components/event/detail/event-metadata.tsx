@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { parse_uri } from "pubky-app-specs";
+import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,8 +34,12 @@ interface EventMetadataProps {
     lastModified?: number;
     /** Created timestamp (microseconds) */
     created?: number;
-    /** Event URI for sharing */
+    /** Event URI for sharing (pubky:// format) */
     eventUri?: string;
+    /** Event author ID */
+    authorId?: string;
+    /** Event ID */
+    eventId?: string;
     /** Additional CSS classes */
     className?: string;
 }
@@ -51,13 +56,19 @@ export function EventMetadata({
     lastModified,
     created,
     eventUri,
+    authorId,
+    eventId,
     className,
 }: EventMetadataProps) {
     const [copied, setCopied] = useState(false);
 
     const handleCopyUri = async () => {
-        if (!eventUri) return;
-        await navigator.clipboard.writeText(eventUri);
+        if (!authorId || !eventId) return;
+        // Use app base URL instead of pubky:// URI
+        const appUrl = typeof window !== 'undefined'
+            ? `${window.location.origin}/event/${authorId}/${eventId}`
+            : '';
+        await navigator.clipboard.writeText(appUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -154,8 +165,8 @@ export function EventMetadata({
                     </div>
                 )}
 
-                {/* Share URI */}
-                {eventUri && (
+                {/* Share URL */}
+                {(eventUri || (authorId && eventId)) && (
                     <div className="pt-3 border-t">
                         <Button
                             variant="outline"
@@ -171,7 +182,7 @@ export function EventMetadata({
                             ) : (
                                 <>
                                     <Copy className="h-4 w-4 mr-2" />
-                                    Copy Event URI
+                                    Copy Event URL
                                 </>
                             )}
                         </Button>
@@ -183,10 +194,10 @@ export function EventMetadata({
 }
 
 /**
- * Calendar link component
+ * Calendar link component - fetches calendar name from Nexus
  */
 function CalendarLink({ uri }: { uri: string }) {
-    const { authorId, calendarId, name } = parseCalendarUri(uri);
+    const { authorId, calendarId } = parseCalendarUri(uri);
 
     if (!authorId || !calendarId) {
         return (
@@ -196,11 +207,37 @@ function CalendarLink({ uri }: { uri: string }) {
         );
     }
 
+    return <CalendarLinkWithData authorId={authorId} calendarId={calendarId} />;
+}
+
+/**
+ * Inner component that uses the hook to fetch calendar data
+ */
+function CalendarLinkWithData({ authorId, calendarId }: { authorId: string; calendarId: string }) {
+    // Use existing useCalendar hook to fetch calendar details
+    const { data: calendar, isLoading } = useCalendar(authorId, calendarId, {
+        queryOptions: {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+        },
+    });
+
+    const calendarName = calendar?.details?.name;
+
+    // Truncate long calendar names
+    const displayName = calendarName
+        ? (calendarName.length > 25 ? `${calendarName.slice(0, 25)}...` : calendarName)
+        : `${calendarId.slice(0, 8)}...`;
+
     return (
         <Link href={`/calendar/${authorId}/${calendarId}`}>
-            <Badge variant="secondary" className="text-xs hover:bg-secondary/80 cursor-pointer">
-                <Calendar className="h-3 w-3 mr-1" />
-                {name || `${calendarId.slice(0, 8)}...`}
+            <Badge
+                variant="secondary"
+                className="text-xs hover:bg-secondary/80 cursor-pointer max-w-[200px] inline-flex items-center gap-1"
+            >
+                <Calendar className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">
+                    {isLoading ? "Loading..." : displayName}
+                </span>
             </Badge>
         </Link>
     );
@@ -211,7 +248,6 @@ function CalendarLink({ uri }: { uri: string }) {
 function parseCalendarUri(uri: string): {
     authorId?: string;
     calendarId?: string;
-    name?: string;
 } {
     // Parse pubky://authorId/pub/eventky.app/calendars/calendarId using pubky-app-specs
     try {

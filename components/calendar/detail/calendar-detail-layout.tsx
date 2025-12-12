@@ -144,6 +144,8 @@ export function CalendarDetailLayout({
                         description={details.description}
                         timezone={details.timezone}
                         calendarUri={details.uri}
+                        authorId={details.author}
+                        calendarId={details.id}
                         admins={details.x_pubky_admins}
                         sequence={details.sequence}
                         lastModified={details.last_modified}

@@ -184,6 +184,7 @@ export function EventDetailLayout({
                         onAddTag={onAddTag}
                         onRemoveTag={onRemoveTag}
                         isTagLoading={isTagLoading}
+                        isRecurring={isRecurring}
                     />
 
 
@@ -197,6 +198,8 @@ export function EventDetailLayout({
                         lastModified={details.last_modified}
                         created={details.created}
                         eventUri={details.uri}
+                        authorId={details.author}
+                        eventId={details.id}
                     />
                 </div>
             </div>

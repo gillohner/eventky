@@ -89,71 +89,65 @@ export function CalendarHeader({
                 className="h-32 sm:h-48 w-full bg-cover bg-center relative"
                 style={{
                     backgroundImage: heroImageUrl ? `url(${heroImageUrl})` : fallbackGradient,
+                    backgroundColor: !heroImageUrl && color ? color : undefined,
                 }}
             >
+                {/* Overlay for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
                 {/* Color indicator in top-right */}
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-3 right-3">
                     <div
                         className="h-8 w-8 rounded-full border-2 border-white shadow-lg"
                         style={{ backgroundColor: color }}
                         title={`Calendar color: ${color}`}
                     />
                 </div>
+
+                {/* Edit and Delete Buttons (overlay) */}
+                {isOwner && calendarId && (
+                    <div className="absolute bottom-3 right-3 flex gap-2">
+                        <Button asChild size="sm" variant="secondary">
+                            <Link href={`/calendar/${authorId}/${calendarId}/edit`}>
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
+                            </Link>
+                        </Button>
+                        {onDelete && (
+                            <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setShowDeleteDialog(true)}
+                                disabled={isDeleting}
+                            >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </Button>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-4">
-                {/* Author + Title Row */}
-                <div className="flex items-start gap-4">
-                    {/* Author Avatar - Positioned to overlap hero image */}
-                    <Avatar className="h-16 w-16 border-4 border-background -mt-12">
+            {/* Content Section */}
+            <div className="p-4 sm:p-6 space-y-4">
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                    {name}
+                </h1>
+
+                {/* Author Info */}
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border-2 border-background">
                         <AvatarImage src={authorAvatar} alt={authorName || authorId} />
-                        <AvatarFallback>{authorInitials}</AvatarFallback>
+                        <AvatarFallback className="text-xs font-medium">
+                            {authorInitials}
+                        </AvatarFallback>
                     </Avatar>
-
-                    {/* Title & Actions */}
-                    <div className="flex-1 min-w-0 pt-2">
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0 flex-1">
-                                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">
-                                    {name}
-                                </h1>
-                                {authorName && (
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        by {authorName}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Action Buttons */}
-                            {isOwner && calendarId && (
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        asChild
-                                        className="gap-2"
-                                    >
-                                        <Link href={`/calendar/${authorId}/${calendarId}/edit`}>
-                                            <Edit className="h-4 w-4" />
-                                            Edit
-                                        </Link>
-                                    </Button>
-                                    {onDelete && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setShowDeleteDialog(true)}
-                                            disabled={isDeleting}
-                                            className="gap-2 text-destructive hover:text-destructive"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                            Delete
-                                        </Button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                    <div>
+                        <p className="font-medium">
+                            {authorName || truncateId(authorId)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Calendar Owner</p>
                     </div>
                 </div>
 
@@ -226,4 +220,9 @@ function hashCode(str: string): number {
         hash = hash & hash;
     }
     return Math.abs(hash);
+}
+
+function truncateId(id: string): string {
+    if (id.length <= 12) return id;
+    return `${id.slice(0, 6)}...${id.slice(-4)}`;
 }

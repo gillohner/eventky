@@ -161,7 +161,7 @@ export function EventHeader({
                 </h1>
 
                 {/* Author Info */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                     <a
                         href={`${config.pubkyApp.profileUrl}/${authorId}`}
                         target="_blank"
@@ -180,16 +180,6 @@ export function EventHeader({
                             <p className="text-xs text-muted-foreground">Organizer</p>
                         </div>
                     </a>
-
-                    {/* Calendar Link */}
-                    {calendarUri && (
-                        <Button asChild variant="ghost" size="sm">
-                            <Link href={getCalendarPageUrl(calendarUri)}>
-                                <Calendar className="h-4 w-4 mr-1" />
-                                View Calendar
-                            </Link>
-                        </Button>
-                    )}
                 </div>
             </div>
 
@@ -271,17 +261,4 @@ function formatInstanceDate(isoDate: string): string {
 function truncateId(id: string): string {
     if (id.length <= 12) return id;
     return `${id.slice(0, 6)}...${id.slice(-4)}`;
-}
-
-function getCalendarPageUrl(uri: string): string {
-    // Parse pubky://authorId/pub/eventky.app/calendars/calendarId using pubky-app-specs
-    try {
-        const parsed = parse_uri(uri);
-        if (parsed.resource === "calendars" && parsed.resource_id) {
-            return `/calendar/${parsed.user_id}/${parsed.resource_id}`;
-        }
-    } catch {
-        // Fall through to default
-    }
-    return "/calendars";
 }

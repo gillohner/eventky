@@ -50,6 +50,8 @@ interface TagsSectionProps {
     isTagLoading?: boolean;
     /** Override pending tags (for calendar support) */
     _pendingTags?: Array<{ label: string; action: 'add' | 'remove' }>;
+    /** Whether the event is recurring (shows tooltip about series vs instances) */
+    isRecurring?: boolean;
     /** Additional CSS classes */
     className?: string;
 }
@@ -68,6 +70,7 @@ export function TagsSection({
     onRemoveTag,
     isTagLoading = false,
     _pendingTags,
+    isRecurring = false,
     className,
 }: TagsSectionProps) {
     const [showInput, setShowInput] = useState(false);
@@ -172,16 +175,18 @@ export function TagsSection({
                                 {mergedTags.length}
                             </Badge>
                         )}
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Tags apply to the entire event series, not individual instances.</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        {isRecurring && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Tags apply to the entire event series, not individual instances.</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
                     </CardTitle>
 
                     {/* Add Tag Button */}
