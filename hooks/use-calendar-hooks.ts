@@ -32,7 +32,6 @@ import type {
 // =============================================================================
 
 export interface UseCalendarOptions {
-    viewerId?: string;
     limitTags?: number;
     limitTaggers?: number;
     /** Enable background sync polling (default: true) */
@@ -80,7 +79,6 @@ export function useCalendar(
 
     // Build query key
     const queryKey = queryKeys.calendars.detail(authorId, calendarId, {
-        viewerId: options?.viewerId,
         limitTags: options?.limitTags,
         limitTaggers: options?.limitTaggers,
     });
@@ -96,7 +94,6 @@ export function useCalendar(
             const nexusData = await fetchCalendarFromNexus(
                 authorId,
                 calendarId,
-                options?.viewerId,
                 options?.limitTags,
                 options?.limitTaggers
             );
@@ -257,7 +254,6 @@ export function usePrefetchCalendar() {
     return useCallback(
         (authorId: string, calendarId: string, options?: UseCalendarOptions) => {
             const queryKey = queryKeys.calendars.detail(authorId, calendarId, {
-                viewerId: options?.viewerId,
                 limitTags: options?.limitTags,
                 limitTaggers: options?.limitTaggers,
             });
@@ -268,7 +264,6 @@ export function usePrefetchCalendar() {
                     const nexusData = await fetchCalendarFromNexus(
                         authorId,
                         calendarId,
-                        options?.viewerId,
                         options?.limitTags,
                         options?.limitTaggers
                     );

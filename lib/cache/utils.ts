@@ -59,7 +59,6 @@ export const queryKeys = {
             authorId: string,
             eventId: string,
             options?: {
-                viewerId?: string;
                 limitTags?: number;
                 limitTaggers?: number;
                 limitAttendees?: number;
@@ -70,7 +69,6 @@ export const queryKeys = {
                 "event",
                 authorId,
                 eventId,
-                options?.viewerId,
                 options?.limitTags,
                 options?.limitTaggers,
                 options?.limitAttendees,
@@ -90,7 +88,6 @@ export const queryKeys = {
             authorId: string,
             calendarId: string,
             options?: {
-                viewerId?: string;
                 limitTags?: number;
                 limitTaggers?: number;
             }
@@ -100,7 +97,6 @@ export const queryKeys = {
                 "calendar",
                 authorId,
                 calendarId,
-                options?.viewerId,
                 options?.limitTags,
                 options?.limitTaggers,
             ] as const,

@@ -20,13 +20,11 @@ export type NexusCalendarStreamResponse = NexusCalendarStreamItem;
 export async function fetchCalendarFromNexus(
     authorId: string,
     calendarId: string,
-    viewerId?: string,
     limitTags?: number,
     limitTaggers?: number
 ): Promise<NexusCalendarResponse | null> {
     try {
         const params = new URLSearchParams();
-        if (viewerId) params.append("viewer_id", viewerId);
         if (limitTags) params.append("limit_tags", limitTags.toString());
         if (limitTaggers) params.append("limit_taggers", limitTaggers.toString());
 

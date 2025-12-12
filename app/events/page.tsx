@@ -14,7 +14,7 @@ export default function EventsPage() {
 
     if (error) {
         return (
-            <div className="container py-8">
+            <div className="container max-w-7xl mx-auto py-8 px-4">
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-destructive">Error Loading Events</CardTitle>
@@ -28,7 +28,7 @@ export default function EventsPage() {
     }
 
     return (
-        <div className="container py-8 space-y-6">
+        <div className="container max-w-7xl mx-auto py-8 px-4 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Events</h1>

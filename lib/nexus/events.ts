@@ -20,14 +20,12 @@ export type NexusEventStreamResponse = NexusEventStreamItem;
 export async function fetchEventFromNexus(
   authorId: string,
   eventId: string,
-  viewerId?: string,
   limitTags?: number,
   limitTaggers?: number,
   limitAttendees?: number
 ): Promise<NexusEventResponse | null> {
   try {
     const params = new URLSearchParams();
-    if (viewerId) params.append("viewer_id", viewerId);
     if (limitTags) params.append("limit_tags", limitTags.toString());
     if (limitTaggers) params.append("limit_taggers", limitTaggers.toString());
     if (limitAttendees) params.append("limit_attendees", limitAttendees.toString());

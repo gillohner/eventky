@@ -38,7 +38,6 @@ import type {
 // =============================================================================
 
 export interface UseEventOptions {
-    viewerId?: string;
     limitTags?: number;
     limitTaggers?: number;
     limitAttendees?: number;
@@ -87,7 +86,6 @@ export function useEvent(
 
     // Build query key
     const queryKey = queryKeys.events.detail(authorId, eventId, {
-        viewerId: options?.viewerId,
         limitTags: options?.limitTags,
         limitTaggers: options?.limitTaggers,
         limitAttendees: options?.limitAttendees,
@@ -104,7 +102,6 @@ export function useEvent(
             const nexusData = await fetchEventFromNexus(
                 authorId,
                 eventId,
-                options?.viewerId,
                 options?.limitTags,
                 options?.limitTaggers,
                 options?.limitAttendees
@@ -275,7 +272,6 @@ export function usePrefetchEvent() {
     return useCallback(
         (authorId: string, eventId: string, options?: UseEventOptions) => {
             const queryKey = queryKeys.events.detail(authorId, eventId, {
-                viewerId: options?.viewerId,
                 limitTags: options?.limitTags,
                 limitTaggers: options?.limitTaggers,
                 limitAttendees: options?.limitAttendees,
@@ -287,7 +283,6 @@ export function usePrefetchEvent() {
                     const nexusData = await fetchEventFromNexus(
                         authorId,
                         eventId,
-                        options?.viewerId,
                         options?.limitTags,
                         options?.limitTaggers,
                         options?.limitAttendees

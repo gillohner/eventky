@@ -265,7 +265,6 @@ export interface DataSourceDecision<T> {
 export interface FetchEventParams {
     authorId: string;
     eventId: string;
-    viewerId?: string;
     limitTags?: number;
     limitTaggers?: number;
     limitAttendees?: number;
@@ -289,7 +288,6 @@ export interface EventStreamParams {
 export interface FetchCalendarParams {
     authorId: string;
     calendarId: string;
-    viewerId?: string;
     limitTags?: number;
     limitTaggers?: number;
 }
