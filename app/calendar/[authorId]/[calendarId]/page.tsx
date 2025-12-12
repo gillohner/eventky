@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQueries } from "@tanstack/react-query";
 import { parse_uri } from "pubky-app-specs";
@@ -8,12 +8,14 @@ import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { useDeleteCalendar } from "@/hooks/use-calendar-mutations";
 import { useAddCalendarTagMutation, useRemoveCalendarTagMutation } from "@/hooks/use-calendar-tag-mutation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useDebugView } from "@/hooks";
 import { CalendarDetailLayout } from "@/components/calendar/detail";
 import { SyncBadge } from "@/components/ui/sync-status-indicator";
 import { DevJsonView } from "@/components/dev-json-view";
+import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { Button } from "@/components/ui/button";
 import { calendarUriBuilder } from "pubky-app-specs";
-import { Bug, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { fetchEventFromNexus } from "@/lib/nexus";
 import { queryKeys } from "@/lib/cache";
@@ -30,7 +32,7 @@ export default function CalendarPage({ params }: CalendarPageProps) {
     const { authorId, calendarId } = use(params);
     const router = useRouter();
     const { auth } = useAuth();
-    const [showDevView, setShowDevView] = useState(false);
+    const { debugEnabled, showRawData, toggleRawData } = useDebugView();
 
     // Fetch calendar data
     const {
@@ -163,44 +165,37 @@ export default function CalendarPage({ params }: CalendarPageProps) {
                 {/* Right Side - Sync & Debug */}
                 <div className="flex items-center gap-2">
                     {isOptimistic && <SyncBadge status={syncStatus} />}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowDevView(!showDevView)}
-                        className="text-muted-foreground"
-                    >
-                        <Bug className="h-4 w-4 mr-1" />
-                        {showDevView ? "Hide" : "Show"} Raw Data
-                    </Button>
+                    <DebugViewToggle
+                        debugEnabled={debugEnabled}
+                        showRawData={showRawData}
+                        onToggle={toggleRawData}
+                    />
                 </div>
             </div>
 
-            {/* Dev JSON View (toggleable) */}
-            {showDevView && (
-                <div className="mb-6">
-                    <DevJsonView
-                        data={calendar}
-                        title={`Calendar: ${authorId}/${calendarId}`}
-                        isLoading={isLoading}
-                        error={error as Error}
-                    />
-                </div>
+            {/* Toggle between UI and Raw Data */}
+            {showRawData ? (
+                <DevJsonView
+                    data={calendar}
+                    title={`Calendar: ${authorId}/${calendarId}`}
+                    isLoading={isLoading}
+                    error={error ? (error as Error) : undefined}
+                />
+            ) : (
+                <CalendarDetailLayout
+                    calendar={calendar ?? null}
+                    events={events}
+                    isLoading={isLoading}
+                    isEventsLoading={isEventsLoading}
+                    error={error as Error | null}
+                    currentUserId={currentUserId || undefined}
+                    isLoggedIn={isLoggedIn}
+                    onDelete={isOwner ? handleDelete : undefined}
+                    isDeleting={isDeleting}
+                    onAddTag={handleAddTag}
+                    onRemoveTag={handleRemoveTag}
+                />
             )}
-
-            {/* Main Calendar Detail Layout */}
-            <CalendarDetailLayout
-                calendar={calendar ?? null}
-                events={events}
-                isLoading={isLoading}
-                isEventsLoading={isEventsLoading}
-                error={error as Error | null}
-                currentUserId={currentUserId || undefined}
-                isLoggedIn={isLoggedIn}
-                onDelete={isOwner ? handleDelete : undefined}
-                isDeleting={isDeleting}
-                onAddTag={handleAddTag}
-                onRemoveTag={handleRemoveTag}
-            />
         </div>
     );
 }

@@ -15,6 +15,12 @@ interface PubkyConfig {
         githubRepo?: string;
     };
 
+    // Debug Configuration
+    debug: {
+        /** Whether debug mode toggle is available */
+        available: boolean;
+    };
+
     // Environment
     env: PubkyEnvironment;
     environment: PubkyEnvironment;
@@ -122,6 +128,10 @@ function buildConfig(): PubkyConfig {
             name: process.env.NEXT_PUBLIC_APP_NAME || "Eventky",
             version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
             githubRepo: process.env.NEXT_PUBLIC_GITHUB_REPO,
+        },
+
+        debug: {
+            available: process.env.NEXT_PUBLIC_DEBUG_AVAILABLE !== "false",
         },
 
         env: environment,

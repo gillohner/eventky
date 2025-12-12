@@ -7,12 +7,11 @@ import { useRsvpMutation } from "@/hooks/use-rsvp-mutation";
 import { useAddTagMutation, useRemoveTagMutation } from "@/hooks/use-tag-mutation";
 import { useDeleteEvent } from "@/hooks/use-event-mutations";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useDebugView } from "@/hooks";
 import { EventDetailLayout } from "@/components/event/detail";
 import { SyncBadge } from "@/components/ui/sync-status-indicator";
 import { DevJsonView } from "@/components/dev-json-view";
-import { Button } from "@/components/ui/button";
-import { Bug } from "lucide-react";
-import { useState } from "react";
+import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { toast } from "sonner";
 
 interface EventPageProps {
@@ -33,7 +32,7 @@ export default function EventPage({ params }: EventPageProps) {
     limitAttendees: 100,
   });
   const { auth } = useAuth();
-  const [showDevView, setShowDevView] = useState(false);
+  const { debugEnabled, showRawData, toggleRawData } = useDebugView();
 
   // RSVP mutation hook
   const { mutate: rsvp, isPending: isRsvpLoading } = useRsvpMutation();
@@ -108,47 +107,40 @@ export default function EventPage({ params }: EventPageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
-      {/* Sync Status & Dev Toggle */}
+      {/* Sync Status & Debug Toggle */}
       <div className="flex items-center justify-end gap-2 mb-4">
         {isOptimistic && <SyncBadge status={syncStatus} />}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowDevView(!showDevView)}
-          className="text-muted-foreground"
-        >
-          <Bug className="h-4 w-4 mr-1" />
-          {showDevView ? "Hide" : "Show"} Raw Data
-        </Button>
+        <DebugViewToggle
+          debugEnabled={debugEnabled}
+          showRawData={showRawData}
+          onToggle={toggleRawData}
+        />
       </div>
 
-      {/* Dev JSON View (toggleable) */}
-      {showDevView && (
-        <div className="mb-6">
-          <DevJsonView
-            data={event}
-            title={`Event: ${authorId}/${eventId}`}
-            isLoading={isLoading}
-            error={error as Error}
-          />
-        </div>
+      {/* Toggle between UI and Raw Data */}
+      {showRawData ? (
+        <DevJsonView
+          data={event}
+          title={`Event: ${authorId}/${eventId}`}
+          isLoading={isLoading}
+          error={error ? (error as Error) : undefined}
+        />
+      ) : (
+        <EventDetailLayout
+          event={event ?? null}
+          isLoading={isLoading}
+          error={error as Error | null}
+          currentUserId={currentUserId || undefined}
+          isLoggedIn={isLoggedIn}
+          instanceDate={instanceDate}
+          onRsvp={handleRsvp}
+          isRsvpLoading={isRsvpLoading}
+          onAddTag={handleAddTag}
+          onRemoveTag={handleRemoveTag}
+          onDelete={handleDelete}
+          isDeleting={isDeleting}
+        />
       )}
-
-      {/* Main Event Detail Layout */}
-      <EventDetailLayout
-        event={event ?? null}
-        isLoading={isLoading}
-        error={error as Error | null}
-        currentUserId={currentUserId || undefined}
-        isLoggedIn={isLoggedIn}
-        instanceDate={instanceDate}
-        onRsvp={handleRsvp}
-        isRsvpLoading={isRsvpLoading}
-        onAddTag={handleAddTag}
-        onRemoveTag={handleRemoveTag}
-        onDelete={handleDelete}
-        isDeleting={isDeleting}
-      />
     </div>
   );
 }

@@ -84,5 +84,12 @@ export {
     type UseCalendarViewResult,
 } from "./use-calendar-view";
 
+// Debug mode hook
+export {
+    useDebugView,
+    type UseDebugViewOptions,
+    type UseDebugViewResult,
+} from "./use-debug-view";
+
 // Utility hooks
 export { useIsMobile } from "./use-mobile";

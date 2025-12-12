@@ -3,6 +3,7 @@
 import { useEvent } from "@/hooks/use-event-hooks";
 import { useCreateEvent, useUpdateEvent } from "@/hooks/use-event-mutations";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useDebugView } from "@/hooks";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +41,7 @@ export function CreateEventPageLayout({
 }: CreateEventPageLayoutProps) {
   const router = useRouter();
   const { auth, isAuthenticated } = useAuth();
+  const { debugEnabled } = useDebugView();
   const { formData: persistedFormData, eventId: persistedEventId, setFormData, clearFormData } = useEventFormStore();
 
   // Mutation hooks with optimistic updates
@@ -371,9 +373,9 @@ export function CreateEventPageLayout({
           </Button>
         </div>
         {/* Debug: Show current form state */}
-        {config.isDevelopment && (
+        {debugEnabled && (
           <div className="p-4 border rounded-lg bg-muted/50">
-            <h3 className="font-medium mb-2">Form State (Dev Mode Only):</h3>
+            <h3 className="font-medium mb-2">Form State:</h3>
             <div className="space-y-2 text-xs">
               <div>
                 <strong>Is Valid:</strong> {form.formState.isValid ? "Yes" : "No"}

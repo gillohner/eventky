@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { useEventsStream } from "@/hooks/use-event-hooks";
+import { useDebugView } from "@/hooks";
 import { DevJsonView } from "@/components/dev-json-view";
+import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { CalendarView } from "@/components/calendar/calendar-view";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
 export default function EventsPage() {
     const { data: events, isLoading, error } = useEventsStream({ limit: 100 });
-    const [viewType, setViewType] = useState<"calendar" | "debug">("calendar");
+    const { debugEnabled, showRawData, toggleRawData } = useDebugView();
 
     if (error) {
         return (
@@ -29,35 +29,25 @@ export default function EventsPage() {
 
     return (
         <div className="container py-8 space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold mb-2">Events</h1>
-                <p className="text-muted-foreground">
-                    View and manage all events across calendars
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold mb-2">Events</h1>
+                    <p className="text-muted-foreground">
+                        View and manage all events across calendars
+                    </p>
+                </div>
+                <DebugViewToggle
+                    debugEnabled={debugEnabled}
+                    showRawData={showRawData}
+                    onToggle={toggleRawData}
+                />
             </div>
 
-            <Tabs value={viewType} onValueChange={(v) => setViewType(v as "calendar" | "debug")}>
-                <TabsList>
-                    <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-                    <TabsTrigger value="debug">Debug View</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="calendar" className="mt-6">
-                    {isLoading ? (
-                        <Card>
-                            <CardContent className="py-12 text-center text-muted-foreground">
-                                Loading events...
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <CalendarView events={events || []} />
-                    )}
-                </TabsContent>
-
-                <TabsContent value="debug" className="mt-6">
-                    {/* Debug links */}
+            {showRawData ? (
+                <div className="space-y-4">
+                    {/* Debug quick links */}
                     {events && events.length > 0 && (
-                        <Card className="mb-4">
+                        <Card>
                             <CardHeader>
                                 <CardTitle className="text-sm">Quick Links</CardTitle>
                             </CardHeader>
@@ -81,8 +71,18 @@ export default function EventsPage() {
                         isLoading={isLoading}
                         error={error ? (error as Error) : undefined}
                     />
-                </TabsContent>
-            </Tabs>
+                </div>
+            ) : (
+                isLoading ? (
+                    <Card>
+                        <CardContent className="py-12 text-center text-muted-foreground">
+                            Loading events...
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <CalendarView events={events || []} />
+                )
+            )}
         </div>
     );
 }

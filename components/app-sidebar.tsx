@@ -11,6 +11,7 @@ import {
     User,
     ExternalLink,
     Plus,
+    Bug,
 } from "lucide-react"
 
 import {
@@ -27,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/providers/auth-provider"
 import { useProfile } from "@/hooks/use-profile"
+import { useDebugStore } from "@/stores/debug-store"
 import { getPubkyAvatarUrl, getInitials, truncatePublicKey } from "@/lib/pubky/utils"
 import { config } from "@/lib/config"
 import { toast } from "sonner"
@@ -54,6 +56,7 @@ export function AppSidebar() {
     const router = useRouter()
     const { isAuthenticated, auth, logout } = useAuth()
     const { profile } = useProfile()
+    const { enabled: debugEnabled, toggle: toggleDebug } = useDebugStore()
     const [isHydrated, setIsHydrated] = useState(false)
 
     useEffect(() => {
@@ -163,6 +166,21 @@ export function AppSidebar() {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
+                {/* Debug Mode Toggle */}
+                {config.debug.available && isHydrated && (
+                    <div className="px-4 py-2 border-t">
+                        <Button
+                            variant={debugEnabled ? "default" : "outline"}
+                            size="sm"
+                            onClick={toggleDebug}
+                            className="w-full justify-start gap-2"
+                        >
+                            <Bug className="h-4 w-4" />
+                            {debugEnabled ? "Debug: ON" : "Enable Debug"}
+                        </Button>
+                    </div>
+                )}
+
                 <div className="px-4 py-2">
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
                         <span>{config.app.name} v{config.app.version}</span>

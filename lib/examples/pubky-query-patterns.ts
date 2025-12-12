@@ -29,6 +29,27 @@ interface CreateEventInput {
   description?: string;
 }
 
+// Types
+interface CalendarData {
+  events: string[];
+  metadata?: Record<string, unknown>;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface CreateEventInput {
+  title: string;
+  date: string;
+  description?: string;
+}
+
 // Example: Calendar Hook
 export function useCalendar() {
   const { auth } = useAuth();
@@ -43,7 +64,6 @@ export function useCalendar() {
       const calendarData = await auth.session.storage.getJson(
         "/pub/pubky.app/calendar/calendar.json"
       ) as CalendarData | null;
-
       return calendarData;
     },
     enabled: !!auth.session && !!auth.publicKey,
@@ -60,12 +80,10 @@ export function useCalendar() {
         ...event,
         createdAt: new Date().toISOString(),
       };
-
       await auth.session.storage.putJson(
         `/pub/pubky.app/calendar/events/${eventId}.json`,
         newEvent
       );
-
       return newEvent;
     },
     onSuccess: () => {
@@ -96,7 +114,6 @@ export function useEvents() {
       const events = await auth.session.storage.getJson(
         "/pub/pubky.app/events/list.json"
       ) as Event[] | null;
-
       return events || [];
     },
     enabled: !!auth.session && !!auth.publicKey,
@@ -113,12 +130,10 @@ export function useEvents() {
         ...event,
         createdAt: new Date().toISOString(),
       };
-
       await auth.session.storage.putJson(
         `/pub/pubky.app/events/${eventId}.json`,
         newEvent
       );
-
       return newEvent;
     },
     onSuccess: () => {
@@ -164,7 +179,6 @@ export function useEvent(eventId: string) {
       const event = await auth.session.storage.getJson(
         `/pub/pubky.app/events/${eventId}.json`
       ) as Event | null;
-
       return event;
     },
     enabled: !!auth.session && !!eventId,
@@ -176,13 +190,11 @@ export function useEvent(eventId: string) {
 
       const currentEvent = eventQuery.data;
       if (!currentEvent) throw new Error("Event not found");
-
       const updatedEvent: Event = {
         ...currentEvent,
         ...updates,
         updatedAt: new Date().toISOString(),
       };
-
       await auth.session.storage.putJson(
         `/pub/pubky.app/events/${eventId}.json`,
         updatedEvent

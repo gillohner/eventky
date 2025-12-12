@@ -74,18 +74,18 @@ export interface UseCalendarViewResult {
     viewMode: CalendarViewMode;
     selectedCalendars: string[];
     dateRange: { start: Date; end: Date };
-    
+
     // Transformed data
     calendarEvents: CalendarEvent[];
-    
+
     // State setters
     setViewMode: (mode: CalendarViewMode) => void;
-    
+
     // Navigation
     goToNext: () => void;
     goToPrevious: () => void;
     goToToday: () => void;
-    
+
     // Calendar filtering
     toggleCalendar: (calendarId: string) => void;
     selectAllCalendars: () => void;
@@ -157,7 +157,7 @@ export function useCalendarView(
 
         events.forEach((rawEvent) => {
             const event = normalizeEvent(rawEvent);
-            
+
             // Get calendar info
             const calendarUri = event.x_pubky_calendar_uris?.[0];
             let calendarId = "";
@@ -168,7 +168,7 @@ export function useCalendarView(
                 // Extract calendar ID from URI
                 const match = calendarUri.match(/calendars\/([^/]+)$/);
                 calendarId = match?.[1] || "";
-                
+
                 // Find calendar in provided calendars
                 const calendar = calendars?.find((c) => c.id === calendarId);
                 if (calendar) {

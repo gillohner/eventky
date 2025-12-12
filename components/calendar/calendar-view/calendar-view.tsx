@@ -136,9 +136,9 @@ export function CalendarView({
                                 style={
                                     isSelected
                                         ? {
-                                              backgroundColor: calendar.color,
-                                              borderColor: calendar.color,
-                                          }
+                                            backgroundColor: calendar.color,
+                                            borderColor: calendar.color,
+                                        }
                                         : { borderLeft: `3px solid ${calendar.color}` }
                                 }
                                 onClick={() => toggleCalendar(calendar.id)}
