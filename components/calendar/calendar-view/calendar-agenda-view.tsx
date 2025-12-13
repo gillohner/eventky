@@ -69,10 +69,17 @@ export function CalendarAgendaView({
                                             <Card className="hover:shadow-md transition-shadow">
                                                 <CardContent className="p-4">
                                                     <div className="flex gap-3">
-                                                        {/* Color indicator */}
+                                                        {/* Color indicator - gradient if multiple calendars */}
                                                         <div
                                                             className="w-1 rounded-full"
-                                                            style={{ backgroundColor: event.color || "#6b7280" }}
+                                                            style={{
+                                                                background:
+                                                                    event.calendars.length > 1
+                                                                        ? `linear-gradient(to bottom, ${event.calendars
+                                                                            .map((c) => c.color)
+                                                                            .join(", ")})`
+                                                                        : event.color || "#6b7280",
+                                                            }}
                                                         />
 
                                                         {/* Event details */}
@@ -104,17 +111,22 @@ export function CalendarAgendaView({
                                                                 </div>
                                                             )}
 
-                                                            {/* Calendar badge */}
-                                                            {event.calendarName && (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="text-xs"
-                                                                    style={{
-                                                                        borderLeft: `3px solid ${event.color || "#6b7280"}`,
-                                                                    }}
-                                                                >
-                                                                    {event.calendarName}
-                                                                </Badge>
+                                                            {/* Calendar badges - show all if multiple */}
+                                                            {event.calendars.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {event.calendars.map((calendar) => (
+                                                                        <Badge
+                                                                            key={calendar.id}
+                                                                            variant="secondary"
+                                                                            className="text-xs"
+                                                                            style={{
+                                                                                borderLeft: `3px solid ${calendar.color}`,
+                                                                            }}
+                                                                        >
+                                                                            {calendar.name}
+                                                                        </Badge>
+                                                                    ))}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>

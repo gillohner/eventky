@@ -158,28 +158,51 @@ export function useCalendarView(
         events.forEach((rawEvent) => {
             const event = normalizeEvent(rawEvent);
 
-            // Get calendar info
-            const calendarUri = event.x_pubky_calendar_uris?.[0];
-            let calendarId = "";
-            let calendarName = "";
-            let calendarColor = "#3b82f6"; // Default blue
+            // Get all calendar info from x_pubky_calendar_uris
+            const calendarUris = event.x_pubky_calendar_uris || [];
+            const eventCalendars: Array<{ id: string; name: string; color: string }> = [];
 
-            if (calendarUri) {
-                // Extract calendar ID from URI
-                const match = calendarUri.match(/calendars\/([^/]+)$/);
-                calendarId = match?.[1] || "";
+            calendarUris.forEach((uri) => {
+                const match = uri.match(/calendars\/([^/]+)$/);
+                const calendarId = match?.[1] || "";
 
-                // Find calendar in provided calendars
-                const calendar = calendars?.find((c) => c.id === calendarId);
-                if (calendar) {
-                    calendarName = calendar.name;
-                    calendarColor = calendar.color;
+                if (calendarId) {
+                    const calendar = calendars?.find((c) => c.id === calendarId);
+                    if (calendar) {
+                        eventCalendars.push({
+                            id: calendar.id,
+                            name: calendar.name,
+                            color: calendar.color,
+                        });
+                    } else {
+                        // Calendar not in provided list, use default
+                        eventCalendars.push({
+                            id: calendarId,
+                            name: calendarId,
+                            color: "#3b82f6",
+                        });
+                    }
                 }
-            }
+            });
+
+            // Get primary calendar (first one) for backwards compatibility
+            const primaryCalendar = eventCalendars[0] || {
+                id: "",
+                name: "",
+                color: "#3b82f6",
+            };
 
             // Filter by selected calendars if specified
-            if (selectedCalendars.length > 0 && calendarId && !selectedCalendars.includes(calendarId)) {
-                return;
+            // Only show event if it has at least one selected calendar
+            // OR if it has no calendars and no calendars are selected
+            if (selectedCalendars.length > 0) {
+                const hasSelectedCalendar = eventCalendars.some((cal) =>
+                    selectedCalendars.includes(cal.id)
+                );
+                // Skip events with no calendars OR events with calendars but none selected
+                if (eventCalendars.length === 0 || !hasSelectedCalendar) {
+                    return;
+                }
             }
 
             // Handle recurring events
@@ -206,9 +229,10 @@ export function useCalendarView(
                         dtend: event.dtend,
                         duration: event.duration,
                         location: event.location,
-                        color: calendarColor,
-                        calendarId,
-                        calendarName,
+                        color: primaryCalendar.color,
+                        calendarId: primaryCalendar.id,
+                        calendarName: primaryCalendar.name,
+                        calendars: eventCalendars,
                         authorId: event.author,
                         eventId: event.id,
                         isRecurring: true,
@@ -225,9 +249,10 @@ export function useCalendarView(
                     dtend: event.dtend,
                     duration: event.duration,
                     location: event.location,
-                    color: calendarColor,
-                    calendarId,
-                    calendarName,
+                    color: primaryCalendar.color,
+                    calendarId: primaryCalendar.id,
+                    calendarName: primaryCalendar.name,
+                    calendars: eventCalendars,
                     authorId: event.author,
                     eventId: event.id,
                     isRecurring: false,

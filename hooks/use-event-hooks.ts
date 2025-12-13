@@ -231,10 +231,12 @@ export function useEvent(
 export interface UseEventsStreamOptions {
     limit?: number;
     skip?: number;
-    calendar?: string;
     status?: string;
     start_date?: number;
     end_date?: number;
+    author?: string;
+    timezone?: string;
+    tags?: string[];
 }
 
 /**

@@ -280,6 +280,10 @@ export interface EventStreamParams {
     status?: string;
     start_date?: number;
     end_date?: number;
+    author?: string;
+    timezone?: string;
+    rsvp_access?: string;
+    tags?: string[];
 }
 
 /**

@@ -57,15 +57,22 @@ export async function fetchEventFromNexus(
 export async function fetchEventsStream(params?: {
   limit?: number;
   skip?: number;
-  calendar?: string;
   status?: string;
   start_date?: number;
   end_date?: number;
+  author?: string;
+  timezone?: string;
+  tags?: string[];
 }): Promise<NexusEventStreamResponse[]> {
   try {
+    // Convert tags array to comma-separated string for API (same pattern as posts)
+    const apiParams = params?.tags
+      ? { ...params, tags: params.tags.join(',') }
+      : params;
+
     const response = await nexusClient.get<NexusEventStreamResponse[]>(
       "/v0/stream/events",
-      { params }
+      { params: apiParams }
     );
     return response.data;
   } catch (error) {

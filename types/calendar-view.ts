@@ -29,8 +29,12 @@ export interface CalendarEvent {
     duration?: string;
     location?: string;
     color: string;
+    /** Primary calendar ID (first in list) */
     calendarId: string;
+    /** Primary calendar name (first in list) */
     calendarName: string;
+    /** All associated calendars with their colors */
+    calendars: Array<{ id: string; name: string; color: string }>;
     authorId: string;
     eventId: string;
     isRecurring: boolean;

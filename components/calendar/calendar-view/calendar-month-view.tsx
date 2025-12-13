@@ -79,6 +79,17 @@ export function CalendarMonthView({
                             <div className="space-y-1">
                                 {dayEvents.slice(0, 3).map((event) => {
                                     const eventUrl = `/event/${event.authorId}/${event.eventId}`;
+                                    const borderStyle =
+                                        event.calendars.length > 1
+                                            ? {
+                                                borderLeft: `3px solid transparent`,
+                                                borderImage: `linear-gradient(to bottom, ${event.calendars
+                                                    .map((c) => c.color)
+                                                    .join(", ")}) 1`,
+                                            }
+                                            : {
+                                                borderLeft: `3px solid ${event.color || "#6b7280"}`,
+                                            };
 
                                     return (
                                         <Link key={event.id} href={eventUrl}>
@@ -86,7 +97,7 @@ export function CalendarMonthView({
                                                 className="text-xs px-2 py-1 rounded truncate hover:shadow-sm transition-shadow"
                                                 style={{
                                                     backgroundColor: event.color ? `${event.color}20` : "#6b728020",
-                                                    borderLeft: `3px solid ${event.color || "#6b7280"}`,
+                                                    ...borderStyle,
                                                 }}
                                             >
                                                 {event.summary}

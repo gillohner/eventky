@@ -58,6 +58,17 @@ export function CalendarWeekView({
                             <div className="space-y-2">
                                 {dayEvents.map((event) => {
                                     const eventUrl = `/event/${event.authorId}/${event.eventId}`;
+                                    const borderStyle =
+                                        event.calendars.length > 1
+                                            ? {
+                                                borderLeft: `3px solid transparent`,
+                                                borderImage: `linear-gradient(to bottom, ${event.calendars
+                                                    .map((c) => c.color)
+                                                    .join(", ")}) 1`,
+                                            }
+                                            : {
+                                                borderLeft: `3px solid ${event.color || "#6b7280"}`,
+                                            };
 
                                     return (
                                         <Link key={event.id} href={eventUrl}>
@@ -65,7 +76,7 @@ export function CalendarWeekView({
                                                 className="text-xs p-2 rounded hover:shadow-sm transition-shadow"
                                                 style={{
                                                     backgroundColor: event.color ? `${event.color}20` : "#6b728020",
-                                                    borderLeft: `3px solid ${event.color || "#6b7280"}`,
+                                                    ...borderStyle,
                                                 }}
                                             >
                                                 {/* Time */}
