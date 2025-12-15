@@ -4,6 +4,28 @@ import { join } from "path";
 const nextConfig: NextConfig = {
   transpilePackages: ["pubky-app-specs"],
 
+  // Configure allowed image hostnames
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/static/files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nexus.staging.pubky.app',
+        pathname: '/static/files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nexus.pubky.app',
+        pathname: '/static/files/**',
+      },
+    ],
+  },
+
   turbopack: {
     // Tell Turbopack the monorepo root is one level up
     root: join(__dirname, ".."),

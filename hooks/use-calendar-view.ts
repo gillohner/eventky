@@ -229,6 +229,8 @@ export function useCalendarView(
                         dtend: event.dtend,
                         duration: event.duration,
                         location: event.location,
+                        description: event.description,
+                        image: event.image_uri,
                         color: primaryCalendar.color,
                         calendarId: primaryCalendar.id,
                         calendarName: primaryCalendar.name,
@@ -237,6 +239,7 @@ export function useCalendarView(
                         eventId: event.id,
                         isRecurring: true,
                         status: event.status,
+                        rrule: event.rrule,
                         occurrenceDate,
                     });
                 });
@@ -249,6 +252,8 @@ export function useCalendarView(
                     dtend: event.dtend,
                     duration: event.duration,
                     location: event.location,
+                    description: event.description,
+                    image: event.image_uri,
                     color: primaryCalendar.color,
                     calendarId: primaryCalendar.id,
                     calendarName: primaryCalendar.name,
@@ -257,6 +262,7 @@ export function useCalendarView(
                     eventId: event.id,
                     isRecurring: false,
                     status: event.status,
+                    rrule: event.rrule,
                 });
             }
         });

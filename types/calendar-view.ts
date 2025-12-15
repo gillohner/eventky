@@ -28,6 +28,8 @@ export interface CalendarEvent {
     dtend?: string;
     duration?: string;
     location?: string;
+    description?: string;
+    image?: string;
     color: string;
     /** Primary calendar ID (first in list) */
     calendarId: string;
@@ -39,6 +41,8 @@ export interface CalendarEvent {
     eventId: string;
     isRecurring: boolean;
     status?: string;
+    rrule?: string;
+    attendeeCount?: number;
     /** For recurring events, this is the specific occurrence date */
     occurrenceDate?: string;
 }
