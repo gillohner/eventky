@@ -61,14 +61,18 @@ export function CalendarAgendaView({
                             </div>
 
                             {/* Events for this date */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                            <div className="grid grid-cols-1 md:grid-cols-1 gap-3 mt-3">
                                 {dateEvents.map((event) => {
-                                    const eventUrl = `/event/${event.authorId}/${event.eventId}`;
+                                    // For recurring events, use the occurrence date as instance parameter
+                                    const instanceParam = event.occurrenceDate 
+                                        ? `?instance=${encodeURIComponent(event.occurrenceDate)}`
+                                        : "";
+                                    const eventUrl = `/event/${event.authorId}/${event.eventId}${instanceParam}`;
                                     const imageUrl = event.image ? getPubkyImageUrl(event.image, "main") : null;
 
                                     return (
                                         <Link key={event.id} href={eventUrl}>
-                                            <Card className="group hover:shadow-lg hover:border-primary/50 transition-all overflow-hidden">
+                                            <Card className="group hover:shadow-lg hover:border-primary/50 transition-all overflow-hidden py-0">
                                                 <CardContent className="p-0">
                                                     <div className="flex flex-col sm:flex-row gap-0">
                                                         {/* Event Image - Top on mobile, Left on desktop */}

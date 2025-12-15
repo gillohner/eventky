@@ -63,9 +63,10 @@ export function formatDateTime(
         includeYear?: boolean;
         includeWeekday?: boolean;
         compact?: boolean;
+        timeFormat?: "12h" | "24h";
     }
 ): FormattedDateTime {
-    const { includeYear = true, includeWeekday = true, compact = false } = options || {};
+    const { includeYear = true, includeWeekday = true, compact = false, timeFormat = "12h" } = options || {};
 
     try {
         const date = parseIsoDateTime(isoString, sourceTimezone);
@@ -82,7 +83,7 @@ export function formatDateTime(
             timeZone: displayTimezone,
             hour: "numeric",
             minute: "2-digit",
-            hour12: true,
+            hour12: timeFormat === "12h",
         });
 
         return {

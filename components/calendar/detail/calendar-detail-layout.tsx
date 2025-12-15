@@ -1,10 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { CalendarHeader } from "./calendar-header";
 import { CalendarMetadata } from "./calendar-metadata";
-import { CalendarEventsSection } from "./calendar-events-section";
 import { CalendarTagsSection } from "./calendar-tags-section";
+import { CalendarView } from "@/components/calendar/calendar-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -46,7 +47,6 @@ export function CalendarDetailLayout({
     calendar,
     events = [],
     isLoading,
-    isEventsLoading,
     error,
     currentUserId,
     onDelete,
@@ -95,6 +95,15 @@ export function CalendarDetailLayout({
     const eventCount = events.length;
     const authorCount = details.x_pubky_authors?.length || 0;
 
+    // Transform calendar for CalendarView component
+    const calendarFilter = useMemo(() => {
+        return [{
+            id: details.id,
+            name: details.name,
+            color: details.color || "#3b82f6",
+        }];
+    }, [details.id, details.name, details.color]);
+
     return (
         <div className={cn("space-y-6", className)}>
             {/* Header - Full width */}
@@ -114,15 +123,15 @@ export function CalendarDetailLayout({
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Events List */}
-                <div className="lg:col-span-2 space-y-6">
-                    <CalendarEventsSection
+                {/* Left Column - Calendar View */}
+                <div className="lg:col-span-2">
+
+                    <CalendarView
                         events={events}
-                        calendarTimezone={details.timezone}
-                        isLoading={isEventsLoading}
-                        maxOccurrencesPerEvent={5}
-                        maxTotalOccurrences={20}
+                        calendars={calendarFilter}
+                        initialSelectedCalendars={[details.id]}
                     />
+
                 </div>
 
                 {/* Right Column */}
@@ -153,10 +162,6 @@ export function CalendarDetailLayout({
                     />
                 </div>
             </div>
-
-            {/* Future: Calendar View Section */}
-            {/* TODO: Add shadcn calendar component view */}
-            {/* <CalendarViewSection events={events} timezone={details.timezone} /> */}
         </div>
     );
 }

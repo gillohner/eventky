@@ -1,13 +1,15 @@
 "use client";
 
-import { format } from "date-fns";
+import { useEffect, useRef } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { format, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCalendarView } from "@/hooks";
-import type { CalendarViewProps } from "@/types";
+import type { CalendarViewProps, CalendarViewMode } from "@/types";
 import { CalendarMonthView } from "./calendar-month-view";
 import { CalendarWeekView } from "./calendar-week-view";
 import { CalendarAgendaView } from "./calendar-agenda-view";
@@ -22,6 +24,20 @@ export function CalendarView({
     initialSelectedCalendars,
     className,
 }: CalendarViewProps) {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+    const isInitialMount = useRef(true);
+
+    // Get initial values from URL params
+    const urlViewMode = searchParams.get("view") as CalendarViewMode | null;
+    const urlDate = searchParams.get("date");
+    
+    const initialViewMode = (urlViewMode && ["month", "week", "agenda"].includes(urlViewMode)) 
+        ? urlViewMode 
+        : "month";
+    const initialDate = urlDate ? parseISO(urlDate) : new Date();
+
     const {
         currentDate,
         viewMode,
@@ -38,7 +54,27 @@ export function CalendarView({
     } = useCalendarView(events, {
         calendars,
         initialSelectedCalendars,
+        initialViewMode,
+        initialDate,
     });
+
+    // Update URL when view mode or date changes (skip initial mount)
+    useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        const params = new URLSearchParams(searchParams.toString());
+        const dateStr = format(currentDate, "yyyy-MM-dd");
+        
+        // Only update if values actually changed
+        if (params.get("view") !== viewMode || params.get("date") !== dateStr) {
+            params.set("view", viewMode);
+            params.set("date", dateStr);
+            router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        }
+    }, [viewMode, currentDate, pathname, router, searchParams]);
 
     // Get current period label
     const getPeriodLabel = () => {

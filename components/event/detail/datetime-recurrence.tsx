@@ -28,6 +28,7 @@ import {
     parseRRuleToLabel,
 } from "@/lib/datetime";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
+import { usePreferencesStore } from "@/stores/preferences-store";
 
 interface Attendee {
     author: string;
@@ -92,22 +93,36 @@ export function DateTimeRecurrence({
     className,
 }: DateTimeRecurrenceProps) {
     const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("event");
+    const [loadedOccurrences, setLoadedOccurrences] = useState(maxOccurrences);
+    const { timeFormat } = usePreferencesStore();
 
     const isRecurring = Boolean(rrule);
     const localTimezone = getLocalTimezone();
     const displayTimezone = timezoneMode === "local" ? localTimezone : (dtstartTzid || localTimezone);
 
-    // Calculate occurrences for recurring events
+    // Calculate occurrences for recurring events - generate up to 1 year ahead
     const occurrences = useMemo(() => {
         if (!rrule) return [];
-        return calculateNextOccurrences({
+        
+        // For recurring events, calculate occurrences for up to 1 year ahead or 500 occurrences
+        const maxCount = Math.max(loadedOccurrences, 500);
+        const allOccurrences = calculateNextOccurrences({
             rrule,
             dtstart,
             rdate,
             exdate,
-            maxCount: maxOccurrences,
+            maxCount,
         });
-    }, [rrule, dtstart, rdate, exdate, maxOccurrences]);
+
+        // Filter to only show occurrences within the next year
+        const oneYearFromNow = new Date();
+        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+        
+        return allOccurrences.filter((occ) => {
+            const occDate = new Date(occ);
+            return occDate <= oneYearFromNow;
+        }).slice(0, loadedOccurrences);
+    }, [rrule, dtstart, rdate, exdate, loadedOccurrences]);
 
     // Build a map of user's attendance per instance
     const userAttendanceMap = useMemo(() => {
@@ -156,13 +171,13 @@ export function DateTimeRecurrence({
 
     // Format times using the display start date (selected instance or dtstart)
     const formattedStart = useMemo(() => {
-        return formatDateTime(displayDtstart, displayTimezone, dtstartTzid);
-    }, [displayDtstart, displayTimezone, dtstartTzid]);
+        return formatDateTime(displayDtstart, displayTimezone, dtstartTzid, { timeFormat });
+    }, [displayDtstart, displayTimezone, dtstartTzid, timeFormat]);
 
     const formattedEnd = useMemo(() => {
         if (!calculatedDtend) return null;
-        return formatDateTime(calculatedDtend, displayTimezone, dtendTzid || dtstartTzid);
-    }, [calculatedDtend, displayTimezone, dtendTzid, dtstartTzid]);
+        return formatDateTime(calculatedDtend, displayTimezone, dtendTzid || dtstartTzid, { timeFormat });
+    }, [calculatedDtend, displayTimezone, dtendTzid, dtstartTzid, timeFormat]);
 
     const isSameDay = useMemo(() => {
         if (!calculatedDtend) return true;
@@ -186,9 +201,19 @@ export function DateTimeRecurrence({
 
     // Navigation for recurring events
     const selectedIndex = useMemo(() => {
-        if (!selectedInstance) return 0;
+        if (!selectedInstance) return -1;
         return occurrences.findIndex((occ) => occ === selectedInstance);
     }, [occurrences, selectedInstance]);
+
+    // Auto-load more occurrences if selected instance is near the end or not found
+    useEffect(() => {
+        if (!rrule || !selectedInstance) return;
+        
+        if (selectedIndex === -1 || selectedIndex >= occurrences.length - 5) {
+            // Load more occurrences if we're near the end or instance not found
+            setLoadedOccurrences((prev) => Math.min(prev + 50, 500));
+        }
+    }, [rrule, selectedInstance, selectedIndex, occurrences.length]);
 
     const navigation = useMemo(() => {
         if (!isRecurring) return { prev: null, next: null };
