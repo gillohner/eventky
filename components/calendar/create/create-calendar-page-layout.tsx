@@ -46,8 +46,8 @@ function extractUserIdFromUri(uri: string): string {
  * Convert NexusCalendarResponse to CalendarFormData for the form
  */
 function calendarToFormData(calendar: NexusCalendarResponse): CalendarFormData {
-    // Convert admin URIs to user IDs for the form
-    const adminIds = calendar.details.x_pubky_admins?.map(extractUserIdFromUri);
+    // Convert author URIs to user IDs for the form
+    const authorIds = calendar.details.x_pubky_authors?.map(extractUserIdFromUri);
 
     return {
         name: calendar.details.name,
@@ -56,7 +56,7 @@ function calendarToFormData(calendar: NexusCalendarResponse): CalendarFormData {
         image_uri: calendar.details.image_uri,
         description: calendar.details.description || "",
         url: calendar.details.url || "",
-        x_pubky_admins: adminIds,
+        x_pubky_authors: authorIds,
     };
 }
 
@@ -124,8 +124,8 @@ export function CreateCalendarPageLayout({
             return;
         }
 
-        // x_pubky_admins can be plain user IDs - pubky-app-specs accepts both IDs and URIs
-        const admins = data.x_pubky_admins?.length ? data.x_pubky_admins : null;
+        // x_pubky_authors can be plain user IDs - pubky-app-specs accepts both IDs and URIs
+        const authors = data.x_pubky_authors?.length ? data.x_pubky_authors : null;
 
         if (mode === "edit" && calendarId) {
             // Create PubkyAppCalendar from form data for update
@@ -138,7 +138,7 @@ export function CreateCalendarPageLayout({
                 image_uri: data.image_uri || null,
                 description: data.description || null,
                 url: data.url || null,
-                x_pubky_admins: admins,
+                x_pubky_authors: authors,
                 created: existingCalendar?.details.created || Date.now() * 1000,  // microseconds
                 sequence: currentSequence + 1,  // Increment sequence on edit
                 last_modified: Date.now() * 1000,  // Current time in microseconds
@@ -159,7 +159,7 @@ export function CreateCalendarPageLayout({
                 data.image_uri || null,
                 data.description || null,
                 data.url || null,
-                admins
+                authors
             );
 
             createCalendar.mutate({

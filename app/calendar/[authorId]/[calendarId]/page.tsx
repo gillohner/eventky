@@ -102,8 +102,8 @@ export default function CalendarPage({ params }: CalendarPageProps) {
     const currentUserId = auth?.publicKey;
     const isLoggedIn = Boolean(auth?.publicKey);
     const isOwner = currentUserId === authorId;
-    const isAdmin = calendar?.details.x_pubky_admins?.includes(currentUserId || "") ?? false;
-    const canManage = isOwner || isAdmin;
+    const isAuthor = calendar?.details.x_pubky_authors?.includes(currentUserId || "") ?? false;
+    const canManage = isOwner || isAuthor;
 
     // Delete handler
     const handleDelete = () => {

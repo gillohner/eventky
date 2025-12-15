@@ -125,8 +125,8 @@ export interface NexusCalendarDetails {
     description?: string;
     url?: string;
     image_uri?: string;
-    x_pubky_admins?: string[];
-    created?: number;
+    x_pubky_authors?: string[];
+    created: number;
     sequence?: number;
     last_modified?: number;
 }

@@ -8,20 +8,21 @@ import { useMemo } from "react";
 
 interface AdminSelectorProps {
     control: Control<CalendarFormData>;
-    /** The calendar owner's user ID - will be excluded from search and always has admin rights */
+    /** The calendar owner's user ID - will be excluded from search and always has full edit rights */
     ownerUserId?: string;
 }
 
 /**
- * Admin selector component for calendar settings
- * Allows selecting multiple users as calendar admins
+ * Author selector component for calendar settings
+ * Allows selecting multiple users as calendar authors (users who can add events)
  * 
- * Admins are stored as x_pubky_admins in the calendar data as per pubky-app-specs
+ * Authors are stored as x_pubky_authors in the calendar data as per pubky-app-specs
+ * Only the owner can edit the calendar itself, authors can only add events to it
  */
 export function AdminSelector({ control, ownerUserId }: AdminSelectorProps) {
     return (
         <Controller
-            name="x_pubky_admins"
+            name="x_pubky_authors"
             control={control}
             render={({ field }) => (
                 <AdminSelectorInner
@@ -49,7 +50,7 @@ function AdminSelectorInner({
     onChange,
     ownerUserId,
 }: AdminSelectorInnerProps) {
-    // Fetch existing admin user details when value changes
+    // Fetch existing author user details when value changes
     const { data: existingUsers, isLoading } = useUsersByIds(value);
 
     // Derive selected users from fetched data (no useState needed)
@@ -69,7 +70,7 @@ function AdminSelectorInner({
         onChange(users.map((user) => user.id));
     };
 
-    // Build exclusion list - owner should not be selectable as admin (they're implicitly admin)
+    // Build exclusion list - owner should not be selectable as author (they're implicitly the owner)
     const excludeUserIds = ownerUserId ? [ownerUserId] : [];
 
     return (
@@ -82,8 +83,8 @@ function AdminSelectorInner({
             placeholder="Search users by name or ID..."
             description={
                 isLoading
-                    ? "Loading existing admins..."
-                    : "Add users who can manage this calendar. The calendar owner always has admin rights."
+                    ? "Loading existing authors..."
+                    : "Add users who can add events to this calendar. Only the owner can edit the calendar itself."
             }
         />
     );

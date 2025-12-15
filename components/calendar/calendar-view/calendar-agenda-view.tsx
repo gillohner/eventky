@@ -66,7 +66,7 @@ export function CalendarAgendaView({
 
                                     return (
                                         <Link key={event.id} href={eventUrl}>
-                                            <Card className="hover:shadow-md transition-shadow">
+                                            <Card className="hover:shadow-md transition-shadow mb-3">
                                                 <CardContent className="p-4">
                                                     <div className="flex gap-3">
                                                         {/* Color indicator - gradient if multiple calendars */}

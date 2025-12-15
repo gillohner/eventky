@@ -29,8 +29,8 @@ interface CalendarMetadataProps {
     authorId?: string;
     /** Calendar ID */
     calendarId?: string;
-    /** List of admin public keys */
-    admins?: string[];
+    /** List of author public keys (users who can add events) */
+    authors?: string[];
     /** Calendar sequence number (version) */
     sequence?: number;
     /** Last modified timestamp (microseconds) */
@@ -42,7 +42,7 @@ interface CalendarMetadataProps {
 }
 
 /**
- * Display calendar metadata including URL, description, timezone, and admins
+ * Display calendar metadata including URL, description, timezone, and authors
  */
 export function CalendarMetadata({
     url,
@@ -51,7 +51,7 @@ export function CalendarMetadata({
     calendarUri,
     authorId,
     calendarId,
-    admins,
+    authors,
     sequence,
     lastModified,
     created,
@@ -70,7 +70,7 @@ export function CalendarMetadata({
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const hasContent = url || description || timezone || (admins && admins.length > 0) || created;
+    const hasContent = url || description || timezone || (authors && authors.length > 0) || created;
 
     if (!hasContent) return null;
 
@@ -127,17 +127,17 @@ export function CalendarMetadata({
                     </div>
                 )}
 
-                {/* Admins */}
-                {admins && admins.length > 0 && (
+                {/* Authors */}
+                {authors && authors.length > 0 && (
                     <div className="flex items-start gap-3">
                         <Shield className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium mb-2">
-                                Admins ({admins.length})
+                                Authors ({authors.length})
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {admins.map((adminId) => (
-                                    <AdminBadge key={adminId} adminId={adminId} />
+                                {authors.map((authorId) => (
+                                    <AdminBadge key={authorId} adminId={authorId} />
                                 ))}
                             </div>
                         </div>

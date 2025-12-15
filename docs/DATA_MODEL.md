@@ -5,7 +5,7 @@
 ```mermaid
 graph TB
     subgraph "User A Homeserver"
-        CA[Calendar<br/>x_pubky_admins: User B, C]
+        CA[Calendar<br/>x_pubky_authors: User B, C]
         AA[Attendee<br/>partstat: ACCEPTED<br/>→ Event on User B]
         TA[Tag<br/>label: conference<br/>→ Event on User B]
     end
@@ -36,7 +36,7 @@ graph TB
 - **Path**: `/pub/eventky.app/calendars/:calendar_id` (timestamp-based ID)
 - **Storage**: Owner's homeserver
 - **Required**: `name`, `timezone`
-- **Optional**: `color`, `image_uri`, `description`, `x_pubky_admins` (admin user URIs)
+- **Optional**: `color`, `image_uri`, `description`, `x_pubky_authors` (URIs of users who can add events)
 
 ### Event
 - **Path**: `/pub/eventky.app/events/:event_id` (timestamp-based ID)
@@ -106,7 +106,7 @@ sequenceDiagram
     participant UD as User D<br/>(Tagger)
     participant N as Nexus
     
-    UA->>UA: PUT /calendars/:id<br/>x_pubky_admins: [User B]
+    UA->>UA: PUT /calendars/:id<br/>x_pubky_authors: [User B]
     UA->>N: Homeserver watched
     
     UB->>UB: PUT /events/:id<br/>x_pubky_calendar_uris: [Calendar A]

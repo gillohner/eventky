@@ -1,6 +1,7 @@
 "use client";
 
 import { useEvent } from "@/hooks/use-event-hooks";
+import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { useCreateEvent, useUpdateEvent } from "@/hooks/use-event-mutations";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useDebugView } from "@/hooks";
@@ -14,7 +15,7 @@ import { RecurrenceFields } from "@/components/event/create/recurrence-fields";
 import { LocationFields } from "@/components/event/create/location-fields";
 import { CalendarSelector } from "@/components/event/create/calendar-selector";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { EventFormData, useEventFormStore } from "@/stores/event-form-store";
@@ -64,6 +65,26 @@ export function CreateEventPageLayout({
     }
   );
 
+  // Extract calendar info from initialCalendarUri to fetch calendar timezone
+  // URI format: pubky://AUTHOR_ID/pub/eventky.app/calendars/CALENDAR_ID
+  const calendarInfo = useMemo(() => {
+    if (!initialCalendarUri) return null;
+    const match = initialCalendarUri.match(/^pubky:\/\/([^/]+)\/pub\/eventky\.app\/calendars\/(.+)$/);
+    if (!match) return null;
+    return { authorId: match[1], calendarId: match[2] };
+  }, [initialCalendarUri]);
+
+  // Fetch calendar to get its timezone (only when creating from a calendar page)
+  const { data: selectedCalendar } = useCalendar(
+    calendarInfo?.authorId || "",
+    calendarInfo?.calendarId || "",
+    {
+      queryOptions: {
+        enabled: mode === "create" && !!calendarInfo,
+      },
+    }
+  );
+
   // Determine default values
   const getDefaultValues = (): EventFormData => {
     // In edit mode, use existing event data
@@ -73,16 +94,23 @@ export function CreateEventPageLayout({
 
     // In create mode, check if we have persisted data for this event
     if (mode === "create" && persistedFormData && !persistedEventId) {
-      // Restore persisted form data, but handle calendar URIs specially:
+      // Restore persisted form data, but handle calendar URIs and image_uri specially:
       // - If initialCalendarUri is provided (coming from a calendar page), use it
       // - Otherwise, clear any persisted calendar selection to start fresh
+      // - Clear image_uri if it doesn't belong to the current user (prevents cross-user contamination)
       const calendarUris = initialCalendarUri
         ? [initialCalendarUri]
+        : undefined;
+
+      // Validate that image_uri belongs to current user
+      const imageUri = persistedFormData.image_uri?.startsWith(`pubky://${auth?.publicKey}/`)
+        ? persistedFormData.image_uri
         : undefined;
 
       return {
         ...persistedFormData,
         x_pubky_calendar_uris: calendarUris,
+        image_uri: imageUri,
       };
     }
 
@@ -110,6 +138,22 @@ export function CreateEventPageLayout({
     // form.reset is stable and doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingEvent, mode]);
+
+  // Set timezone from calendar when creating event from calendar page
+  useEffect(() => {
+    if (mode === "create" && selectedCalendar?.details?.timezone) {
+      const currentDtstartTzid = form.getValues("dtstart_tzid");
+      const currentDtendTzid = form.getValues("dtend_tzid");
+      
+      // Only set timezone if user hasn't already selected one
+      if (!currentDtstartTzid) {
+        form.setValue("dtstart_tzid", selectedCalendar.details.timezone);
+      }
+      if (!currentDtendTzid) {
+        form.setValue("dtend_tzid", selectedCalendar.details.timezone);
+      }
+    }
+  }, [mode, selectedCalendar, form]);
 
   // Persist form data on changes
   useEffect(() => {

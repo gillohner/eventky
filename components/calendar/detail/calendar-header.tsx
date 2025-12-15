@@ -34,8 +34,8 @@ interface CalendarHeaderProps {
     timezone?: string;
     /** Number of events in calendar */
     eventCount?: number;
-    /** Number of admins */
-    adminCount?: number;
+    /** Number of authors (users who can add events) */
+    authorCount?: number;
     /** Whether current user is the owner */
     isOwner?: boolean;
     /** Calendar ID for edit link */
@@ -50,7 +50,7 @@ interface CalendarHeaderProps {
 
 /**
  * Calendar header component with hero image/color, title, and metadata
- * Shows event count and admin badges
+ * Shows event count and author badges
  */
 export function CalendarHeader({
     name,
@@ -61,7 +61,7 @@ export function CalendarHeader({
     color = "#3b82f6",
     timezone,
     eventCount = 0,
-    adminCount = 0,
+    authorCount = 0,
     isOwner,
     calendarId,
     onDelete,
@@ -159,11 +159,11 @@ export function CalendarHeader({
                         {eventCount} {eventCount === 1 ? "event" : "events"}
                     </Badge>
 
-                    {/* Admin Count */}
-                    {adminCount > 0 && (
+                    {/* Author Count */}
+                    {authorCount > 0 && (
                         <Badge variant="secondary" className="gap-1.5">
                             <Users className="h-3.5 w-3.5" />
-                            {adminCount} {adminCount === 1 ? "admin" : "admins"}
+                            {authorCount} {authorCount === 1 ? "author" : "authors"}
                         </Badge>
                     )}
 

@@ -15,5 +15,5 @@ export interface CalendarFormData {
     image_uri?: string;
     description?: string;
     url?: string;
-    x_pubky_admins?: string[];
+    x_pubky_authors?: string[];
 }

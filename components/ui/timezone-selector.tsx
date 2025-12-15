@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { TIMEZONES, getUTCOffset } from "@/lib/timezones";
 
 interface TimezoneSelectorProps<T extends FieldValues> {
     control: Control<T>;
@@ -14,68 +15,6 @@ interface TimezoneSelectorProps<T extends FieldValues> {
     label: string;
     error?: FieldError;
     disabled?: boolean;
-}
-
-// Comprehensive timezone list with dynamic offset calculation
-const TIMEZONE_DATA = [
-    { value: "UTC", label: "UTC", region: "Global" },
-    { value: "America/New_York", label: "Eastern Time", region: "North America" },
-    { value: "America/Chicago", label: "Central Time", region: "North America" },
-    { value: "America/Denver", label: "Mountain Time", region: "North America" },
-    { value: "America/Los_Angeles", label: "Pacific Time", region: "North America" },
-    { value: "America/Anchorage", label: "Alaska", region: "North America" },
-    { value: "Pacific/Honolulu", label: "Hawaii", region: "Pacific" },
-    { value: "America/Phoenix", label: "Arizona", region: "North America" },
-    { value: "America/Toronto", label: "Toronto", region: "North America" },
-    { value: "America/Vancouver", label: "Vancouver", region: "North America" },
-    { value: "America/Mexico_City", label: "Mexico City", region: "Central America" },
-    { value: "America/Sao_Paulo", label: "São Paulo", region: "South America" },
-    { value: "America/Buenos_Aires", label: "Buenos Aires", region: "South America" },
-    { value: "Europe/London", label: "London", region: "Europe" },
-    { value: "Europe/Paris", label: "Paris", region: "Europe" },
-    { value: "Europe/Berlin", label: "Berlin", region: "Europe" },
-    { value: "Europe/Rome", label: "Rome", region: "Europe" },
-    { value: "Europe/Madrid", label: "Madrid", region: "Europe" },
-    { value: "Europe/Amsterdam", label: "Amsterdam", region: "Europe" },
-    { value: "Europe/Brussels", label: "Brussels", region: "Europe" },
-    { value: "Europe/Vienna", label: "Vienna", region: "Europe" },
-    { value: "Europe/Zurich", label: "Zurich", region: "Europe" },
-    { value: "Europe/Athens", label: "Athens", region: "Europe" },
-    { value: "Europe/Helsinki", label: "Helsinki", region: "Europe" },
-    { value: "Europe/Istanbul", label: "Istanbul", region: "Europe" },
-    { value: "Europe/Moscow", label: "Moscow", region: "Europe" },
-    { value: "Africa/Cairo", label: "Cairo", region: "Africa" },
-    { value: "Africa/Johannesburg", label: "Johannesburg", region: "Africa" },
-    { value: "Asia/Dubai", label: "Dubai", region: "Middle East" },
-    { value: "Asia/Kolkata", label: "Mumbai", region: "Asia" },
-    { value: "Asia/Bangkok", label: "Bangkok", region: "Asia" },
-    { value: "Asia/Singapore", label: "Singapore", region: "Asia" },
-    { value: "Asia/Hong_Kong", label: "Hong Kong", region: "Asia" },
-    { value: "Asia/Shanghai", label: "Shanghai", region: "Asia" },
-    { value: "Asia/Tokyo", label: "Tokyo", region: "Asia" },
-    { value: "Asia/Seoul", label: "Seoul", region: "Asia" },
-    { value: "Australia/Sydney", label: "Sydney", region: "Australia" },
-    { value: "Australia/Melbourne", label: "Melbourne", region: "Australia" },
-    { value: "Australia/Brisbane", label: "Brisbane", region: "Australia" },
-    { value: "Australia/Perth", label: "Perth", region: "Australia" },
-    { value: "Pacific/Auckland", label: "Auckland", region: "Pacific" },
-    { value: "Pacific/Fiji", label: "Fiji", region: "Pacific" },
-];
-
-// Calculate UTC offset dynamically
-function getUTCOffset(timezone: string): string {
-    try {
-        const now = new Date();
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: timezone,
-            timeZoneName: 'shortOffset'
-        });
-        const parts = formatter.formatToParts(now);
-        const offset = parts.find(part => part.type === 'timeZoneName')?.value || 'UTC';
-        return offset;
-    } catch {
-        return "UTC";
-    }
 }
 
 export function TimezoneSelector<T extends FieldValues>({
@@ -93,7 +32,7 @@ export function TimezoneSelector<T extends FieldValues>({
     const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     // Generate timezones with dynamic offsets
-    const timezones = TIMEZONE_DATA.map((tz) => ({
+    const timezones = TIMEZONES.map((tz) => ({
         ...tz,
         offset: getUTCOffset(tz.value),
     }));

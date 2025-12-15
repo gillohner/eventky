@@ -93,7 +93,7 @@ export function CalendarDetailLayout({
     const { details } = calendar;
     const isOwner = currentUserId === details.author;
     const eventCount = events.length;
-    const adminCount = details.x_pubky_admins?.length || 0;
+    const authorCount = details.x_pubky_authors?.length || 0;
 
     return (
         <div className={cn("space-y-6", className)}>
@@ -105,7 +105,7 @@ export function CalendarDetailLayout({
                 color={details.color}
                 timezone={details.timezone}
                 eventCount={eventCount}
-                adminCount={adminCount}
+                authorCount={authorCount}
                 isOwner={isOwner}
                 calendarId={details.id}
                 onDelete={onDelete}
@@ -146,7 +146,7 @@ export function CalendarDetailLayout({
                         calendarUri={details.uri}
                         authorId={details.author}
                         calendarId={details.id}
-                        admins={details.x_pubky_admins}
+                        authors={details.x_pubky_authors}
                         sequence={details.sequence}
                         lastModified={details.last_modified}
                         created={details.created}

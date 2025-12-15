@@ -35,20 +35,6 @@ export function getPubkyImageUrl(pubkyUrl: string, variant: imageVariant): strin
 }
 
 /**
- * Get direct homeserver URL for a pubky:// file
- * This bypasses Nexus and fetches directly from the homeserver
- * Useful when Nexus hasn't indexed the file yet
- */
-export function getDirectPubkyFileUrl(pubkyUrl: string): string {
-  // Parse pubky:// URI: pubky://userId/pub/pubky.app/files/fileId
-  // -> http://homeserver/{userId}/pub/pubky.app/blobs/{blobId}
-  // But we need the blob data, not the file metadata
-  // For direct access, we need to read the file metadata first to get the blob reference
-  // 
-  // For now, return the file path directly - the blob data might be accessible
-  const withoutProtocol = pubkyUrl.replace("pubky://", "");
-  return `${config.homeserver.url}/${withoutProtocol}`;
-}/**
  * Get initials from a name (first letter of first two words)
  */
 export function getInitials(name: string | null | undefined): string {

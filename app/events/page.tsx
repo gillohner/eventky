@@ -18,18 +18,28 @@ export default function EventsPage() {
     const router = useRouter();
     const pathname = usePathname();
 
-    // Initialize filters from URL search params
+    // Initialize filters from URL search params, defaulting to upcoming events (from today)
     const [filters, setFilters] = useState<EventStreamFilterValues>(() => {
         const tags = searchParams.get("tags");
         const status = searchParams.get("status");
         const author = searchParams.get("author");
         const timezone = searchParams.get("timezone");
+        const start_date = searchParams.get("start_date");
+        const end_date = searchParams.get("end_date");
+
+        // Set default to today at midnight (start of day)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const defaultStartDate = today.getTime() * 1000; // Convert to microseconds
 
         return {
             tags: tags ? tags.split(",") : undefined,
             status: status || undefined,
             author: author || undefined,
             timezone: timezone || undefined,
+            // Default to upcoming events from today onwards, no end date
+            start_date: start_date ? parseInt(start_date) : defaultStartDate,
+            end_date: end_date ? parseInt(end_date) : undefined,
         };
     });
 
@@ -90,6 +100,12 @@ export default function EventsPage() {
         }
         if (filters.timezone) {
             params.set("timezone", filters.timezone);
+        }
+        if (filters.start_date) {
+            params.set("start_date", filters.start_date.toString());
+        }
+        if (filters.end_date) {
+            params.set("end_date", filters.end_date.toString());
         }
 
         const queryString = params.toString();
