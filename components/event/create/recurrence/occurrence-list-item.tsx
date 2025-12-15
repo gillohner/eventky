@@ -62,7 +62,7 @@ export function OccurrenceListItem({
                     flex-shrink-0 h-7 w-7 p-0
                     ${isExcluded
                         ? "text-muted-foreground hover:text-foreground hover:bg-accent"
-                        : "opacity-0 group-hover:opacity-100 text-foreground hover:text-destructive hover:bg-destructive/10 dark:text-foreground dark:hover:text-destructive"
+                        : "opacity-0 group-hover:opacity-100 text-foreground hover:text-destructive hover:bg-destructive/10"
                     }
                 `}
                 onClick={onToggle}

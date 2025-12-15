@@ -92,7 +92,7 @@ export function OccurrencePreview({
                             </span>
                         )}
                         <span className="flex items-center gap-1 font-medium">
-                            <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                            <Check className="h-3 w-3 text-green-400" />
                             {stats.totalActive} total
                         </span>
                     </div>

@@ -167,7 +167,7 @@ function DescriptionContent({
         // Sanitize and render HTML
         return (
             <div
-                className="prose prose-sm dark:prose-invert max-w-none"
+                className="prose prose-sm prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
             />
         );
@@ -177,7 +177,7 @@ function DescriptionContent({
         // For now, render as HTML (could add markdown parser later)
         return (
             <div
-                className="prose prose-sm dark:prose-invert max-w-none"
+                className="prose prose-sm prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
             />
         );

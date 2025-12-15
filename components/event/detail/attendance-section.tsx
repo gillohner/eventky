@@ -354,14 +354,14 @@ function RsvpButton({
 }) {
     const variants: Record<string, string> = {
         ACCEPTED: isSelected
-            ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400"
-            : "hover:bg-green-50 hover:border-green-200",
+            ? "bg-green-900/30 text-green-400 border-green-700/50"
+            : "hover:bg-green-900/20 hover:border-green-700/30",
         TENTATIVE: isSelected
-            ? "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400"
-            : "hover:bg-yellow-50 hover:border-yellow-200",
+            ? "bg-yellow-900/30 text-yellow-400 border-yellow-700/50"
+            : "hover:bg-yellow-900/20 hover:border-yellow-700/30",
         DECLINED: isSelected
-            ? "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400"
-            : "hover:bg-red-50 hover:border-red-200",
+            ? "bg-red-900/30 text-red-400 border-red-700/50"
+            : "hover:bg-red-900/20 hover:border-red-700/30",
     };
 
     return (
