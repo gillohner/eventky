@@ -43,12 +43,12 @@ export function CreateEventPageLayout({
   const router = useRouter();
   const { auth, isAuthenticated } = useAuth();
   const { debugEnabled } = useDebugView();
-  const { 
-    formData: persistedFormData, 
-    eventId: persistedEventId, 
-    setFormData, 
+  const {
+    formData: persistedFormData,
+    eventId: persistedEventId,
+    setFormData,
     clearFormData,
-    initializeRecurrenceFromEvent 
+    initializeRecurrenceFromEvent
   } = useEventFormStore();
 
   // Mutation hooks with optimistic updates

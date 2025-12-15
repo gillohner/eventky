@@ -40,15 +40,15 @@ export interface RuleBuilderState {
     frequency: RecurrenceFrequency;
     interval: number;
     count?: number;
-    
+
     // For WEEKLY
     selectedWeekdays: Weekday[];
-    
+
     // For MONTHLY
     monthlyMode: "dayofmonth" | "dayofweek" | "none";
     bymonthday: number[];
     bysetpos: number[];
-    
+
     // For advanced
     until?: string;
 }
@@ -143,10 +143,10 @@ export function ComprehensiveRuleBuilder({
                     <Select
                         value={state.frequency}
                         onValueChange={(value) => {
-                            const newState: Partial<RuleBuilderState> = { 
-                                frequency: value as RecurrenceFrequency 
+                            const newState: Partial<RuleBuilderState> = {
+                                frequency: value as RecurrenceFrequency
                             };
-                            
+
                             // Reset mode-specific fields when changing frequency
                             if (value !== "WEEKLY") {
                                 newState.selectedWeekdays = [];
@@ -156,7 +156,7 @@ export function ComprehensiveRuleBuilder({
                                 newState.bymonthday = [];
                                 newState.bysetpos = [];
                             }
-                            
+
                             updateState(newState);
                         }}
                     >
@@ -225,10 +225,10 @@ export function ComprehensiveRuleBuilder({
                         <Select
                             value={state.monthlyMode}
                             onValueChange={(value) => {
-                                const newState: Partial<RuleBuilderState> = { 
+                                const newState: Partial<RuleBuilderState> = {
                                     monthlyMode: value as "dayofmonth" | "dayofweek" | "none"
                                 };
-                                
+
                                 // Clear fields when changing mode
                                 if (value === "dayofmonth") {
                                     newState.bysetpos = [];
@@ -240,7 +240,7 @@ export function ComprehensiveRuleBuilder({
                                     newState.bysetpos = [];
                                     newState.selectedWeekdays = [];
                                 }
-                                
+
                                 updateState(newState);
                             }}
                         >
@@ -346,7 +346,7 @@ export function ComprehensiveRuleBuilder({
                         id="has-count"
                         checked={state.count !== undefined}
                         onCheckedChange={(checked) => {
-                            updateState({ 
+                            updateState({
                                 count: checked ? 10 : undefined,
                                 until: undefined // Clear until if count is set
                             });
@@ -360,7 +360,7 @@ export function ComprehensiveRuleBuilder({
                         min="1"
                         max="999"
                         value={state.count || ""}
-                        onChange={(e) => updateState({ 
+                        onChange={(e) => updateState({
                             count: parseInt(e.target.value) || undefined,
                             until: undefined
                         })}

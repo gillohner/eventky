@@ -6,7 +6,7 @@ describe('Advanced RRULE Patterns', () => {
         it('should generate correct dates for 21st of each month', () => {
             const startDate = '2024-01-21T10:00:00';
             const rrule = 'FREQ=MONTHLY;BYMONTHDAY=21;COUNT=3';
-            
+
             const result = calculateNextOccurrences({
                 startDate,
                 rrule,
@@ -25,7 +25,7 @@ describe('Advanced RRULE Patterns', () => {
         it('should handle last day of month with negative BYMONTHDAY', () => {
             const startDate = '2024-01-31T10:00:00';
             const rrule = 'FREQ=MONTHLY;BYMONTHDAY=-1;COUNT=4';
-            
+
             const result = calculateNextOccurrences({
                 startDate,
                 rrule,
@@ -48,7 +48,7 @@ describe('Advanced RRULE Patterns', () => {
         it('should generate last Thursday of each month', () => {
             const startDate = '2024-01-25T10:00:00'; // Last Thursday of Jan 2024
             const rrule = 'FREQ=MONTHLY;BYDAY=TH;BYSETPOS=-1;COUNT=3';
-            
+
             const result = calculateNextOccurrences({
                 startDate,
                 rrule,
@@ -67,7 +67,7 @@ describe('Advanced RRULE Patterns', () => {
         it('should generate first Monday of each month', () => {
             const startDate = '2024-01-01T10:00:00'; // First Monday of Jan 2024
             const rrule = 'FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1;COUNT=3';
-            
+
             const result = calculateNextOccurrences({
                 startDate,
                 rrule,
@@ -88,7 +88,7 @@ describe('Advanced RRULE Patterns', () => {
         it('should generate occurrences every 4 weeks', () => {
             const startDate = '2024-01-01T10:00:00';
             const rrule = 'FREQ=WEEKLY;INTERVAL=4;COUNT=3';
-            
+
             const result = calculateNextOccurrences({
                 startDate,
                 rrule,
@@ -110,7 +110,7 @@ describe('Advanced RRULE Patterns', () => {
             const startDate = '2024-01-21T10:00:00';
             const rrule = 'FREQ=MONTHLY;BYMONTHDAY=21;COUNT=4';
             const exdates = ['2024-02-21T10:00:00']; // Exclude February
-            
+
             const result = calculateNextOccurrences({
                 startDate,
                 rrule,

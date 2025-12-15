@@ -27,15 +27,15 @@ export interface RecurrenceState {
     interval: number;
     count?: number;
     until?: string;
-    
+
     // Weekly pattern
     selectedWeekdays: Weekday[];
-    
+
     // Monthly patterns
     monthlyMode: "dayofmonth" | "dayofweek" | "none";
     bymonthday: number[];  // Day of month (1-31, -1 to -31)
     bysetpos: number[];    // Position in set (1, -1, etc.)
-    
+
     // Additional/excluded dates
     rdates: string[];
     excludedOccurrences: Set<string>;

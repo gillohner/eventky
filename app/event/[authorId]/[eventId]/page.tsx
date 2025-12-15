@@ -38,7 +38,7 @@ export default function EventPage({ params }: EventPageProps) {
   // For recurring events, default to next occurrence if no instance specified
   const nextOccurrence = useMemo(() => {
     if (!event?.details?.rrule || instanceDate) return null;
-    
+
     const occurrences = calculateNextOccurrences({
       rrule: event.details.rrule,
       dtstart: event.details.dtstart,
@@ -46,7 +46,7 @@ export default function EventPage({ params }: EventPageProps) {
       exdate: event.details.exdate,
       maxCount: 50,
     });
-    
+
     const now = new Date();
     return occurrences.find(occ => new Date(occ) > now) || null;
   }, [event, instanceDate]);

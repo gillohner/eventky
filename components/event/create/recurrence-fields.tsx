@@ -106,12 +106,12 @@ export function RecurrenceFields({
         const rrule = buildRRule();
         if (!rrule) return [];
 
-        return calculateNextOccurrences({ 
-            rrule, 
-            dtstart, 
+        return calculateNextOccurrences({
+            rrule,
+            dtstart,
             rdate: rdates,
             exdate: [], // Don't filter out excluded dates here - we need to show them greyed out
-            maxCount: count || 104 
+            maxCount: count || 104
         });
     }, [enabled, dtstart, buildRRule, rdates, count]);
 
@@ -150,7 +150,7 @@ export function RecurrenceFields({
     // Combine all dates - occurrences already includes rdates, so we just need to mark which are from rdate
     const allDates = useMemo(() => {
         const rdateSet = new Set(rdates.filter(d => d));
-        
+
         return occurrences.map(date => ({
             date,
             type: rdateSet.has(date) ? 'additional' as const : 'standard' as const

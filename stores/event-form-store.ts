@@ -106,7 +106,7 @@ export const useEventFormStore = create<EventFormStore>()(
                 const rrule = eventData.rrule;
                 const parts = rrule.split(";");
                 const parsed: Record<string, string> = {};
-                
+
                 for (const part of parts) {
                     const [key, value] = part.split("=");
                     parsed[key] = value;
@@ -117,11 +117,11 @@ export const useEventFormStore = create<EventFormStore>()(
                 const count = parsed.COUNT ? parseInt(parsed.COUNT) : undefined;
                 const until = parsed.UNTIL;
                 const byday = parsed.BYDAY ? parsed.BYDAY.split(",") as Weekday[] : [];
-                const bymonthday = parsed.BYMONTHDAY 
-                    ? parsed.BYMONTHDAY.split(",").map(d => parseInt(d)) 
+                const bymonthday = parsed.BYMONTHDAY
+                    ? parsed.BYMONTHDAY.split(",").map(d => parseInt(d))
                     : [];
-                const bysetpos = parsed.BYSETPOS 
-                    ? parsed.BYSETPOS.split(",").map(p => parseInt(p)) 
+                const bysetpos = parsed.BYSETPOS
+                    ? parsed.BYSETPOS.split(",").map(p => parseInt(p))
                     : [];
 
                 // Determine monthly mode

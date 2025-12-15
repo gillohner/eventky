@@ -444,24 +444,24 @@ function OccurrenceStatus({
     const now = new Date();
     const selectedDate = new Date(selectedInstance);
     const isPast = selectedDate < now;
-    
+
     // Find next occurrence
     const nextOccurrence = occurrences.find(occ => new Date(occ) > now);
     const isNext = nextOccurrence === selectedInstance;
-    
+
     // Calculate time until/since occurrence
     const getTimeStatus = () => {
         const diffMs = selectedDate.getTime() - now.getTime();
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        
+
         if (isPast) {
             const daysSince = Math.abs(diffDays);
             if (daysSince === 0) return "Earlier today";
             if (daysSince === 1) return "Yesterday";
             return `${daysSince} days ago`;
         }
-        
+
         if (isNext) {
             if (diffDays === 0) {
                 if (diffHours === 0) return "Next (in < 1 hour)";
@@ -470,12 +470,12 @@ function OccurrenceStatus({
             if (diffDays === 1) return "Next (tomorrow)";
             return `Next (in ${diffDays} days)`;
         }
-        
+
         if (diffDays === 0) return "Today";
         if (diffDays === 1) return "Tomorrow";
         return `In ${diffDays} days`;
     };
-    
+
     return (
         <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
             <Link
@@ -498,7 +498,7 @@ function OccurrenceStatus({
                 <span className="text-sm font-medium">
                     Instance {selectedIndex + 1} of {occurrences.length}
                 </span>
-                <Badge 
+                <Badge
                     variant={isPast ? "outline" : isNext ? "default" : "secondary"}
                     className={cn(
                         "text-xs mt-1",

@@ -56,10 +56,10 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
             if (rules.freq) {
                 // If COUNT is specified and start date is included, we need COUNT-1 more occurrences
                 // If start date is excluded, we need COUNT occurrences
-                const adjustedCount = rules.count 
+                const adjustedCount = rules.count
                     ? (startDateIncluded ? rules.count - 1 : rules.count)
                     : undefined;
-                
+
                 const rruleOccurrences = generateRRuleOccurrences(
                     startDateObj,
                     startDate,
@@ -211,7 +211,7 @@ function generateMonthlyByMonthDay(
 ): string[] {
     const occurrences: string[] = [];
     let generatedCount = 0;
-    
+
     // Start from the month of the start date
     let currentMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
     let iterations = 0;
@@ -219,7 +219,7 @@ function generateMonthlyByMonthDay(
     while (generatedCount < maxCount && iterations < 1000) {
         for (const day of rules.bymonthday!) {
             const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-            
+
             if (day > 0) {
                 // Positive day (e.g., 21)
                 targetDate.setDate(day);
@@ -228,7 +228,7 @@ function generateMonthlyByMonthDay(
                 const lastDay = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
                 targetDate.setDate(lastDay + day + 1);
             }
-            
+
             // Copy time from start date
             targetDate.setHours(startDateObj.getHours());
             targetDate.setMinutes(startDateObj.getMinutes());
@@ -237,7 +237,7 @@ function generateMonthlyByMonthDay(
             // Ensure the day is valid for this month and >= start date
             if (targetDate.getMonth() === currentMonth.getMonth() && targetDate >= startDateObj) {
                 const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
-                
+
                 // Skip if it's the start date (already added in main function) or excluded
                 if (isoString !== startDateStr && !excludedDates.has(normalizeDateTime(isoString))) {
                     occurrences.push(isoString);
@@ -266,7 +266,7 @@ function generateMonthlyBySetPos(
 ): string[] {
     const occurrences: string[] = [];
     let generatedCount = 0;
-    
+
     // Start from the month of the start date
     let currentMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
     let iterations = 0;
@@ -309,7 +309,7 @@ function generateMonthlyBySetPos(
 
             if (targetDate && targetDate >= startDateObj) {
                 const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
-                
+
                 // Skip if it's the start date (already added in main function) or excluded
                 if (isoString !== startDateStr && !excludedDates.has(normalizeDateTime(isoString))) {
                     occurrences.push(isoString);
