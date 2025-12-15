@@ -8,6 +8,7 @@
 import * as React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarIcon } from '@radix-ui/react-icons';
+import { usePreferencesStore } from '@/stores/preferences-store';
 import {
     endOfHour,
     endOfMinute,
@@ -143,7 +144,7 @@ export function DateTimePicker({
     max,
     timezone,
     hideTime,
-    use12HourFormat,
+    use12HourFormat: use12HourFormatProp,
     disabled,
     clearable,
     classNames,
@@ -154,6 +155,10 @@ export function DateTimePicker({
     const [open, setOpen] = useState(false);
     const [monthYearPicker, setMonthYearPicker] = useState<'month' | 'year' | false>(false);
     const initDate = useMemo(() => new TZDate(value || new Date(), timezone), [value, timezone]);
+
+    // Use preference store for time format if prop not explicitly set
+    const { timeFormat } = usePreferencesStore();
+    const use12HourFormat = use12HourFormatProp ?? (timeFormat === '12h');
 
     const [month, setMonth] = useState<Date>(initDate);
     const [date, setDate] = useState<Date>(initDate);
@@ -684,10 +689,10 @@ function TimePicker({
             </PopoverTrigger>
             <PopoverContent className="p-0" side="top">
                 <div className="flex-col gap-2 p-2">
-                    <div className="flex h-56 grow">
+                    <div className="flex h-48 grow">
                         {(!timePicker || timePicker.hour) && (
                             <ScrollArea className="h-full flex-grow">
-                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-2 pb-48">
+                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-1 pb-40">
                                     {hours.map((v) => (
                                         <div key={v.value} ref={v.value === hour ? hourRef : undefined}>
                                             <TimeItem
@@ -704,7 +709,7 @@ function TimePicker({
                         )}
                         {(!timePicker || timePicker.minute) && (
                             <ScrollArea className="h-full flex-grow">
-                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-2 pb-48">
+                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-1 pb-40">
                                     {minutes.map((v) => (
                                         <div key={v.value} ref={v.value === minute ? minuteRef : undefined}>
                                             <TimeItem
@@ -721,7 +726,7 @@ function TimePicker({
                         )}
                         {(!timePicker || timePicker.second) && (
                             <ScrollArea className="h-full flex-grow">
-                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-2 pb-48">
+                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-1 pb-40">
                                     {seconds.map((v) => (
                                         <div key={v.value} ref={v.value === second ? secondRef : undefined}>
                                             <TimeItem
@@ -738,7 +743,7 @@ function TimePicker({
                         )}
                         {use12HourFormat && (
                             <ScrollArea className="h-full flex-grow">
-                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-2">
+                                <div className="flex grow flex-col items-stretch overflow-y-auto pe-1">
                                     {ampmOptions.map((v) => (
                                         <TimeItem
                                             key={v.value}
@@ -775,12 +780,12 @@ const TimeItem = ({
     return (
         <Button
             variant="ghost"
-            className={cn('flex justify-center px-1 pe-2 ps-1', className)}
+            className={cn('flex justify-center px-1 pe-1 ps-1 text-sm', className)}
             onClick={() => onSelect(option)}
             disabled={disabled}
         >
-            <div className="w-4">{selected && <CheckIcon className="my-auto size-4" />}</div>
-            <span className="ms-2">{option.label}</span>
+            <div className="w-3">{selected && <CheckIcon className="my-auto size-3" />}</div>
+            <span className="ms-1.5">{option.label}</span>
         </Button>
     );
 };

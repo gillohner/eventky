@@ -66,6 +66,8 @@ export interface UseCalendarViewOptions {
     initialViewMode?: CalendarViewMode;
     /** Initial date to display */
     initialDate?: Date;
+    /** External date range to override internal calculation (from API filters) */
+    externalDateRange?: { start: Date; end: Date };
 }
 
 export interface UseCalendarViewResult {
@@ -117,6 +119,7 @@ export function useCalendarView(
         initialSelectedCalendars,
         initialViewMode = "month",
         initialDate = new Date(),
+        externalDateRange,
     } = options || {};
 
     const [currentDate, setCurrentDate] = useState(initialDate);
@@ -125,8 +128,14 @@ export function useCalendarView(
         initialSelectedCalendars ?? []
     );
 
-    // Calculate date range based on view mode
+    // Calculate date range based on view mode or use external range
     const dateRange = useMemo(() => {
+        // If external date range is provided (from API filters), use it
+        if (externalDateRange) {
+            return externalDateRange;
+        }
+
+        // Otherwise calculate based on view mode
         let start: Date;
         let end: Date;
 
@@ -140,8 +149,11 @@ export function useCalendarView(
                 end = endOfWeek(currentDate);
                 break;
             case "agenda":
-                start = currentDate;
-                end = addDays(currentDate, 30); // Show 30 days ahead
+                // Agenda always shows from today onwards (never past events)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                start = currentDate > today ? currentDate : today;
+                end = addDays(start, 90); // Show 90 days ahead from start
                 break;
             default:
                 start = startOfMonth(currentDate);
@@ -149,7 +161,7 @@ export function useCalendarView(
         }
 
         return { start, end };
-    }, [currentDate, viewMode]);
+    }, [currentDate, viewMode, externalDateRange]);
 
     // Transform events to calendar events with occurrences
     const calendarEvents = useMemo(() => {
@@ -213,6 +225,8 @@ export function useCalendarView(
                     rdate: event.rdate,
                     exdate: event.exdate,
                     maxCount: 100,
+                    from: dateRange.start, // Limit occurrences to date range start
+                    until: dateRange.end, // Limit occurrences to date range end
                 });
 
                 occurrenceDates.forEach((occurrenceDate: string) => {
@@ -244,7 +258,12 @@ export function useCalendarView(
                     });
                 });
             } else {
-                // Single event
+                // Single event - filter by date range
+                const eventTime = new Date(event.dtstart);
+                if (eventTime < dateRange.start || eventTime > dateRange.end) {
+                    return;
+                }
+
                 result.push({
                     id: event.id,
                     summary: event.summary,

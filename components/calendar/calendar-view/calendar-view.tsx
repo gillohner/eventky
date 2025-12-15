@@ -22,6 +22,7 @@ export function CalendarView({
     events,
     calendars,
     initialSelectedCalendars,
+    externalDateRange,
     className,
 }: CalendarViewProps) {
     const searchParams = useSearchParams();
@@ -32,9 +33,9 @@ export function CalendarView({
     // Get initial values from URL params
     const urlViewMode = searchParams.get("view") as CalendarViewMode | null;
     const urlDate = searchParams.get("date");
-    
-    const initialViewMode = (urlViewMode && ["month", "week", "agenda"].includes(urlViewMode)) 
-        ? urlViewMode 
+
+    const initialViewMode = (urlViewMode && ["month", "week", "agenda"].includes(urlViewMode))
+        ? urlViewMode
         : "month";
     const initialDate = urlDate ? parseISO(urlDate) : new Date();
 
@@ -56,6 +57,7 @@ export function CalendarView({
         initialSelectedCalendars,
         initialViewMode,
         initialDate,
+        externalDateRange,
     });
 
     // Update URL when view mode or date changes (skip initial mount)
@@ -67,7 +69,7 @@ export function CalendarView({
 
         const params = new URLSearchParams(searchParams.toString());
         const dateStr = format(currentDate, "yyyy-MM-dd");
-        
+
         // Only update if values actually changed
         if (params.get("view") !== viewMode || params.get("date") !== dateStr) {
             params.set("view", viewMode);

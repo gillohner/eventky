@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import type { CalendarAgendaViewProps } from "@/types";
 
 /**
@@ -19,6 +20,8 @@ export function CalendarAgendaView({
     events,
     className,
 }: CalendarAgendaViewProps) {
+    const { timeFormat } = usePreferencesStore();
+    
     // Group events by date
     const eventsByDate = events.reduce((acc, event) => {
         const date = format(parseISO(event.dtstart), "yyyy-MM-dd");
@@ -64,7 +67,7 @@ export function CalendarAgendaView({
                             <div className="grid grid-cols-1 md:grid-cols-1 gap-3 mt-3">
                                 {dateEvents.map((event) => {
                                     // For recurring events, use the occurrence date as instance parameter
-                                    const instanceParam = event.occurrenceDate 
+                                    const instanceParam = event.occurrenceDate
                                         ? `?instance=${encodeURIComponent(event.occurrenceDate)}`
                                         : "";
                                     const eventUrl = `/event/${event.authorId}/${event.eventId}${instanceParam}`;
@@ -94,7 +97,7 @@ export function CalendarAgendaView({
                                                             {/* Time overlay */}
                                                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-2 py-1">
                                                                 <div className="text-xs font-medium text-white text-center">
-                                                                    {format(parseISO(event.dtstart), "h:mm a")}
+                                                                    {format(parseISO(event.dtstart), timeFormat === "24h" ? "HH:mm" : "h:mm a")}
                                                                 </div>
                                                             </div>
                                                             {/* Recurring indicator */}

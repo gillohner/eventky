@@ -11,7 +11,6 @@ export interface EventStreamFilterValues {
     tags?: string[];
     status?: string;
     author?: string;
-    timezone?: string;
     start_date?: number;
     end_date?: number;
 }
@@ -48,9 +47,8 @@ export function EventStreamFilters({ filters, onFiltersChange }: EventStreamFilt
                         <AdvancedFilters
                             author={filters.author}
                             status={filters.status}
-                            timezone={filters.timezone}
-                            onChange={({ author, status, timezone }) =>
-                                onFiltersChange({ ...filters, author, status, timezone })
+                            onChange={({ author, status }) =>
+                                onFiltersChange({ ...filters, author, status })
                             }
                         />
 

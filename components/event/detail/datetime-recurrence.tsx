@@ -103,7 +103,7 @@ export function DateTimeRecurrence({
     // Calculate occurrences for recurring events - generate up to 1 year ahead
     const occurrences = useMemo(() => {
         if (!rrule) return [];
-        
+
         // For recurring events, calculate occurrences for up to 1 year ahead or 500 occurrences
         const maxCount = Math.max(loadedOccurrences, 500);
         const allOccurrences = calculateNextOccurrences({
@@ -117,7 +117,7 @@ export function DateTimeRecurrence({
         // Filter to only show occurrences within the next year
         const oneYearFromNow = new Date();
         oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-        
+
         return allOccurrences.filter((occ) => {
             const occDate = new Date(occ);
             return occDate <= oneYearFromNow;
@@ -208,7 +208,7 @@ export function DateTimeRecurrence({
     // Auto-load more occurrences if selected instance is near the end or not found
     useEffect(() => {
         if (!rrule || !selectedInstance) return;
-        
+
         if (selectedIndex === -1 || selectedIndex >= occurrences.length - 5) {
             // Load more occurrences if we're near the end or instance not found
             setLoadedOccurrences((prev) => Math.min(prev + 50, 500));

@@ -17,6 +17,10 @@ export interface RecurrenceOptions {
     exdate?: string[];
     /** Maximum number of occurrences to return */
     maxCount?: number;
+    /** Start generating occurrences from this date */
+    from?: Date;
+    /** Stop generating occurrences after this date */
+    until?: Date;
 }
 
 /**
@@ -27,7 +31,7 @@ export interface RecurrenceOptions {
  * - EXDATE: Excluded dates (exceptions)
  */
 export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
-    const { rrule, dtstart: startDate, rdate, exdate, maxCount: limit = 10 } = options;
+    const { rrule, dtstart: startDate, rdate, exdate, maxCount: limit = 10, from, until } = options;
 
     if (!startDate) return [];
 
@@ -44,9 +48,10 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
         const startDateObj = isoStringToDate(startDate);
         const occurrences: string[] = [];
 
-        // Add the start date if not excluded
+        // Add the start date if not excluded and within the date range
         const startDateIncluded = !excludedDates.has(normalizeDateTime(startDate));
-        if (startDateIncluded) {
+        const startDateInRange = (!from || startDateObj >= from) && (!until || startDateObj <= until);
+        if (startDateIncluded && startDateInRange) {
             occurrences.push(startDate);
         }
 
@@ -65,7 +70,9 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
                     startDate,
                     { ...rules, count: adjustedCount },
                     excludedDates,
-                    limit + exdateArray.length // Generate extra to account for exclusions
+                    limit + exdateArray.length, // Generate extra to account for exclusions
+                    from,
+                    until
                 );
                 // Merge, avoiding duplicates
                 for (const occ of rruleOccurrences) {
@@ -116,7 +123,9 @@ function generateRRuleOccurrences(
     startDateStr: string,
     rules: ParsedRRule,
     excludedDates: Set<string>,
-    maxCount: number
+    maxCount: number,
+    from?: Date,
+    until?: Date
 ): string[] {
     const occurrences: string[] = [];
     let currentDate = startDateObj;
@@ -125,12 +134,12 @@ function generateRRuleOccurrences(
 
     // Handle MONTHLY with BYSETPOS and BYDAY (e.g., last Thursday of month)
     if (rules.freq === "MONTHLY" && rules.bysetpos && rules.byday) {
-        return generateMonthlyBySetPos(startDateObj, startDateStr, rules, excludedDates, maxIterations);
+        return generateMonthlyBySetPos(startDateObj, startDateStr, rules, excludedDates, maxIterations, from, until);
     }
 
     // Handle MONTHLY with BYMONTHDAY (e.g., 21st of each month)
     if (rules.freq === "MONTHLY" && rules.bymonthday) {
-        return generateMonthlyByMonthDay(startDateObj, startDateStr, rules, excludedDates, maxIterations);
+        return generateMonthlyByMonthDay(startDateObj, startDateStr, rules, excludedDates, maxIterations, from, until);
     }
 
     // For WEEKLY with BYDAY, we need special handling
@@ -144,6 +153,16 @@ function generateRRuleOccurrences(
         let iterations = 0;
 
         while (generatedCount < maxIterations && iterations < 1000) {
+            // Stop if we've passed the until date or before from date
+            if (until && searchDate > until) {
+                break;
+            }
+            if (from && searchDate < from) {
+                searchDate = addDays(searchDate, 1);
+                iterations++;
+                continue;
+            }
+
             const currentWeekday = searchDate.getDay();
 
             if (targetWeekdays.includes(currentWeekday)) {
@@ -186,6 +205,15 @@ function generateRRuleOccurrences(
                 return occurrences;
         }
 
+        // Stop if we've passed the until date or before from date
+        if (until && currentDate > until) {
+            break;
+        }
+        if (from && currentDate < from) {
+            iterations++;
+            continue;
+        }
+
         const isoString = format(currentDate, "yyyy-MM-dd'T'HH:mm:ss");
 
         // Only add if not excluded
@@ -207,7 +235,9 @@ function generateMonthlyByMonthDay(
     startDateStr: string,
     rules: ParsedRRule,
     excludedDates: Set<string>,
-    maxCount: number
+    maxCount: number,
+    from?: Date,
+    until?: Date
 ): string[] {
     const occurrences: string[] = [];
     let generatedCount = 0;
@@ -217,6 +247,11 @@ function generateMonthlyByMonthDay(
     let iterations = 0;
 
     while (generatedCount < maxCount && iterations < 1000) {
+        // Stop if we've passed the until date
+        if (until && currentMonth > until) {
+            break;
+        }
+
         for (const day of rules.bymonthday!) {
             const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
 
@@ -236,6 +271,12 @@ function generateMonthlyByMonthDay(
 
             // Ensure the day is valid for this month and >= start date
             if (targetDate.getMonth() === currentMonth.getMonth() && targetDate >= startDateObj) {
+                // Check if within from/until range
+                const inRange = (!from || targetDate >= from) && (!until || targetDate <= until);
+                if (!inRange) {
+                    continue;
+                }
+
                 const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
 
                 // Skip if it's the start date (already added in main function) or excluded
@@ -262,7 +303,9 @@ function generateMonthlyBySetPos(
     startDateStr: string,
     rules: ParsedRRule,
     excludedDates: Set<string>,
-    maxCount: number
+    maxCount: number,
+    from?: Date,
+    until?: Date
 ): string[] {
     const occurrences: string[] = [];
     let generatedCount = 0;
@@ -276,6 +319,11 @@ function generateMonthlyBySetPos(
     };
 
     while (generatedCount < maxCount && iterations < 1000) {
+        // Stop if we've passed the until date
+        if (until && currentMonth > until) {
+            break;
+        }
+
         // Find all matching weekdays in this month
         const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
         const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
@@ -308,6 +356,12 @@ function generateMonthlyBySetPos(
             }
 
             if (targetDate && targetDate >= startDateObj) {
+                // Check if within from/until range
+                const inRange = (!from || targetDate >= from) && (!until || targetDate <= until);
+                if (!inRange) {
+                    continue;
+                }
+
                 const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
 
                 // Skip if it's the start date (already added in main function) or excluded

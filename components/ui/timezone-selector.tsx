@@ -15,6 +15,7 @@ interface TimezoneSelectorProps<T extends FieldValues> {
     label: string;
     error?: FieldError;
     disabled?: boolean;
+    availableTimezones?: string[]; // Optional filter for available timezones
 }
 
 export function TimezoneSelector<T extends FieldValues>({
@@ -23,6 +24,7 @@ export function TimezoneSelector<T extends FieldValues>({
     label,
     error,
     disabled,
+    availableTimezones,
 }: TimezoneSelectorProps<T>) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -32,18 +34,10 @@ export function TimezoneSelector<T extends FieldValues>({
     const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     // Generate timezones with dynamic offsets
-    const timezones = TIMEZONES.map((tz) => ({
+    const allTimezones = TIMEZONES.map((tz) => ({
         ...tz,
         offset: getUTCOffset(tz.value),
     }));
-
-    const filteredTimezones = timezones.filter(
-        (tz) =>
-            tz.label.toLowerCase().includes(search.toLowerCase()) ||
-            tz.value.toLowerCase().includes(search.toLowerCase()) ||
-            tz.offset.toLowerCase().includes(search.toLowerCase()) ||
-            tz.region.toLowerCase().includes(search.toLowerCase())
-    );
 
     // Reset focused index when search changes
     useEffect(() => {
@@ -67,7 +61,7 @@ export function TimezoneSelector<T extends FieldValues>({
         }
     }, [focusedIndex, open]);
 
-    const handleKeyDown = (e: React.KeyboardEvent, onSelect: (value: string) => void) => {
+    const handleKeyDown = (e: React.KeyboardEvent, onSelect: (value: string) => void, filteredTimezones: typeof allTimezones) => {
         if (!open) return;
 
         switch (e.key) {
@@ -114,6 +108,21 @@ export function TimezoneSelector<T extends FieldValues>({
                 name={name}
                 control={control}
                 render={({ field }) => {
+                    // Filter by available timezones if provided, but always include selected value
+                    const timezones = availableTimezones
+                        ? allTimezones.filter((tz) => 
+                            availableTimezones.includes(tz.value) || tz.value === field.value
+                        )
+                        : allTimezones;
+
+                    const filteredTimezones = timezones.filter(
+                        (tz) =>
+                            tz.label.toLowerCase().includes(search.toLowerCase()) ||
+                            tz.value.toLowerCase().includes(search.toLowerCase()) ||
+                            tz.offset.toLowerCase().includes(search.toLowerCase()) ||
+                            tz.region.toLowerCase().includes(search.toLowerCase())
+                    );
+
                     const selectedTimezone = timezones.find(
                         (tz) => tz.value === field.value
                     );
@@ -127,7 +136,7 @@ export function TimezoneSelector<T extends FieldValues>({
                                 aria-expanded={open}
                                 disabled={disabled}
                                 onClick={() => setOpen(!open)}
-                                onKeyDown={(e) => handleKeyDown(e, field.onChange)}
+                                onKeyDown={(e) => handleKeyDown(e, field.onChange, filteredTimezones)}
                                 className={cn(
                                     "w-auto min-w-[200px] justify-between",
                                     error && "border-destructive focus-visible:ring-destructive",
@@ -150,7 +159,7 @@ export function TimezoneSelector<T extends FieldValues>({
                                     />
                                     <div
                                         className="absolute z-50 mt-1 w-[320px] rounded-md border bg-popover p-0 shadow-md"
-                                        onKeyDown={(e) => handleKeyDown(e, field.onChange)}
+                                        onKeyDown={(e) => handleKeyDown(e, field.onChange, filteredTimezones)}
                                     >
                                         <div className="p-2 border-b">
                                             <Input
@@ -158,7 +167,7 @@ export function TimezoneSelector<T extends FieldValues>({
                                                 placeholder="Search timezone..."
                                                 value={search}
                                                 onChange={(e) => setSearch(e.target.value)}
-                                                onKeyDown={(e) => handleKeyDown(e, field.onChange)}
+                                                onKeyDown={(e) => handleKeyDown(e, field.onChange, filteredTimezones)}
                                                 className="h-8"
                                             />
                                         </div>

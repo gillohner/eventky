@@ -66,6 +66,8 @@ export interface CalendarViewProps {
     calendars?: CalendarFilterOption[];
     /** Initially selected calendar IDs (undefined = all) */
     initialSelectedCalendars?: string[];
+    /** External date range to override calendar's internal date range (from API filters) */
+    externalDateRange?: { start: Date; end: Date };
     /** Callback when event is clicked */
     onEventClick?: (event: CalendarEvent) => void;
     /** Whether data is loading */
