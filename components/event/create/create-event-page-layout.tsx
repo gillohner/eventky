@@ -43,7 +43,13 @@ export function CreateEventPageLayout({
   const router = useRouter();
   const { auth, isAuthenticated } = useAuth();
   const { debugEnabled } = useDebugView();
-  const { formData: persistedFormData, eventId: persistedEventId, setFormData, clearFormData } = useEventFormStore();
+  const { 
+    formData: persistedFormData, 
+    eventId: persistedEventId, 
+    setFormData, 
+    clearFormData,
+    initializeRecurrenceFromEvent 
+  } = useEventFormStore();
 
   // Mutation hooks with optimistic updates
   const createEventMutation = useCreateEvent({
@@ -133,18 +139,21 @@ export function CreateEventPageLayout({
   // Update form when existing event loads
   useEffect(() => {
     if (mode === "edit" && existingEvent) {
-      form.reset(eventToFormData(existingEvent));
+      const formData = eventToFormData(existingEvent);
+      form.reset(formData);
+      // Initialize recurrence state from event data
+      initializeRecurrenceFromEvent(formData);
     }
     // form.reset is stable and doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingEvent, mode]);
+  }, [existingEvent, mode, initializeRecurrenceFromEvent]);
 
   // Set timezone from calendar when creating event from calendar page
   useEffect(() => {
     if (mode === "create" && selectedCalendar?.details?.timezone) {
       const currentDtstartTzid = form.getValues("dtstart_tzid");
       const currentDtendTzid = form.getValues("dtend_tzid");
-      
+
       // Only set timezone if user hasn't already selected one
       if (!currentDtstartTzid) {
         form.setValue("dtstart_tzid", selectedCalendar.details.timezone);

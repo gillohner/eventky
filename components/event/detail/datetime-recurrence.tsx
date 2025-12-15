@@ -91,7 +91,7 @@ export function DateTimeRecurrence({
     maxOccurrences = 10,
     className,
 }: DateTimeRecurrenceProps) {
-    const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("local");
+    const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("event");
 
     const isRecurring = Boolean(rrule);
     const localTimezone = getLocalTimezone();
@@ -252,9 +252,9 @@ export function DateTimeRecurrence({
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Globe className="h-4 w-4" />
                     <span>{getLongTimezone(displayTimezone)}</span>
-                    {timezoneMode === "event" && dtstartTzid !== localTimezone && (
+                    {timezoneMode === "local" && dtstartTzid !== localTimezone && (
                         <Badge variant="outline" className="text-xs ml-2">
-                            Event timezone
+                            Local
                         </Badge>
                     )}
                 </div>
@@ -272,43 +272,14 @@ export function DateTimeRecurrence({
                     <div className="pt-3 border-t space-y-3">
                         {/* Instance Navigation */}
                         {selectedInstance && (
-                            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
-                                <Link
-                                    href={navigation.prev
-                                        ? `/event/${authorId}/${eventId}?instance=${encodeURIComponent(navigation.prev)}`
-                                        : "#"
-                                    }
-                                    className={cn(
-                                        "flex items-center gap-1 text-sm px-2 py-1 rounded transition-colors",
-                                        navigation.prev
-                                            ? "hover:bg-muted cursor-pointer"
-                                            : "text-muted-foreground/50 cursor-not-allowed pointer-events-none"
-                                    )}
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Prev</span>
-                                </Link>
-
-                                <span className="text-sm font-medium">
-                                    Instance {selectedIndex + 1} of {occurrences.length}
-                                </span>
-
-                                <Link
-                                    href={navigation.next
-                                        ? `/event/${authorId}/${eventId}?instance=${encodeURIComponent(navigation.next)}`
-                                        : "#"
-                                    }
-                                    className={cn(
-                                        "flex items-center gap-1 text-sm px-2 py-1 rounded transition-colors",
-                                        navigation.next
-                                            ? "hover:bg-muted cursor-pointer"
-                                            : "text-muted-foreground/50 cursor-not-allowed pointer-events-none"
-                                    )}
-                                >
-                                    <span className="hidden sm:inline">Next</span>
-                                    <ChevronRight className="h-4 w-4" />
-                                </Link>
-                            </div>
+                            <OccurrenceStatus
+                                selectedInstance={selectedInstance}
+                                occurrences={occurrences}
+                                selectedIndex={selectedIndex}
+                                authorId={authorId}
+                                eventId={eventId}
+                                navigation={navigation}
+                            />
                         )}
 
                         {/* Occurrences List */}
@@ -338,17 +309,6 @@ export function DateTimeRecurrence({
                                 <ScrollBar orientation="horizontal" />
                             </ScrollArea>
                         </div>
-
-                        {/* Link to series overview */}
-                        {selectedInstance && (
-                            <Link
-                                href={`/event/${authorId}/${eventId}`}
-                                className="text-sm text-primary hover:underline flex items-center gap-1"
-                            >
-                                <Repeat className="h-3 w-3" />
-                                View full series
-                            </Link>
-                        )}
                     </div>
                 )}
             </CardContent>
@@ -405,7 +365,21 @@ function OccurrenceChip({
             return "bg-primary text-primary-foreground border-primary";
         }
 
-        // Color based on user's attendance status (dark mode colors)
+        // Past events are much darker
+        if (isPast) {
+            switch (userStatus) {
+                case "ACCEPTED":
+                    return "border-green-900/40 bg-green-950/20 text-green-400/60 hover:bg-green-950/30";
+                case "TENTATIVE":
+                    return "border-orange-900/40 bg-orange-950/20 text-orange-400/60 hover:bg-orange-950/30";
+                case "DECLINED":
+                    return "border-red-900/40 bg-red-950/20 text-red-400/60 hover:bg-red-950/30";
+                default:
+                    return "bg-muted/30 text-muted-foreground/50 border-muted/50 opacity-60";
+            }
+        }
+
+        // Future events with color based on user's attendance status
         switch (userStatus) {
             case "ACCEPTED":
                 return "border-green-500 bg-green-950/50 text-green-100 hover:bg-green-900/60";
@@ -414,10 +388,6 @@ function OccurrenceChip({
             case "DECLINED":
                 return "border-red-500 bg-red-950/50 text-red-100 hover:bg-red-900/60";
             default:
-                // No response or not logged in
-                if (isPast) {
-                    return "bg-muted/50 text-muted-foreground border-muted";
-                }
                 return "hover:bg-muted border-border";
         }
     };
@@ -450,6 +420,111 @@ function OccurrenceChip({
                 {formatted.time}
             </span>
         </Link>
+    );
+}
+
+/**
+ * Occurrence status indicator with navigation
+ */
+function OccurrenceStatus({
+    selectedInstance,
+    occurrences,
+    selectedIndex,
+    authorId,
+    eventId,
+    navigation,
+}: {
+    selectedInstance: string;
+    occurrences: string[];
+    selectedIndex: number;
+    authorId: string;
+    eventId: string;
+    navigation: { prev: string | null; next: string | null };
+}) {
+    const now = new Date();
+    const selectedDate = new Date(selectedInstance);
+    const isPast = selectedDate < now;
+    
+    // Find next occurrence
+    const nextOccurrence = occurrences.find(occ => new Date(occ) > now);
+    const isNext = nextOccurrence === selectedInstance;
+    
+    // Calculate time until/since occurrence
+    const getTimeStatus = () => {
+        const diffMs = selectedDate.getTime() - now.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        
+        if (isPast) {
+            const daysSince = Math.abs(diffDays);
+            if (daysSince === 0) return "Earlier today";
+            if (daysSince === 1) return "Yesterday";
+            return `${daysSince} days ago`;
+        }
+        
+        if (isNext) {
+            if (diffDays === 0) {
+                if (diffHours === 0) return "Next (in < 1 hour)";
+                return `Next (in ${diffHours} hour${diffHours > 1 ? 's' : ''})`;
+            }
+            if (diffDays === 1) return "Next (tomorrow)";
+            return `Next (in ${diffDays} days)`;
+        }
+        
+        if (diffDays === 0) return "Today";
+        if (diffDays === 1) return "Tomorrow";
+        return `In ${diffDays} days`;
+    };
+    
+    return (
+        <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
+            <Link
+                href={navigation.prev
+                    ? `/event/${authorId}/${eventId}?instance=${encodeURIComponent(navigation.prev)}`
+                    : "#"
+                }
+                className={cn(
+                    "flex items-center gap-1 text-sm px-2 py-1 rounded transition-colors",
+                    navigation.prev
+                        ? "hover:bg-muted cursor-pointer"
+                        : "text-muted-foreground/50 cursor-not-allowed pointer-events-none"
+                )}
+            >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Prev</span>
+            </Link>
+
+            <div className="flex flex-col items-center">
+                <span className="text-sm font-medium">
+                    Instance {selectedIndex + 1} of {occurrences.length}
+                </span>
+                <Badge 
+                    variant={isPast ? "outline" : isNext ? "default" : "secondary"}
+                    className={cn(
+                        "text-xs mt-1",
+                        isPast && "opacity-60"
+                    )}
+                >
+                    {getTimeStatus()}
+                </Badge>
+            </div>
+
+            <Link
+                href={navigation.next
+                    ? `/event/${authorId}/${eventId}?instance=${encodeURIComponent(navigation.next)}`
+                    : "#"
+                }
+                className={cn(
+                    "flex items-center gap-1 text-sm px-2 py-1 rounded transition-colors",
+                    navigation.next
+                        ? "hover:bg-muted cursor-pointer"
+                        : "text-muted-foreground/50 cursor-not-allowed pointer-events-none"
+                )}
+            >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="h-4 w-4" />
+            </Link>
+        </div>
     );
 }
 

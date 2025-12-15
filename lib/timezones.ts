@@ -16,7 +16,7 @@ export interface TimezoneData {
 export const TIMEZONES: TimezoneData[] = [
     // Global
     { value: "UTC", label: "UTC", region: "Global" },
-    
+
     // North America
     { value: "America/New_York", label: "Eastern Time", region: "North America" },
     { value: "America/Chicago", label: "Central Time", region: "North America" },
@@ -26,21 +26,21 @@ export const TIMEZONES: TimezoneData[] = [
     { value: "America/Phoenix", label: "Arizona", region: "North America" },
     { value: "America/Toronto", label: "Toronto", region: "North America" },
     { value: "America/Vancouver", label: "Vancouver", region: "North America" },
-    
+
     // Pacific
     { value: "Pacific/Honolulu", label: "Hawaii", region: "Pacific" },
     { value: "Pacific/Auckland", label: "Auckland", region: "Pacific" },
     { value: "Pacific/Fiji", label: "Fiji", region: "Pacific" },
-    
+
     // Central America
     { value: "America/Mexico_City", label: "Mexico City", region: "Central America" },
-    
+
     // South America
     { value: "America/Sao_Paulo", label: "São Paulo", region: "South America" },
     { value: "America/Buenos_Aires", label: "Buenos Aires", region: "South America" },
     { value: "America/Lima", label: "Lima", region: "South America" },
     { value: "America/Santiago", label: "Santiago", region: "South America" },
-    
+
     // Europe
     { value: "Europe/London", label: "London", region: "Europe" },
     { value: "Europe/Paris", label: "Paris", region: "Europe" },
@@ -62,18 +62,18 @@ export const TIMEZONES: TimezoneData[] = [
     { value: "Europe/Oslo", label: "Oslo", region: "Europe" },
     { value: "Europe/Lisbon", label: "Lisbon", region: "Europe" },
     { value: "Europe/Dublin", label: "Dublin", region: "Europe" },
-    
+
     // Africa
     { value: "Africa/Cairo", label: "Cairo", region: "Africa" },
     { value: "Africa/Johannesburg", label: "Johannesburg", region: "Africa" },
     { value: "Africa/Lagos", label: "Lagos", region: "Africa" },
     { value: "Africa/Nairobi", label: "Nairobi", region: "Africa" },
-    
+
     // Middle East
     { value: "Asia/Dubai", label: "Dubai", region: "Middle East" },
     { value: "Asia/Jerusalem", label: "Jerusalem", region: "Middle East" },
     { value: "Asia/Riyadh", label: "Riyadh", region: "Middle East" },
-    
+
     // Asia
     { value: "Asia/Kolkata", label: "Mumbai", region: "Asia" },
     { value: "Asia/Bangkok", label: "Bangkok", region: "Asia" },
@@ -85,7 +85,7 @@ export const TIMEZONES: TimezoneData[] = [
     { value: "Asia/Jakarta", label: "Jakarta", region: "Asia" },
     { value: "Asia/Manila", label: "Manila", region: "Asia" },
     { value: "Asia/Taipei", label: "Taipei", region: "Asia" },
-    
+
     // Australia
     { value: "Australia/Sydney", label: "Sydney", region: "Australia" },
     { value: "Australia/Melbourne", label: "Melbourne", region: "Australia" },
@@ -133,7 +133,7 @@ export function getUTCOffset(timezone: string): string {
 export function getTimezoneDisplayText(timezone: string): string {
     const tz = TIMEZONES.find(t => t.value === timezone);
     if (!tz) return timezone;
-    
+
     const offset = getUTCOffset(timezone);
     return `${tz.label} (${offset})`;
 }

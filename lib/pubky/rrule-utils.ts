@@ -45,7 +45,8 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
         const occurrences: string[] = [];
 
         // Add the start date if not excluded
-        if (!excludedDates.has(normalizeDateTime(startDate))) {
+        const startDateIncluded = !excludedDates.has(normalizeDateTime(startDate));
+        if (startDateIncluded) {
             occurrences.push(startDate);
         }
 
@@ -53,10 +54,16 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
         if (rrule) {
             const rules = parseRRule(rrule);
             if (rules.freq) {
+                // If COUNT is specified and start date is included, we need COUNT-1 more occurrences
+                // If start date is excluded, we need COUNT occurrences
+                const adjustedCount = rules.count 
+                    ? (startDateIncluded ? rules.count - 1 : rules.count)
+                    : undefined;
+                
                 const rruleOccurrences = generateRRuleOccurrences(
                     startDateObj,
                     startDate,
-                    rules,
+                    { ...rules, count: adjustedCount },
                     excludedDates,
                     limit + exdateArray.length // Generate extra to account for exclusions
                 );
@@ -115,6 +122,16 @@ function generateRRuleOccurrences(
     let currentDate = startDateObj;
     let generatedCount = 0;
     const maxIterations = rules.count || maxCount;
+
+    // Handle MONTHLY with BYSETPOS and BYDAY (e.g., last Thursday of month)
+    if (rules.freq === "MONTHLY" && rules.bysetpos && rules.byday) {
+        return generateMonthlyBySetPos(startDateObj, startDateStr, rules, excludedDates, maxIterations);
+    }
+
+    // Handle MONTHLY with BYMONTHDAY (e.g., 21st of each month)
+    if (rules.freq === "MONTHLY" && rules.bymonthday) {
+        return generateMonthlyByMonthDay(startDateObj, startDateStr, rules, excludedDates, maxIterations);
+    }
 
     // For WEEKLY with BYDAY, we need special handling
     if (rules.freq === "WEEKLY" && rules.byday && rules.byday.length > 0) {
@@ -182,12 +199,144 @@ function generateRRuleOccurrences(
     return occurrences;
 }
 
+/**
+ * Generate monthly occurrences by month day (e.g., 21st of each month)
+ */
+function generateMonthlyByMonthDay(
+    startDateObj: Date,
+    startDateStr: string,
+    rules: ParsedRRule,
+    excludedDates: Set<string>,
+    maxCount: number
+): string[] {
+    const occurrences: string[] = [];
+    let generatedCount = 0;
+    
+    // Start from the month of the start date
+    let currentMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
+    let iterations = 0;
+
+    while (generatedCount < maxCount && iterations < 1000) {
+        for (const day of rules.bymonthday!) {
+            const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+            
+            if (day > 0) {
+                // Positive day (e.g., 21)
+                targetDate.setDate(day);
+            } else {
+                // Negative day (e.g., -1 for last day of month)
+                const lastDay = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+                targetDate.setDate(lastDay + day + 1);
+            }
+            
+            // Copy time from start date
+            targetDate.setHours(startDateObj.getHours());
+            targetDate.setMinutes(startDateObj.getMinutes());
+            targetDate.setSeconds(startDateObj.getSeconds());
+
+            // Ensure the day is valid for this month and >= start date
+            if (targetDate.getMonth() === currentMonth.getMonth() && targetDate >= startDateObj) {
+                const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
+                
+                // Skip if it's the start date (already added in main function) or excluded
+                if (isoString !== startDateStr && !excludedDates.has(normalizeDateTime(isoString))) {
+                    occurrences.push(isoString);
+                    generatedCount++;
+                    if (generatedCount >= maxCount) break;
+                }
+            }
+        }
+
+        currentMonth = addMonths(currentMonth, rules.interval || 1);
+        iterations++;
+    }
+
+    return occurrences.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Generate monthly occurrences by set position (e.g., last Thursday of month)
+ */
+function generateMonthlyBySetPos(
+    startDateObj: Date,
+    startDateStr: string,
+    rules: ParsedRRule,
+    excludedDates: Set<string>,
+    maxCount: number
+): string[] {
+    const occurrences: string[] = [];
+    let generatedCount = 0;
+    
+    // Start from the month of the start date
+    let currentMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
+    let iterations = 0;
+
+    const weekdayMap: Record<string, number> = {
+        'SU': 0, 'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6
+    };
+
+    while (generatedCount < maxCount && iterations < 1000) {
+        // Find all matching weekdays in this month
+        const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+        const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+        const matchingDays: Date[] = [];
+
+        for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+            const dayOfWeek = d.getDay();
+            for (const byday of rules.byday!) {
+                const targetWeekday = weekdayMap[byday.replace(/^[+-]?\d+/, '')];
+                if (dayOfWeek === targetWeekday) {
+                    const matchDate = new Date(d);
+                    // Set time from start date
+                    matchDate.setHours(startDateObj.getHours());
+                    matchDate.setMinutes(startDateObj.getMinutes());
+                    matchDate.setSeconds(startDateObj.getSeconds());
+                    matchingDays.push(matchDate);
+                }
+            }
+        }
+
+        // Apply BYSETPOS
+        for (const pos of rules.bysetpos!) {
+            let targetDate: Date | undefined;
+            if (pos > 0) {
+                // Positive position (e.g., 1 for first, 2 for second)
+                targetDate = matchingDays[pos - 1];
+            } else {
+                // Negative position (e.g., -1 for last, -2 for second-to-last)
+                targetDate = matchingDays[matchingDays.length + pos];
+            }
+
+            if (targetDate && targetDate >= startDateObj) {
+                const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
+                
+                // Skip if it's the start date (already added in main function) or excluded
+                if (isoString !== startDateStr && !excludedDates.has(normalizeDateTime(isoString))) {
+                    occurrences.push(isoString);
+                    generatedCount++;
+                    if (generatedCount >= maxCount) break;
+                }
+            }
+        }
+
+        currentMonth = addMonths(currentMonth, rules.interval || 1);
+        iterations++;
+        if (generatedCount >= maxCount) break;
+    }
+
+    return occurrences.sort((a, b) => a.localeCompare(b));
+}
+
 interface ParsedRRule {
     freq?: string;
     interval?: number;
     count?: number;
-    byday?: string[];
     until?: string;
+    byday?: string[];
+    bymonthday?: number[];
+    bymonth?: number[];
+    bysetpos?: number[];
+    wkst?: string;
 }
 
 /**
@@ -209,11 +358,23 @@ function parseRRule(rrule: string): ParsedRRule {
             case "COUNT":
                 rules.count = parseInt(value);
                 break;
+            case "UNTIL":
+                rules.until = value;
+                break;
             case "BYDAY":
                 rules.byday = value.split(",");
                 break;
-            case "UNTIL":
-                rules.until = value;
+            case "BYMONTHDAY":
+                rules.bymonthday = value.split(",").map(d => parseInt(d));
+                break;
+            case "BYMONTH":
+                rules.bymonth = value.split(",").map(m => parseInt(m));
+                break;
+            case "BYSETPOS":
+                rules.bysetpos = value.split(",").map(p => parseInt(p));
+                break;
+            case "WKST":
+                rules.wkst = value;
                 break;
         }
     }

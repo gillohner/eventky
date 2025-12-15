@@ -7,8 +7,7 @@ import { useEffect, useCallback, useMemo } from "react";
 import { dateToISOString } from "@/lib/pubky/event-utils";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
 import { useEventFormStore } from "@/stores/event-form-store";
-import { RecurrencePresetSelector } from "./recurrence/recurrence-preset-selector";
-import { RecurrenceSettings } from "./recurrence/recurrence-settings";
+import { ComprehensiveRuleBuilder, type RuleBuilderState } from "./recurrence/comprehensive-rule-builder";
 import { OccurrencePreview } from "./recurrence/occurrence-preview";
 
 interface RecurrenceFieldsProps {
@@ -26,34 +25,43 @@ export function RecurrenceFields({
     // Use store for recurrence state
     const {
         recurrenceState,
-        setPreset,
-        setInterval,
-        setCount,
-        toggleWeekday,
+        setRecurrenceState,
         addRdate: addRdateToStore,
         removeRdate,
         toggleExclusion,
         clearExclusions,
-        setCustomRrule,
     } = useEventFormStore();
 
     const {
-        preset,
+        enabled,
         frequency,
         interval,
         count,
+        until,
         selectedWeekdays,
+        monthlyMode,
+        bymonthday,
+        bysetpos,
         rdates,
         excludedOccurrences,
-        customRrule,
     } = recurrenceState;
 
-    // Build RRULE string
+    // Convert store state to builder state
+    const builderState: RuleBuilderState = {
+        enabled,
+        frequency,
+        interval,
+        count,
+        until,
+        selectedWeekdays,
+        monthlyMode,
+        bymonthday,
+        bysetpos,
+    };
+
+    // Build RRULE string from state
     const buildRRule = useCallback((): string => {
-        // If custom preset, use the custom RRULE directly
-        if (preset === "custom") {
-            return customRrule || "";
-        }
+        if (!enabled) return "";
 
         let rrule = `FREQ=${frequency}`;
 
@@ -65,30 +73,53 @@ export function RecurrenceFields({
             rrule += `;COUNT=${count}`;
         }
 
+        if (until) {
+            rrule += `;UNTIL=${until}`;
+        }
+
+        // Weekly: BYDAY
         if (frequency === "WEEKLY" && selectedWeekdays.length > 0) {
             rrule += `;BYDAY=${selectedWeekdays.join(",")}`;
         }
 
-        return rrule;
-    }, [preset, customRrule, frequency, interval, count, selectedWeekdays]);
+        // Monthly: different modes
+        if (frequency === "MONTHLY") {
+            if (monthlyMode === "dayofmonth" && bymonthday.length > 0) {
+                rrule += `;BYMONTHDAY=${bymonthday.join(",")}`;
+            } else if (monthlyMode === "dayofweek") {
+                if (selectedWeekdays.length > 0) {
+                    rrule += `;BYDAY=${selectedWeekdays.join(",")}`;
+                }
+                if (bysetpos.length > 0) {
+                    rrule += `;BYSETPOS=${bysetpos.join(",")}`;
+                }
+            }
+        }
 
-    // Calculate occurrences based on RRULE
+        return rrule;
+    }, [enabled, frequency, interval, count, until, selectedWeekdays, monthlyMode, bymonthday, bysetpos]);
+
+    // Calculate occurrences based on RRULE (this already includes rdates merged in)
     const occurrences = useMemo(() => {
-        if (preset === "none" || !dtstart) return [];
+        if (!enabled || !dtstart) return [];
 
         const rrule = buildRRule();
+        if (!rrule) return [];
 
-        // Skip calculation if custom RRULE is empty or invalid
-        if (preset === "custom" && !rrule) return [];
+        return calculateNextOccurrences({ 
+            rrule, 
+            dtstart, 
+            rdate: rdates,
+            exdate: [], // Don't filter out excluded dates here - we need to show them greyed out
+            maxCount: count || 104 
+        });
+    }, [enabled, dtstart, buildRRule, rdates, count]);
 
-        return calculateNextOccurrences({ rrule, dtstart, maxCount: count || 104 });
-    }, [preset, dtstart, buildRRule, count]);
-
-    // Update rrule and exdate when dependencies change
+    // Update form fields when recurrence state changes
     useEffect(() => {
-        if (preset !== "none") {
+        if (enabled) {
             const newRRule = buildRRule();
-            setValue("rrule", newRRule);
+            setValue("rrule", newRRule || undefined);
 
             // Update EXDATE array from excluded occurrences
             const exdateArray = Array.from(excludedOccurrences);
@@ -97,7 +128,7 @@ export function RecurrenceFields({
             setValue("rrule", undefined);
             setValue("exdate", undefined);
         }
-    }, [preset, buildRRule, excludedOccurrences, setValue]);
+    }, [enabled, buildRRule, excludedOccurrences, setValue]);
 
     // Handle occurrence toggling
     const toggleOccurrence = useCallback((occurrence: string, isAdditional: boolean) => {
@@ -116,26 +147,27 @@ export function RecurrenceFields({
         addRdateToStore(isoString);
     }, [addRdateToStore]);
 
-    // Combine all dates: standard occurrences + additional dates, sorted
+    // Combine all dates - occurrences already includes rdates, so we just need to mark which are from rdate
     const allDates = useMemo(() => {
-        const combined = [
-            ...occurrences.map(date => ({ date, type: 'standard' as const })),
-            ...rdates.filter(d => d).map(date => ({ date, type: 'additional' as const }))
-        ];
-        // Sort by date
-        combined.sort((a, b) => a.date.localeCompare(b.date));
-        return combined;
+        const rdateSet = new Set(rdates.filter(d => d));
+        
+        return occurrences.map(date => ({
+            date,
+            type: rdateSet.has(date) ? 'additional' as const : 'standard' as const
+        }));
     }, [occurrences, rdates]);
 
     // Calculate statistics
+    // Calculate statistics
     const stats = useMemo(() => {
-        const standardCount = occurrences.length;
+        const rdateSet = new Set(rdates.filter(d => d));
+        const standardCount = occurrences.filter(date => !rdateSet.has(date)).length;
         const additionalCount = rdates.filter(d => d).length;
         const excludedCount = excludedOccurrences.size;
-        const totalActive = standardCount + additionalCount - excludedCount;
+        // Total active = all occurrences minus excluded ones
+        const totalActive = occurrences.filter(date => !excludedOccurrences.has(date)).length;
         return { standardCount, additionalCount, excludedCount, totalActive };
     }, [occurrences, rdates, excludedOccurrences]);
-
     // Update rdate field when rdates change
     useEffect(() => {
         const filtered = rdates.filter(d => d);
@@ -145,36 +177,25 @@ export function RecurrenceFields({
     return (
         <FormSection
             title="Recurrence"
-            description="Configure if and how this event repeats"
+            description="Configure event repetition with advanced patterns"
         >
-            <RecurrencePresetSelector
-                value={preset}
-                onChange={setPreset}
+            <ComprehensiveRuleBuilder
+                state={builderState}
+                onChange={(newState) => setRecurrenceState(newState)}
             />
 
-            <RecurrenceSettings
-                preset={preset}
-                frequency={frequency}
-                interval={interval}
-                count={count}
-                selectedWeekdays={selectedWeekdays}
-                customRrule={customRrule}
-                onIntervalChange={setInterval}
-                onCountChange={setCount}
-                onWeekdayToggle={toggleWeekday}
-                onCustomRruleChange={setCustomRrule}
-            />
-
-            <OccurrencePreview
-                allDates={allDates}
-                rdates={rdates}
-                excludedOccurrences={excludedOccurrences}
-                stats={stats}
-                timezone={dtstart_tzid}
-                onToggleOccurrence={toggleOccurrence}
-                onAddRdate={addRdate}
-                onClearExclusions={clearExclusions}
-            />
+            {enabled && (
+                <OccurrencePreview
+                    allDates={allDates}
+                    rdates={rdates}
+                    excludedOccurrences={excludedOccurrences}
+                    stats={stats}
+                    timezone={dtstart_tzid}
+                    onToggleOccurrence={toggleOccurrence}
+                    onAddRdate={addRdate}
+                    onClearExclusions={clearExclusions}
+                />
+            )}
         </FormSection>
     );
 }

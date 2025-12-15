@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEvent } from "@/hooks/use-event-hooks";
 import { useRsvpMutation } from "@/hooks/use-rsvp-mutation";
@@ -13,6 +13,7 @@ import { SyncBadge } from "@/components/ui/sync-status-indicator";
 import { DevJsonView } from "@/components/dev-json-view";
 import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { toast } from "sonner";
+import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
 
 interface EventPageProps {
   params: Promise<{
@@ -33,6 +34,29 @@ export default function EventPage({ params }: EventPageProps) {
   });
   const { auth } = useAuth();
   const { debugEnabled, showRawData, toggleRawData } = useDebugView();
+
+  // For recurring events, default to next occurrence if no instance specified
+  const nextOccurrence = useMemo(() => {
+    if (!event?.details?.rrule || instanceDate) return null;
+    
+    const occurrences = calculateNextOccurrences({
+      rrule: event.details.rrule,
+      dtstart: event.details.dtstart,
+      rdate: event.details.rdate,
+      exdate: event.details.exdate,
+      maxCount: 50,
+    });
+    
+    const now = new Date();
+    return occurrences.find(occ => new Date(occ) > now) || null;
+  }, [event, instanceDate]);
+
+  // Auto-redirect to next occurrence for recurring events
+  useEffect(() => {
+    if (nextOccurrence && !instanceDate) {
+      router.replace(`/event/${authorId}/${eventId}?instance=${encodeURIComponent(nextOccurrence)}`);
+    }
+  }, [nextOccurrence, instanceDate, router, authorId, eventId]);
 
   // RSVP mutation hook
   const { mutate: rsvp, isPending: isRsvpLoading } = useRsvpMutation();

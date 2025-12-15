@@ -163,7 +163,7 @@ export function UpcomingOccurrences({
                                             isSelected
                                                 ? "bg-primary text-primary-foreground border-primary"
                                                 : isPast
-                                                    ? "bg-muted/50 text-muted-foreground border-muted"
+                                                    ? "bg-muted/30 text-muted-foreground/50 border-muted/50 opacity-60"
                                                     : "hover:bg-muted border-border"
                                         )}
                                     >
@@ -180,17 +180,6 @@ export function UpcomingOccurrences({
                         </div>
                         <ScrollBar orientation="horizontal" />
                     </ScrollArea>
-                </div>
-
-                {/* Link to series overview */}
-                <div className="pt-2 border-t">
-                    <Link
-                        href={`/event/${authorId}/${eventId}`}
-                        className="text-sm text-primary hover:underline flex items-center gap-1"
-                    >
-                        <Repeat className="h-3 w-3" />
-                        View full series info
-                    </Link>
                 </div>
             </CardContent>
         </Card>

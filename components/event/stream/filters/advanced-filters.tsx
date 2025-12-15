@@ -33,7 +33,7 @@ export function AdvancedFilters({
     onChange
 }: AdvancedFiltersProps) {
     const [isOpen, setIsOpen] = useState(false);
-    
+
     const { control, watch, setValue } = useForm({
         defaultValues: {
             timezone: timezone || "",
@@ -46,7 +46,7 @@ export function AdvancedFilters({
     useEffect(() => {
         const normalizedTimezone = timezone || "";
         const normalizedValue = timezoneValue || "";
-        
+
         if (normalizedValue !== normalizedTimezone) {
             onChange({ author, status, timezone: timezoneValue || undefined });
         }
@@ -56,7 +56,7 @@ export function AdvancedFilters({
     useEffect(() => {
         const normalizedTimezone = timezone || "";
         const normalizedValue = timezoneValue || "";
-        
+
         if (normalizedTimezone !== normalizedValue) {
             setValue("timezone", timezone || "");
         }
