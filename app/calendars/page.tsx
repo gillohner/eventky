@@ -177,7 +177,7 @@ export default function CalendarsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">All Calendars</h1>
+                    <h1 className="text-3xl font-bold mb-2"> Calendars</h1>
                     <p className="text-muted-foreground">
                         {filteredCalendars ? `${filteredCalendars.length} calendar${filteredCalendars.length !== 1 ? 's' : ''}` : "Loading calendars..."}
                         {filteredCalendars && calendars && filteredCalendars.length < calendars.length && (

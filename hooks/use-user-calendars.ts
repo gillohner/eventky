@@ -13,6 +13,7 @@ export interface UserCalendar {
     author: string;
     color?: string;
     timezone: string;
+    description?: string;
     isOwner: boolean;
 }
 
@@ -45,6 +46,7 @@ export function useUserCalendars(options?: {
                 author: cal.author,
                 color: cal.color,
                 timezone: cal.timezone,
+                description: cal.description,
                 isOwner: cal.author === userId,
             }));
         },

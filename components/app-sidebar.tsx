@@ -38,7 +38,7 @@ import { toast } from "sonner"
 // Navigation items
 const navItems = [
     {
-        title: "Home",
+        title: "Dashboard",
         url: "/",
         icon: Home,
     },
