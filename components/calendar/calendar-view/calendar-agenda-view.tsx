@@ -21,7 +21,7 @@ export function CalendarAgendaView({
     className,
 }: CalendarAgendaViewProps) {
     const { timeFormat } = usePreferencesStore();
-    
+
     // Group events by date
     const eventsByDate = events.reduce((acc, event) => {
         const date = format(parseISO(event.dtstart), "yyyy-MM-dd");

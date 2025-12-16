@@ -211,7 +211,7 @@ export function ComprehensiveRuleBuilder({
                     </div>
                     {state.selectedWeekdays.length === 0 && (
                         <p className="text-xs text-muted-foreground">
-                            No days selected (will use start date's weekday)
+                            No days selected (will use start date&apos;s weekday)
                         </p>
                     )}
                 </div>

@@ -55,6 +55,16 @@ export function CalendarDetailLayout({
     onRemoveTag,
     className,
 }: CalendarDetailLayoutProps) {
+    // Memoize calendar filter unconditionally (hooks must be called in same order)
+    const calendarFilter = useMemo(() => {
+        if (!calendar) return [];
+        return [{
+            id: calendar.details.id,
+            name: calendar.details.name,
+            color: calendar.details.color || "#3b82f6",
+        }];
+    }, [calendar]);
+
     // Loading state
     if (isLoading) {
         return <CalendarDetailSkeleton />;
@@ -90,19 +100,11 @@ export function CalendarDetailLayout({
         );
     }
 
+    // At this point, calendar is guaranteed to be non-null
     const { details } = calendar;
     const isOwner = currentUserId === details.author;
     const eventCount = events.length;
     const authorCount = details.x_pubky_authors?.length || 0;
-
-    // Transform calendar for CalendarView component
-    const calendarFilter = useMemo(() => {
-        return [{
-            id: details.id,
-            name: details.name,
-            color: details.color || "#3b82f6",
-        }];
-    }, [details.id, details.name, details.color]);
 
     return (
         <div className={cn("space-y-6", className)}>

@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BasicInfoFields } from "./basic-info";
 import { SettingsFields } from "./settings";
 import { PubkySpecsBuilder, PubkyAppCalendar, parse_uri } from "pubky-app-specs";
-import { config } from "@/lib/config";
 import { useCreateCalendar, useUpdateCalendar } from "@/hooks/use-calendar-mutations";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { NexusCalendarResponse } from "@/lib/nexus/calendars";

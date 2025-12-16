@@ -110,7 +110,7 @@ export function TimezoneSelector<T extends FieldValues>({
                 render={({ field }) => {
                     // Filter by available timezones if provided, but always include selected value
                     const timezones = availableTimezones
-                        ? allTimezones.filter((tz) => 
+                        ? allTimezones.filter((tz) =>
                             availableTimezones.includes(tz.value) || tz.value === field.value
                         )
                         : allTimezones;

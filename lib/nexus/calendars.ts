@@ -71,3 +71,40 @@ export async function fetchCalendarsStream(params?: {
         throw new Error(`Failed to fetch calendars stream: ${getErrorMessage(error)}`);
     }
 }
+
+/**
+ * Fetch multiple calendar views with tags in parallel
+ * Useful for getting tag information for calendars in a stream
+ */
+export async function fetchCalendarViewsBatch(
+    calendars: Array<{ author: string; id: string }>,
+    limitTags?: number,
+    limitTaggers?: number
+): Promise<Map<string, NexusCalendarResponse>> {
+    try {
+        // Fetch all calendars in parallel
+        const promises = calendars.map(({ author, id }) =>
+            fetchCalendarFromNexus(author, id, limitTags, limitTaggers)
+                .then(data => ({ key: `${author}/${id}`, data }))
+                .catch(error => {
+                    console.warn(`Failed to fetch calendar ${author}/${id}:`, error);
+                    return { key: `${author}/${id}`, data: null };
+                })
+        );
+
+        const results = await Promise.all(promises);
+
+        // Convert to map, filtering out nulls
+        const map = new Map<string, NexusCalendarResponse>();
+        results.forEach(({ key, data }) => {
+            if (data) {
+                map.set(key, data);
+            }
+        });
+
+        return map;
+    } catch (error) {
+        console.error("Error batch fetching calendar views:", error);
+        throw new Error(`Failed to batch fetch calendars: ${getErrorMessage(error)}`);
+    }
+}

@@ -206,12 +206,16 @@ export function DateTimeRecurrence({
     }, [occurrences, selectedInstance]);
 
     // Auto-load more occurrences if selected instance is near the end or not found
+    // Using useLayoutEffect to avoid cascading renders since this updates during render phase
     useEffect(() => {
         if (!rrule || !selectedInstance) return;
 
         if (selectedIndex === -1 || selectedIndex >= occurrences.length - 5) {
-            // Load more occurrences if we're near the end or instance not found
-            setLoadedOccurrences((prev) => Math.min(prev + 50, 500));
+            // Use setTimeout to defer the state update to avoid cascading renders
+            const timeoutId = setTimeout(() => {
+                setLoadedOccurrences((prev) => Math.min(prev + 50, 500));
+            }, 0);
+            return () => clearTimeout(timeoutId);
         }
     }, [rrule, selectedInstance, selectedIndex, occurrences.length]);
 

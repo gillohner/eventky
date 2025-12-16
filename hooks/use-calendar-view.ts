@@ -167,7 +167,19 @@ export function useCalendarView(
     const calendarEvents = useMemo(() => {
         const result: CalendarEvent[] = [];
 
-        events.forEach((rawEvent) => {
+        // Deduplicate events by URI (in case backend returns duplicates)
+        const seenEventIds = new Set<string>();
+        const uniqueEvents = events.filter((rawEvent) => {
+            const event = normalizeEvent(rawEvent);
+            const eventKey = `${event.author}/${event.id}`;
+            if (seenEventIds.has(eventKey)) {
+                return false;
+            }
+            seenEventIds.add(eventKey);
+            return true;
+        });
+
+        uniqueEvents.forEach((rawEvent) => {
             const event = normalizeEvent(rawEvent);
 
             // Get all calendar info from x_pubky_calendar_uris

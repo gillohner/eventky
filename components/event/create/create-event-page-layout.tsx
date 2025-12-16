@@ -24,7 +24,6 @@ import {
   formDataToEventData,
   eventToFormData,
 } from "@/lib/pubky/event-utils";
-import { config } from "@/lib/config";
 
 interface CreateEventPageLayoutProps {
   mode?: "create" | "edit";

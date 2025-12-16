@@ -31,12 +31,12 @@ export default function EventsPage() {
         // For agenda view without explicit filters, show upcoming events only
         let defaultStartDate: number | undefined = undefined;
         let defaultEndDate: number | undefined = undefined;
-        
+
         if (view === "agenda" && !start_date && !end_date) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             defaultStartDate = today.getTime() * 1000; // Today in microseconds
-            
+
             const ninetyDaysAhead = new Date(today);
             ninetyDaysAhead.setDate(ninetyDaysAhead.getDate() + 90);
             defaultEndDate = ninetyDaysAhead.getTime() * 1000; // 90 days ahead in microseconds
