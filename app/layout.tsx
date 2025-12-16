@@ -36,7 +36,7 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <CacheSyncProvider>
-              <SidebarProvider>
+              <SidebarProvider defaultOpen={false}>
                 <AppSidebar />
                 <SidebarInset>
                   <SidebarTrigger className="m-4" />

@@ -84,7 +84,7 @@ export function AppSidebar() {
     const displayName = profile?.name || truncatePublicKey(auth.publicKey, 6)
 
     return (
-        <Sidebar>
+        <Sidebar variant="floating" collapsible="offcanvas">
             <SidebarContent>
                 {/* User Section at Top */}
                 <SidebarGroup>
