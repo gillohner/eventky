@@ -151,8 +151,16 @@ describe('Cache Utils', () => {
                 sequence,
                 last_modified: lastModified,
             },
-            tags: [{ label: 'nexus-tag' }],
-            attendees: [{ public_key: 'attendee1', status: 'accepted' }],
+            tags: [{ label: 'nexus-tag', taggers: [], taggers_count: 0, relationship: false }],
+            attendees: [{
+                id: 'attendee1',
+                indexed_at: 100,
+                author: 'attendee1',
+                uri: 'pubky://attendee1/rsvp',
+                partstat: 'ACCEPTED',
+                x_pubky_event_uri: 'pubky://test/event/test',
+                created_at: 100,
+            }],
         });
 
         it('should return nexus source when only nexus data available', () => {
@@ -262,14 +270,15 @@ describe('Cache Utils', () => {
 
     describe('Pubky to Nexus Format Conversion', () => {
         it('should convert PubkyAppEvent to NexusEventResponse', () => {
-            const pubkyEvent: PubkyAppEvent = {
+            // Create a mock that satisfies the data fields needed by the conversion function
+            const pubkyEvent = {
                 uid: 'test-uid',
                 dtstamp: BigInt(Date.now() * 1000),
                 dtstart: '2024-01-15T10:00:00',
                 summary: 'Test Event',
                 duration: 'PT1H',
                 sequence: 1,
-            };
+            } as unknown as PubkyAppEvent;
 
             const result = pubkyEventToNexusFormat(pubkyEvent, 'author123', 'event456');
 
@@ -284,12 +293,12 @@ describe('Cache Utils', () => {
         });
 
         it('should handle optional fields', () => {
-            const minimalEvent: PubkyAppEvent = {
+            const minimalEvent = {
                 uid: 'uid',
                 dtstamp: BigInt(1000000),
                 dtstart: '2024-01-01T00:00:00',
                 summary: 'Minimal',
-            };
+            } as unknown as PubkyAppEvent;
 
             const result = pubkyEventToNexusFormat(minimalEvent, 'a', 'e');
 
@@ -300,12 +309,12 @@ describe('Cache Utils', () => {
         });
 
         it('should convert PubkyAppCalendar to NexusCalendarResponse', () => {
-            const pubkyCalendar: PubkyAppCalendar = {
+            const pubkyCalendar = {
                 name: 'My Calendar',
                 timezone: 'America/New_York',
                 color: '#ff0000',
                 description: 'Test calendar',
-            };
+            } as unknown as PubkyAppCalendar;
 
             const result = pubkyCalendarToNexusFormat(pubkyCalendar, 'author', 'cal123');
 

@@ -117,26 +117,11 @@ describe('Advanced RRULE Patterns', () => {
 
     describe('Complex patterns with EXDATE', () => {
         /**
-         * 🚨 POTENTIAL BUG / BEHAVIOR NOTE:
-         * 
-         * Current behavior: When EXDATE excludes an occurrence, the generator produces
-         * EXTRA occurrences to compensate, so COUNT results are returned regardless.
-         * 
-         * With COUNT=4 and 1 EXDATE:
-         * - Generator creates: Feb, Mar, Apr, May (4 non-excluded after skipping Feb)
-         * - Plus start date Jan = 5 candidates  
-         * - Feb excluded = 4 final results
-         * 
-         * RFC 5545 interpretation options:
-         * A) COUNT=4 means "generate 4 candidates, then apply EXDATE" → 3 results
-         * B) COUNT=4 means "return 4 results after EXDATE" → 4 results (current)
-         * 
-         * Current implementation uses interpretation B (user-friendly for UI)
-         * but may differ from strict RFC 5545 compliance.
-         * 
-         * TODO: Decide which behavior is correct for Eventky use case.
+         * RFC 5545 Compliant Behavior:
+         * COUNT specifies the number of occurrences to generate BEFORE applying EXDATE.
+         * EXDATE then removes dates from that set, potentially reducing the final count.
          */
-        it('should exclude specific dates from monthly pattern (current behavior: COUNT after exclusions)', () => {
+        it('should exclude specific dates from monthly pattern (RFC 5545: COUNT before EXDATE)', () => {
             const dtstart = '2024-01-21T10:00:00';
             const rrule = 'FREQ=MONTHLY;BYMONTHDAY=21;COUNT=4';
             const exdate = ['2024-02-21T10:00:00']; // Exclude February
@@ -149,15 +134,14 @@ describe('Advanced RRULE Patterns', () => {
                 maxCount: 5
             });
 
-            // Current behavior: COUNT applies to non-excluded occurrences
-            // So we still get 4 results (Jan, Mar, Apr, May) even with 1 exclusion
-            expect(result).toHaveLength(4);
+            // RFC 5545: COUNT=4 generates 4 candidates (Jan, Feb, Mar, Apr)
+            // Then EXDATE removes Feb, leaving 3 results
+            expect(result).toHaveLength(3);
             expect(result).toEqual([
                 '2024-01-21T10:00:00',
                 // '2024-02-21T10:00:00', // Excluded by EXDATE
                 '2024-03-21T10:00:00',
-                '2024-04-21T10:00:00',
-                '2024-05-21T10:00:00'  // Extra generated to compensate for exclusion
+                '2024-04-21T10:00:00'
             ]);
         });
 
@@ -174,8 +158,9 @@ describe('Advanced RRULE Patterns', () => {
                 maxCount: 10
             });
 
-            // With current behavior (COUNT after exclusions), we get 5 results
-            // Generator compensates for 2 exclusions
+            // RFC 5545: COUNT=5 generates 5 candidates (Jan 15, 22, 29, Feb 5, 12)
+            // Then EXDATE removes Jan 22 and Feb 5, leaving 3 results
+            expect(result).toHaveLength(3);
             expect(result).toContain('2024-01-15T14:00:00');
             expect(result).not.toContain('2024-01-22T14:00:00'); // Excluded
             expect(result).toContain('2024-01-29T14:00:00');

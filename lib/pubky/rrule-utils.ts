@@ -59,10 +59,11 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
         if (rrule) {
             const rules = parseRRule(rrule);
             if (rules.freq) {
-                // If COUNT is specified and start date is included, we need COUNT-1 more occurrences
-                // If start date is excluded, we need COUNT occurrences
+                // RFC 5545: COUNT specifies total occurrence candidates BEFORE applying EXDATE
+                // Start date is always candidate #1, so we generate COUNT-1 more candidates
+                // EXDATE filtering happens after all candidates are generated
                 const adjustedCount = rules.count
-                    ? (startDateIncluded ? rules.count - 1 : rules.count)
+                    ? rules.count - 1
                     : undefined;
 
                 const rruleOccurrences = generateRRuleOccurrences(
@@ -70,7 +71,7 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
                     startDate,
                     { ...rules, count: adjustedCount },
                     excludedDates,
-                    limit + exdateArray.length, // Generate extra to account for exclusions
+                    adjustedCount ?? limit, // Use COUNT if specified, otherwise use limit
                     from,
                     until
                 );
@@ -167,10 +168,14 @@ function generateRRuleOccurrences(
 
             if (targetWeekdays.includes(currentWeekday)) {
                 const isoString = format(searchDate, "yyyy-MM-dd'T'HH:mm:ss");
-                // Don't add if it's the start date or excluded
-                if (isoString !== startDateStr && !excludedDates.has(normalizeDateTime(isoString))) {
-                    occurrences.push(isoString);
+                // Don't add if it's the start date
+                if (isoString !== startDateStr) {
+                    // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
+                    // Count all candidates toward maxCount, but only add non-excluded to results
                     generatedCount++;
+                    if (!excludedDates.has(normalizeDateTime(isoString))) {
+                        occurrences.push(isoString);
+                    }
                 }
             }
 
@@ -216,10 +221,11 @@ function generateRRuleOccurrences(
 
         const isoString = format(currentDate, "yyyy-MM-dd'T'HH:mm:ss");
 
-        // Only add if not excluded
+        // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
+        // Count all candidates toward maxCount, but only add non-excluded to results
+        generatedCount++;
         if (!excludedDates.has(normalizeDateTime(isoString))) {
             occurrences.push(isoString);
-            generatedCount++;
         }
         iterations++;
     }
@@ -279,10 +285,14 @@ function generateMonthlyByMonthDay(
 
                 const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
 
-                // Skip if it's the start date (already added in main function) or excluded
-                if (isoString !== startDateStr && !excludedDates.has(normalizeDateTime(isoString))) {
-                    occurrences.push(isoString);
+                // Skip if it's the start date (already added in main function)
+                if (isoString !== startDateStr) {
+                    // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
+                    // Count all candidates toward maxCount, but only add non-excluded to results
                     generatedCount++;
+                    if (!excludedDates.has(normalizeDateTime(isoString))) {
+                        occurrences.push(isoString);
+                    }
                     if (generatedCount >= maxCount) break;
                 }
             }
@@ -364,10 +374,14 @@ function generateMonthlyBySetPos(
 
                 const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
 
-                // Skip if it's the start date (already added in main function) or excluded
-                if (isoString !== startDateStr && !excludedDates.has(normalizeDateTime(isoString))) {
-                    occurrences.push(isoString);
+                // Skip if it's the start date (already added in main function)
+                if (isoString !== startDateStr) {
+                    // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
+                    // Count all candidates toward maxCount, but only add non-excluded to results
                     generatedCount++;
+                    if (!excludedDates.has(normalizeDateTime(isoString))) {
+                        occurrences.push(isoString);
+                    }
                     if (generatedCount >= maxCount) break;
                 }
             }

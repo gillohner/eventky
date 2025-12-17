@@ -42,20 +42,6 @@ describe('Datetime Format Utils', () => {
             const date = parseIsoDateTime('2024-01-15');
             expect(date).toBeInstanceOf(Date);
         });
-
-        /**
-         * 🚨 BEHAVIOR NOTE:
-         * The _timezone parameter is currently unused (reserved for future).
-         * This test documents expected future behavior.
-         */
-        it('should accept timezone parameter (currently unused)', () => {
-            const date1 = parseIsoDateTime('2024-01-15T10:00:00', 'America/New_York');
-            const date2 = parseIsoDateTime('2024-01-15T10:00:00', 'Europe/London');
-
-            // Currently both return the same result since timezone is unused
-            // TODO: When timezone conversion is implemented, these should differ
-            expect(date1.getTime()).toBe(date2.getTime());
-        });
     });
 
     describe('dateToISOString', () => {
@@ -144,10 +130,7 @@ describe('Datetime Format Utils', () => {
                 { includeWeekday: true }
             );
 
-            // Weekday is NOT returned as separate field (potential bug)
-            expect(result.weekday).toBeUndefined();
-
-            // Instead, weekday is embedded in the date string
+            // Weekday is embedded in the date string
             // January 15, 2024 is a Monday
             expect(result.date).toContain('Monday');
         });

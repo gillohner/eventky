@@ -7,11 +7,7 @@
  * Parse ISO datetime string to Date object
  * Handles both ISO strings with and without timezone info
  */
-export function parseIsoDateTime(isoString: string, _timezone?: string): Date {
-    // Note: _timezone parameter is reserved for future use when we need to
-    // convert between timezones. Currently we parse the datetime as-is.
-    void _timezone; // Explicitly mark as intentionally unused
-
+export function parseIsoDateTime(isoString: string): Date {
     // If the string has no timezone info, treat it as local time
     if (!isoString.includes("Z") && !isoString.includes("+") && !isoString.includes("-", 10)) {
         // Parse manually to avoid timezone conversion issues
@@ -49,7 +45,6 @@ export function dateToISOString(date: Date): string {
 export interface FormattedDateTime {
     date: string;
     time: string;
-    weekday?: string;
 }
 
 /**
@@ -69,7 +64,7 @@ export function formatDateTime(
     const { includeYear = true, includeWeekday = true, compact = false, timeFormat = "12h" } = options || {};
 
     try {
-        const date = parseIsoDateTime(isoString, sourceTimezone);
+        const date = parseIsoDateTime(isoString);
 
         const dateFormatter = new Intl.DateTimeFormat("en-US", {
             timeZone: displayTimezone,
@@ -109,7 +104,7 @@ export function formatOccurrenceDate(
     const { includeTime = true } = options || {};
 
     try {
-        const date = parseIsoDateTime(isoDate, timezone);
+        const date = parseIsoDateTime(isoDate);
         const formatOptions: Intl.DateTimeFormatOptions = {
             timeZone: timezone || undefined,
             weekday: "short",
@@ -138,7 +133,7 @@ export function formatDateInTimezone(
     timezone: string,
     locale: string = 'en-US'
 ): string {
-    const date = parseIsoDateTime(isoDate, timezone);
+    const date = parseIsoDateTime(isoDate);
 
     return new Intl.DateTimeFormat(locale, {
         timeZone: timezone,
@@ -195,11 +190,9 @@ export function getLongTimezone(timezone: string): string {
  */
 export function isSameDay(
     date1: string,
-    date2: string,
-    timezone1?: string,
-    timezone2?: string
+    date2: string
 ): boolean {
-    const d1 = parseIsoDateTime(date1, timezone1);
-    const d2 = parseIsoDateTime(date2, timezone2);
+    const d1 = parseIsoDateTime(date1);
+    const d2 = parseIsoDateTime(date2);
     return d1.toDateString() === d2.toDateString();
 }

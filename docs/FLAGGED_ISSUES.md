@@ -1,79 +1,52 @@
 # Flagged Issues - Testing Integration
 
-Issues discovered during test implementation that may need attention.
+Issues discovered during test implementation that have been reviewed and addressed.
 
 ---
 
-## 🚨 Critical Issues
+## ✅ Resolved Issues
 
 ### 1. Test File Used Wrong Property Names
 **File:** `lib/pubky/__tests__/rrule-advanced.test.ts` (original)
 **Status:** ✅ Fixed
 
-The original test file used incorrect property names:
-- `startDate` instead of `dtstart`
-- `rdates` instead of `rdate`
-- `exdates` instead of `exdate`
-
-This indicates the test was never actually run, or the API changed without updating tests.
+The original test file used incorrect property names (`startDate` vs `dtstart`). Fixed during testing setup.
 
 ---
 
-## ⚠️ Behavioral Issues (May Need Decision)
-
-### 2. RRULE COUNT + EXDATE Behavior
+### 2. RRULE COUNT + EXDATE Behavior - RFC 5545 Compliance
 **File:** `lib/pubky/rrule-utils.ts`
-**Status:** Documented in tests
+**Status:** ✅ Fixed
 
-**Current behavior:** When `COUNT=4` and `EXDATE` excludes 1 occurrence, the function returns **4 results** (not 3).
+**Issue:** RRULE was generating extra occurrences to compensate for excluded dates.
 
-**How it works:**
-- Generator compensates for excluded dates by generating extras
-- `COUNT` effectively means "return N non-excluded occurrences"
+**Fix:** Updated to RFC 5545 compliant behavior:
+- COUNT specifies total candidates BEFORE EXDATE filtering
+- EXDATE removes dates from that candidate set
+- Final result may have fewer than COUNT occurrences
 
-**RFC 5545 interpretation options:**
-- **A)** COUNT=4 means "generate 4 candidates, then apply EXDATE" → 3 results
-- **B)** COUNT=4 means "return 4 results after EXDATE" → 4 results (current)
-
-**Recommendation:** Current behavior (B) is more user-friendly for calendar UIs but may differ from strict RFC 5545 compliance. Document this behavior and decide if change is needed.
+**Example:**
+- `COUNT=4` + 1 EXDATE → 3 results (not 4)
 
 ---
 
 ### 3. FormattedDateTime.weekday Never Populated
 **File:** `lib/datetime/format.ts`
-**Status:** Documented in tests
+**Status:** ✅ Removed
 
-**Issue:** The `FormattedDateTime` interface includes an optional `weekday` field:
-```typescript
-export interface FormattedDateTime {
-    date: string;
-    time: string;
-    weekday?: string;  // ← Never set
-}
-```
+**Issue:** The `weekday` field in `FormattedDateTime` was defined but never populated.
 
-But `formatDateTime()` never populates it - instead, the weekday is included in the `date` string.
-
-**Options:**
-- **A)** Update function to return weekday as separate field
-- **B)** Remove `weekday` from interface (it's unused)
-- **C)** Keep as-is (weekday is in date string, interface is for potential future use)
+**Resolution:** Removed the unused `weekday` field from the interface. Weekday is already included in the formatted `date` string when the `includeWeekday` option is true.
 
 ---
 
 ### 4. parseIsoDateTime Timezone Parameter Unused
 **File:** `lib/datetime/format.ts`
-**Status:** Documented in tests
+**Status:** ✅ Removed
 
-**Issue:** The `_timezone` parameter in `parseIsoDateTime()` is marked as unused:
-```typescript
-export function parseIsoDateTime(isoString: string, _timezone?: string): Date {
-    void _timezone; // Explicitly marked as intentionally unused
-```
+**Issue:** The `_timezone` parameter was unused and reserved for "future use".
 
-This is noted as "reserved for future use" but could be confusing. Consider:
-- Implementing timezone conversion
-- Or removing the parameter until needed
+**Resolution:** Removed the unused parameter to keep the API clean. Can be re-added when timezone conversion is actually implemented.
 
 ---
 
@@ -102,12 +75,12 @@ This is noted as "reserved for future use" but could be confusing. Consider:
 | RRULE Utils | 7 | ✅ All passing |
 | Cache Utils | 22 | ✅ All passing |
 | Duration Utils | 24 | ✅ All passing |
-| Format Utils | 24 | ✅ All passing |
-| **Total** | **77** | **✅ All passing** |
+| Format Utils | 19 | ✅ All passing |
+| **Total** | **76** | **✅ All passing** |
 
 ---
 
-## Files Created/Modified
+## Files Created/Modified During Testing Setup
 
 ### New Files
 - `vitest.config.ts` - Vitest configuration
@@ -119,14 +92,15 @@ This is noted as "reserved for future use" but could be confusing. Consider:
 
 ### Modified Files
 - `package.json` - Added test scripts and dependencies
-- `lib/pubky/__tests__/rrule-advanced.test.ts` - Fixed and expanded
+- `lib/pubky/__tests__/rrule-advanced.test.ts` - Fixed prop names and expanded
+- `lib/pubky/rrule-utils.ts` - Fixed RFC 5545 EXDATE handling
+- `lib/datetime/format.ts` - Removed unused weekday field and timezone param
 
 ---
 
 ## Next Steps
 
-1. **Decide on flagged behaviors** (RRULE COUNT+EXDATE, weekday field)
-2. **Add more edge case tests** for RRULE (DST transitions, timezone boundaries)
-3. **Add hook tests** (use-event-hooks, use-calendar-hooks)
-4. **Add store tests** (auth-store, event-form-store)
-5. **Set up integration test infrastructure** (Docker Compose for isolated testing)
+1. **Add more edge case tests** for RRULE (DST transitions, timezone boundaries)
+2. **Add hook tests** (use-event-hooks, use-calendar-hooks)
+3. **Add store tests** (auth-store, event-form-store)
+4. **Set up integration test infrastructure** (Docker Compose for isolated testing)

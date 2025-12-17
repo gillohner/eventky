@@ -161,13 +161,13 @@ export function DateTimeRecurrence({
         if (dtend && !selectedInstance) return dtend;
         if (!duration) return undefined;
         try {
-            const startDate = parseIsoDateTime(displayDtstart, dtstartTzid);
+            const startDate = parseIsoDateTime(displayDtstart);
             const durationMs = parseDuration(duration);
             return new Date(startDate.getTime() + durationMs).toISOString();
         } catch {
             return undefined;
         }
-    }, [displayDtstart, dtend, duration, dtstartTzid, selectedInstance]);
+    }, [displayDtstart, dtend, duration, selectedInstance]);
 
     // Format times using the display start date (selected instance or dtstart)
     const formattedStart = useMemo(() => {
@@ -181,20 +181,20 @@ export function DateTimeRecurrence({
 
     const isSameDay = useMemo(() => {
         if (!calculatedDtend) return true;
-        const startDate = parseIsoDateTime(displayDtstart, dtstartTzid);
-        const endDate = parseIsoDateTime(calculatedDtend, dtendTzid || dtstartTzid);
+        const startDate = parseIsoDateTime(displayDtstart);
+        const endDate = parseIsoDateTime(calculatedDtend);
         return startDate.toDateString() === endDate.toDateString();
-    }, [displayDtstart, calculatedDtend, dtstartTzid, dtendTzid]);
+    }, [displayDtstart, calculatedDtend]);
 
     const durationDisplay = useMemo(() => {
         if (duration) return formatDuration(duration);
         if (calculatedDtend) {
-            const startDate = parseIsoDateTime(dtstart, dtstartTzid);
-            const endDate = parseIsoDateTime(calculatedDtend, dtendTzid || dtstartTzid);
+            const startDate = parseIsoDateTime(dtstart);
+            const endDate = parseIsoDateTime(calculatedDtend);
             return formatDurationMs(endDate.getTime() - startDate.getTime());
         }
         return null;
-    }, [dtstart, calculatedDtend, duration, dtstartTzid, dtendTzid]);
+    }, [dtstart, calculatedDtend, duration]);
 
     // Only show timezone toggle if event has a timezone AND it's different from local
     const hasEventTimezone = Boolean(dtstartTzid) && dtstartTzid !== localTimezone;
