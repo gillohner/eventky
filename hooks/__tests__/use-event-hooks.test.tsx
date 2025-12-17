@@ -104,8 +104,8 @@ function createMockCachedEvent(overrides?: Partial<CachedEvent>): CachedEvent {
         attendees: nexusEvent.attendees,
         _syncMeta: {
             source: 'nexus',
-            fetchedAt: Date.now(),
             syncedAt: Date.now(),
+            lastSyncCheck: Date.now(),
         },
         ...overrides,
     }
@@ -140,11 +140,6 @@ function createTestQueryClient() {
             mutations: {
                 retry: false,
             },
-        },
-        logger: {
-            log: () => { },
-            warn: () => { },
-            error: () => { },
         },
     })
 }

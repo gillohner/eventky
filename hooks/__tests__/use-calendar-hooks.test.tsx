@@ -92,8 +92,8 @@ function createMockCachedCalendar(overrides?: Partial<CachedCalendar>): CachedCa
         events: nexusCalendar.events,
         _syncMeta: {
             source: 'nexus',
-            fetchedAt: Date.now(),
             syncedAt: Date.now(),
+            lastSyncCheck: Date.now(),
         },
         ...overrides,
     }
@@ -126,11 +126,6 @@ function createTestQueryClient() {
             mutations: {
                 retry: false,
             },
-        },
-        logger: {
-            log: () => { },
-            warn: () => { },
-            error: () => { },
         },
     })
 }
