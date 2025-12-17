@@ -66,17 +66,35 @@ The original test file used incorrect property names (`startDate` vs `dtstart`).
 - BYSETPOS + BYDAY combinations work (e.g., "last Thursday of month")
 - INTERVAL respected for weekly patterns
 
+### DST Transition Handling ✅
+- Events maintain consistent local time across spring DST (clocks forward)
+- Events maintain consistent local time across fall DST (clocks back)
+- DST "gap hours" (e.g., 2:30 AM spring forward) handled gracefully
+- Multi-day events spanning DST boundaries work correctly
+
+### Timezone Boundary Handling ✅
+- Datetime strings preserved in exact ISO format without timezone suffix
+- Midnight (00:00:00) and end-of-day (23:59:00) times handled consistently
+- Year boundaries crossed correctly for all frequencies
+
+### pubky-app-specs Validation Integration ✅
+- RRULE validation using `validateRrule()` from pubky-app-specs
+- Duration validation using `validateDuration()`
+- Timezone validation using `validateTimezone()`
+- Event/RSVP status values from `getValidEventStatuses()`/`getValidRsvpStatuses()`
+
 ---
 
 ## Test Coverage Summary
 
 | Area | Tests | Status |
 |------|-------|--------|
-| RRULE Utils | 7 | ✅ All passing |
+| RRULE Utils | 20 | ✅ All passing |
+| pubky-app-specs Validation | 23 | ✅ All passing |
 | Cache Utils | 22 | ✅ All passing |
 | Duration Utils | 24 | ✅ All passing |
-| Format Utils | 19 | ✅ All passing |
-| **Total** | **76** | **✅ All passing** |
+| Format Utils | 18 | ✅ All passing |
+| **Total** | **112** | **✅ All passing** |
 
 ---
 
@@ -89,10 +107,11 @@ The original test file used incorrect property names (`startDate` vs `dtstart`).
 - `lib/cache/__tests__/utils.test.ts` - Cache utils tests
 - `lib/datetime/__tests__/duration.test.ts` - Duration tests
 - `lib/datetime/__tests__/format.test.ts` - Format tests
+- `lib/pubky/__tests__/validation.test.ts` - pubky-app-specs validation tests
 
 ### Modified Files
 - `package.json` - Added test scripts and dependencies
-- `lib/pubky/__tests__/rrule-advanced.test.ts` - Fixed prop names and expanded
+- `lib/pubky/__tests__/rrule-advanced.test.ts` - Fixed prop names, expanded with DST/timezone tests
 - `lib/pubky/rrule-utils.ts` - Fixed RFC 5545 EXDATE handling
 - `lib/datetime/format.ts` - Removed unused weekday field and timezone param
 
@@ -100,7 +119,6 @@ The original test file used incorrect property names (`startDate` vs `dtstart`).
 
 ## Next Steps
 
-1. **Add more edge case tests** for RRULE (DST transitions, timezone boundaries)
-2. **Add hook tests** (use-event-hooks, use-calendar-hooks)
-3. **Add store tests** (auth-store, event-form-store)
-4. **Set up integration test infrastructure** (Docker Compose for isolated testing)
+1. **Add hook tests** (use-event-hooks, use-calendar-hooks)
+2. **Add store tests** (auth-store, event-form-store)
+3. **Set up integration test infrastructure** (Docker Compose for isolated testing)
