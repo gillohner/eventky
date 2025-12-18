@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import {
     Calendar,
     CalendarDays,
@@ -56,6 +56,7 @@ const navItems = [
 
 export function AppSidebar() {
     const router = useRouter()
+    const pathname = usePathname()
     const { isAuthenticated, auth, logout } = useAuth()
     const { profile } = useProfile()
     const { enabled: debugEnabled, toggle: toggleDebug } = useDebugStore()
@@ -76,7 +77,9 @@ export function AppSidebar() {
     }
 
     const handleLogin = () => {
-        router.push("/login")
+        // Pass current path as returnPath so user returns here after login
+        const returnPath = pathname && pathname !== "/" ? `?returnPath=${encodeURIComponent(pathname)}` : ""
+        router.push(`/login${returnPath}`)
     }
 
     const avatarUrl = profile?.image && auth?.publicKey ? getPubkyAvatarUrl(auth.publicKey) : null;
