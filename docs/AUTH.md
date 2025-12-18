@@ -1,11 +1,11 @@
-# Pubky Authentication
+# Authentication
 
-## Auth Methods
+## Methods
 
 | Method                   | Persistence   | Notes                                                     |
 | ------------------------ | ------------- | --------------------------------------------------------- |
 | **Recovery File**        | ✅ Persistent | Upload `.pkarr` + passphrase, seed stored in localStorage |
-| **QR Code (Pubky Ring)** | ❌ Ephemeral  | Session lost on page reload (TODO: FIX)                               |
+| **QR Code (Pubky Ring)** | ❌ Ephemeral  | Session lost on page reload                               |
 | **Testnet Signup**       | ✅ Persistent | Downloads `.pkarr` file automatically                     |
 
 
