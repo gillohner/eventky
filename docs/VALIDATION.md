@@ -1,19 +1,6 @@
 # Validation (pubky-app-specs)
 
-Eventky uses `pubky-app-specs` for data validation and URI handling. The library is shared between frontend (WASM) and backend (Rust).
-
-## Installation
-
-**Frontend (TypeScript/WASM):**
-```bash
-npm install pubky-app-specs
-```
-
-**Backend (Rust):**
-```toml
-[dependencies]
-pubky-app-specs = { workspace = true }
-```
+Eventky uses `pubky-app-specs` for data validation and URI handling.
 
 ## Field Validation
 

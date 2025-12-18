@@ -5,11 +5,12 @@
 ```bash
 # 1. Configure environment
 cp .env.example .env.local
+# Edit .env.local as needed
 
 # 2. Start Pubky stack (testnet)
 cd scripts && ./start-pubky-stack.sh
 
-# 3. Run Eventky
+# 3. Start Eventky frontend standalone
 npm run dev
 ```
 
@@ -43,16 +44,6 @@ import { config } from "@/lib/config";
 config.environment;          // "testnet" | "staging" | "production"
 config.homeserver.publicKey;
 config.gateway.url;          // Nexus URL
-```
-
-### File URLs
-
-```typescript
-import { getPubkyAvatarUrl, getPubkyImageUrl } from "@/lib/pubky/utils";
-
-getPubkyImageUrl(pubkyUri, "main");  // Full size
-getPubkyImageUrl(pubkyUri, "feed");  // Thumbnail
-getPubkyAvatarUrl(pubkyUri);         // Avatar
 ```
 
 ## QR Auth (Pubky Ring)

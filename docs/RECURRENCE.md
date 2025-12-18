@@ -84,7 +84,7 @@ const hasOccurrencesInRange = calculateNextOccurrences({
 }).length > 0;
 ```
 
-**Rationale:** RRULE expansion is complex (RFC 5545). Keeping it frontend-only avoids duplicating logic in both Rust and TypeScript.
+**Rationale:** RRULE expansion is complex (RFC 5545). Keeping it frontend-only avoids duplicating logic in both Rust and TypeScript. Optimizations might be added later if performance becomes an issue due to many recurring events.
 
 ## Key Files
 
