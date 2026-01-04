@@ -9,12 +9,12 @@ ssh eventky@34.88.231.77
 
 **Update to latest main:**
 ```bash
-cd ~/apps/eventky && git pull && npm install && npm run build && sudo systemctl restart eventky.service
+cd ~/apps/eventky && git pull && npm ci && npm run build && sudo systemctl restart eventky.service
 ```
 
 **Test a different branch:**
 ```bash
-cd ~/apps/eventky && git fetch origin && git checkout BRANCH_NAME && npm install && npm run build && sudo systemctl restart eventky.service
+cd ~/apps/eventky && git fetch origin && git checkout BRANCH_NAME && npm ci && npm run build && sudo systemctl restart eventky.service
 ```
 
 **View logs:**
