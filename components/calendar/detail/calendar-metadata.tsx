@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AddToCalendar } from "@/components/ui/add-to-calendar";
 import {
     Link as LinkIcon,
     Globe,
@@ -19,6 +20,8 @@ import {
 import { useState } from "react";
 
 interface CalendarMetadataProps {
+    /** Calendar name (for Subscribe button) */
+    calendarName?: string;
     /** Calendar URL */
     url?: string;
     /** Calendar description */
@@ -47,6 +50,7 @@ interface CalendarMetadataProps {
  * Display calendar metadata including URL, description, timezone, and authors
  */
 export function CalendarMetadata({
+    calendarName,
     url,
     description,
     timezone,
@@ -177,7 +181,7 @@ export function CalendarMetadata({
 
                 {/* Share URL */}
                 {calendarUri && (
-                    <div className="pt-3 border-t">
+                    <div className="pt-3 border-t space-y-2">
                         <Button
                             variant="outline"
                             size="sm"
@@ -196,6 +200,17 @@ export function CalendarMetadata({
                                 </>
                             )}
                         </Button>
+                        {authorId && calendarId && (
+                            <AddToCalendar
+                                mode="calendar"
+                                authorId={authorId}
+                                calendarId={calendarId}
+                                calendarName={calendarName || "Calendar"}
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                            />
+                        )}
                     </div>
                 )}
             </CardContent>

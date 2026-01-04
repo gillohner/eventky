@@ -6,6 +6,8 @@ import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AddToCalendar } from "@/components/ui/add-to-calendar";
+import type { NexusEventResponse } from "@/types/nexus";
 import {
     Link as LinkIcon,
     Calendar,
@@ -20,6 +22,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 interface EventMetadataProps {
+    /** Full event data (for Add to Calendar) */
+    event?: NexusEventResponse;
     /** Event URL */
     url?: string;
     /** Event status (CONFIRMED, TENTATIVE, CANCELLED) */
@@ -48,6 +52,7 @@ interface EventMetadataProps {
  * Display event metadata including URL, calendars, and access settings
  */
 export function EventMetadata({
+    event,
     url,
     status,
     calendarUris,
@@ -167,7 +172,7 @@ export function EventMetadata({
 
                 {/* Share URL */}
                 {(eventUri || (authorId && eventId)) && (
-                    <div className="pt-3 border-t">
+                    <div className="pt-3 border-t space-y-2">
                         <Button
                             variant="outline"
                             size="sm"
@@ -186,6 +191,17 @@ export function EventMetadata({
                                 </>
                             )}
                         </Button>
+                        {event && authorId && eventId && (
+                            <AddToCalendar
+                                mode="event"
+                                authorId={authorId}
+                                eventId={eventId}
+                                event={event}
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                            />
+                        )}
                     </div>
                 )}
             </CardContent>

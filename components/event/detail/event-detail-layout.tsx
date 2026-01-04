@@ -197,6 +197,7 @@ export function EventDetailLayout({
 
                     {/* Metadata/Details */}
                     <EventMetadata
+                        event={event}
                         url={details.url}
                         status={details.status}
                         calendarUris={details.x_pubky_calendar_uris}
