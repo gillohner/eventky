@@ -1,6 +1,7 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
 import { PubkyAppEvent, eventUriBuilder } from "pubky-app-specs";
 import { config } from "@/lib/config";
+import { isNotFoundError } from "./session-utils";
 
 /**
  * Fetch an event from Pubky homeserver
@@ -29,25 +30,30 @@ export async function getEvent(
 /**
  * Delete an event from Pubky Homeserver
  * Requires an authenticated Session
+ * Returns true if deleted or already doesn't exist (graceful handling)
  */
 export async function deleteEvent(
   session: Session,
   eventId: string,
   userId: string
 ): Promise<boolean> {
+  if (!session || !session.storage) {
+    throw new Error("Invalid session: No storage available. Please sign in again.");
+  }
+
+  const eventUri = eventUriBuilder(userId, eventId);
+  const eventPath = eventUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
+
   try {
-    if (!session || !session.storage) {
-      throw new Error("Invalid session: No storage available. Please sign in again.");
-    }
-
-    const eventUri = eventUriBuilder(userId, eventId);
-    const eventPath = eventUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
-
     // Delete from Pubky storage using session
     await session.storage.delete(eventPath);
-
     return true;
   } catch (error) {
+    // If file doesn't exist, consider delete successful (idempotent)
+    if (isNotFoundError(error)) {
+      console.log("Event already deleted or doesn't exist:", eventId);
+      return true;
+    }
     console.error("Error deleting event:", error);
     throw error;
   }

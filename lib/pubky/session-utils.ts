@@ -5,6 +5,44 @@
 import { toast } from "sonner";
 
 /**
+ * Check if an error indicates a resource was not found (404)
+ * This is useful for delete operations where "not found" means success
+ * @param error - The error to check
+ * @returns true if the error indicates resource not found
+ */
+export function isNotFoundError(error: unknown): boolean {
+    if (!error) return false;
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const lowerMessage = errorMessage.toLowerCase();
+
+    // Check for HTTP 404 status
+    if (lowerMessage.includes("404") || lowerMessage.includes("not found")) {
+        return true;
+    }
+
+    // Check for "does not exist" type messages
+    if (
+        lowerMessage.includes("does not exist") ||
+        lowerMessage.includes("no such file") ||
+        lowerMessage.includes("file not found") ||
+        lowerMessage.includes("resource not found")
+    ) {
+        return true;
+    }
+
+    // Check if error has a status property (e.g., fetch Response-like errors)
+    if (typeof error === "object" && error !== null) {
+        const statusError = error as { status?: number; statusCode?: number };
+        if (statusError.status === 404 || statusError.statusCode === 404) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Check if an error indicates a session has expired or is invalid
  * @param error - The error to check
  * @returns true if the error indicates session expiry

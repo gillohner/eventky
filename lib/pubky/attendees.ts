@@ -7,6 +7,7 @@
 
 import { Session } from "@synonymdev/pubky";
 import { PubkySpecsBuilder, eventUriBuilder } from "pubky-app-specs";
+import { isNotFoundError } from "./session-utils";
 
 /**
  * Result from saving an attendee
@@ -86,6 +87,7 @@ export async function saveAttendee(
 /**
  * Delete an RSVP for an event
  * Requires an authenticated Session
+ * Succeeds silently if RSVP doesn't exist (graceful handling)
  *
  * @param session - Authenticated Pubky session
  * @param eventAuthorId - Author ID of the event
@@ -119,10 +121,18 @@ export async function deleteAttendee(
         eventUri,
     });
 
-    // Delete from Pubky storage using session
-    await session.storage.delete(attendeePath);
-
-    console.log("Attendee RSVP deleted successfully");
+    try {
+        // Delete from Pubky storage using session
+        await session.storage.delete(attendeePath);
+        console.log("Attendee RSVP deleted successfully");
+    } catch (error) {
+        // If RSVP doesn't exist, consider delete successful (idempotent)
+        if (isNotFoundError(error)) {
+            console.log("Attendee RSVP already deleted or doesn't exist");
+            return;
+        }
+        throw error;
+    }
 }
 
 /**

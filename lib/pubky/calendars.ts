@@ -1,6 +1,7 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
 import { PubkyAppCalendar, calendarUriBuilder } from "pubky-app-specs";
 import { config } from "@/lib/config";
+import { isNotFoundError } from "./session-utils";
 
 /**
  * Fetch a calendar from Pubky homeserver
@@ -62,25 +63,30 @@ export async function saveCalendar(
 /**
  * Delete a calendar from Pubky Homeserver
  * Requires an authenticated Session
+ * Returns true if deleted or already doesn't exist (graceful handling)
  */
 export async function deleteCalendar(
     session: Session,
     calendarId: string,
     userId: string
 ): Promise<boolean> {
+    if (!session || !session.storage) {
+        throw new Error("Invalid session: No storage available. Please sign in again.");
+    }
+
+    const calendarUri = calendarUriBuilder(userId, calendarId);
+    const calendarPath = calendarUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
+
     try {
-        if (!session || !session.storage) {
-            throw new Error("Invalid session: No storage available. Please sign in again.");
-        }
-
-        const calendarUri = calendarUriBuilder(userId, calendarId);
-        const calendarPath = calendarUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
-
         // Delete from Pubky storage using session
         await session.storage.delete(calendarPath);
-
         return true;
     } catch (error) {
+        // If file doesn't exist, consider delete successful (idempotent)
+        if (isNotFoundError(error)) {
+            console.log("Calendar already deleted or doesn't exist:", calendarId);
+            return true;
+        }
         console.error("Error deleting calendar:", error);
         throw error;
     }

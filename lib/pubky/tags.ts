@@ -1,5 +1,6 @@
 import { Session } from "@synonymdev/pubky";
 import { PubkySpecsBuilder, eventUriBuilder, calendarUriBuilder } from "pubky-app-specs";
+import { isNotFoundError } from "./session-utils";
 
 /**
  * Create a tag on an event
@@ -51,6 +52,7 @@ export async function addTagToEvent(
 /**
  * Remove a tag from an event
  * Requires an authenticated Session
+ * Succeeds silently if tag doesn't exist (graceful handling)
  */
 export async function removeTagFromEvent(
   session: Session,
@@ -59,34 +61,38 @@ export async function removeTagFromEvent(
   eventId: string,
   label: string
 ): Promise<boolean> {
+  if (!session || !session.storage) {
+    throw new Error("Invalid session: No storage available. Please sign in again.");
+  }
+
+  // Build the event URI that we're untagging
+  const eventUri = eventUriBuilder(eventAuthorId, eventId);
+
+  // Use PubkySpecsBuilder to get the correct tag ID (same hash as creation)
+  const builder = new PubkySpecsBuilder(userId);
+  const tagResult = builder.createTag(eventUri, label);
+
+  // Get the tag path from the meta
+  const tagPath = tagResult.meta.path as `/pub/${string}`;
+
+  console.log("Removing tag:", {
+    userId,
+    eventUri,
+    label,
+    tagPath,
+  });
+
   try {
-    if (!session || !session.storage) {
-      throw new Error("Invalid session: No storage available. Please sign in again.");
-    }
-
-    // Build the event URI that we're untagging
-    const eventUri = eventUriBuilder(eventAuthorId, eventId);
-
-    // Use PubkySpecsBuilder to get the correct tag ID (same hash as creation)
-    const builder = new PubkySpecsBuilder(userId);
-    const tagResult = builder.createTag(eventUri, label);
-
-    // Get the tag path from the meta
-    const tagPath = tagResult.meta.path as `/pub/${string}`;
-
-    console.log("Removing tag:", {
-      userId,
-      eventUri,
-      label,
-      tagPath,
-    });
-
     // Delete the tag from Pubky storage using session
     await session.storage.delete(tagPath);
-
     console.log("Tag removed successfully");
     return true;
   } catch (error) {
+    // If tag doesn't exist, consider removal successful (idempotent)
+    if (isNotFoundError(error)) {
+      console.log("Tag already removed or doesn't exist:", label);
+      return true;
+    }
     console.error("Error removing tag:", error);
     throw error;
   }
@@ -142,6 +148,7 @@ export async function addTagToCalendar(
 /**
  * Remove a tag from a calendar
  * Requires an authenticated Session
+ * Succeeds silently if tag doesn't exist (graceful handling)
  */
 export async function removeTagFromCalendar(
   session: Session,
@@ -150,34 +157,38 @@ export async function removeTagFromCalendar(
   calendarId: string,
   label: string
 ): Promise<boolean> {
+  if (!session || !session.storage) {
+    throw new Error("Invalid session: No storage available. Please sign in again.");
+  }
+
+  // Build the calendar URI that we're untagging
+  const calendarUri = calendarUriBuilder(calendarAuthorId, calendarId);
+
+  // Use PubkySpecsBuilder to get the correct tag ID (same hash as creation)
+  const builder = new PubkySpecsBuilder(userId);
+  const tagResult = builder.createTag(calendarUri, label);
+
+  // Get the tag path from the meta
+  const tagPath = tagResult.meta.path as `/pub/${string}`;
+
+  console.log("Removing calendar tag:", {
+    userId,
+    calendarUri,
+    label,
+    tagPath,
+  });
+
   try {
-    if (!session || !session.storage) {
-      throw new Error("Invalid session: No storage available. Please sign in again.");
-    }
-
-    // Build the calendar URI that we're untagging
-    const calendarUri = calendarUriBuilder(calendarAuthorId, calendarId);
-
-    // Use PubkySpecsBuilder to get the correct tag ID (same hash as creation)
-    const builder = new PubkySpecsBuilder(userId);
-    const tagResult = builder.createTag(calendarUri, label);
-
-    // Get the tag path from the meta
-    const tagPath = tagResult.meta.path as `/pub/${string}`;
-
-    console.log("Removing calendar tag:", {
-      userId,
-      calendarUri,
-      label,
-      tagPath,
-    });
-
     // Delete the tag from Pubky storage using session
     await session.storage.delete(tagPath);
-
     console.log("Calendar tag removed successfully");
     return true;
   } catch (error) {
+    // If tag doesn't exist, consider removal successful (idempotent)
+    if (isNotFoundError(error)) {
+      console.log("Calendar tag already removed or doesn't exist:", label);
+      return true;
+    }
     console.error("Error removing calendar tag:", error);
     throw error;
   }
