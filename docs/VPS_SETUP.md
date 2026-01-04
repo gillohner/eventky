@@ -129,6 +129,15 @@ rustc --version
 cargo --version
 ```
 
+### 1.6 Install ImageMagick (for Nexus image processing)
+
+```bash
+# Required for Nexus to create avatar/image variants (thumbnails, resizing)
+sudo apt install -y imagemagick
+
+# Verify
+convert --version
+
 ## Phase 2: Database Setup (Docker)
 
 ### 2.1 Create Directory Structure
