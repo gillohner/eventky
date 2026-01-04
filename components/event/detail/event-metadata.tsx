@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import { parse_uri } from "pubky-app-specs";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,9 +73,11 @@ export function EventMetadata({
         const appUrl = typeof window !== 'undefined'
             ? `${window.location.origin}/event/${authorId}/${eventId}`
             : '';
-        await navigator.clipboard.writeText(appUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        const success = await copyToClipboard(appUrl);
+        if (success) {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     const hasContent = url || (calendarUris && calendarUris.length > 0) || rsvpAccess || created;

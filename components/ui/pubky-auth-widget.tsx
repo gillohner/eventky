@@ -7,6 +7,7 @@ import { config } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Copy, ExternalLink, Check } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 
 interface PubkyAuthWidgetProps {
   relay?: string;
@@ -36,13 +37,12 @@ export function PubkyAuthWidget({
   const handleCopyAuthUrl = useCallback(async () => {
     if (!authUrl) return;
 
-    try {
-      await navigator.clipboard.writeText(authUrl);
+    const success = await copyToClipboard(authUrl);
+    if (success) {
       setCopied(true);
       toast.success("Auth link copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy:", error);
+    } else {
       toast.error("Failed to copy link");
     }
   }, [authUrl]);

@@ -26,6 +26,7 @@ import {
     Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 import type { NexusEventResponse, NexusEventStreamItem } from "@/types/nexus";
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from "@/lib/ics";
 
@@ -111,13 +112,12 @@ export function AddToCalendar(props: AddToCalendarProps) {
     const outlookUrl = mode === "event" ? generateOutlookCalendarUrl(props.event) : null;
 
     const handleCopyUrl = async () => {
-        try {
-            await navigator.clipboard.writeText(webcalUrl);
+        const success = await copyToClipboard(webcalUrl);
+        if (success) {
             setCopied(true);
             toast.success("Calendar URL copied to clipboard");
             setTimeout(() => setCopied(false), 2000);
-        } catch (error) {
-            console.error("Failed to copy URL:", error);
+        } else {
             toast.error("Failed to copy URL");
         }
     };

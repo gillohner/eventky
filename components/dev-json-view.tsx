@@ -7,6 +7,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { copyToClipboard } from "@/lib/utils";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 
@@ -31,12 +32,10 @@ export function DevJsonView({
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+        const success = await copyToClipboard(JSON.stringify(data, null, 2));
+        if (success) {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            console.error("Failed to copy:", err);
         }
     };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import { useAuthorProfiles, type AuthorProfile } from "@/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,9 +75,11 @@ export function CalendarMetadata({
         const appUrl = typeof window !== 'undefined'
             ? `${window.location.origin}/calendar/${authorId}/${calendarId}`
             : '';
-        await navigator.clipboard.writeText(appUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        const success = await copyToClipboard(appUrl);
+        if (success) {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     const hasContent = url || description || timezone || (authors && authors.length > 0) || created;
