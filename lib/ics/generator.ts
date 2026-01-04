@@ -22,6 +22,7 @@ export interface CalendarMetadata {
     name: string;
     description?: string;
     timezone?: string;
+    color?: string;
 }
 
 // =============================================================================
@@ -240,6 +241,18 @@ export function eventToICSAttributes(
         name: `pubky:${details.author}`,
     };
 
+    // Add transparency (TRANSP) - default to OPAQUE (busy)
+    // This can be extended to support a field from Nexus in the future
+    attrs.transp = "OPAQUE";
+
+    // Add HTML content if styled_description is available
+    if (details.styled_description) {
+        const styledDesc = typeof details.styled_description === "string"
+            ? details.styled_description
+            : details.styled_description.value;
+        attrs.htmlContent = styledDesc;
+    }
+
     return attrs;
 }
 
@@ -308,10 +321,12 @@ export function generateCalendarICS(
 
     if (metadata) {
         // Insert calendar metadata after VERSION line
+        // Note: COLOR is a non-standard extension, but many calendar apps support it
         const metadataLines = [
             metadata.name ? `X-WR-CALNAME:${metadata.name}` : "",
             metadata.description ? `X-WR-CALDESC:${metadata.description}` : "",
             metadata.timezone ? `X-WR-TIMEZONE:${metadata.timezone}` : "",
+            (metadata as any).color ? `COLOR:${(metadata as any).color}` : "",
         ].filter(Boolean).join("\r\n");
 
         if (metadataLines) {

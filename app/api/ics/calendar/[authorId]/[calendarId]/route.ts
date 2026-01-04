@@ -87,6 +87,7 @@ export async function GET(
             name: calendar.details.name,
             description: calendar.details.description,
             timezone: calendar.details.timezone,
+            color: calendar.details.color,
         });
 
         if (!result.success || !result.value) {
