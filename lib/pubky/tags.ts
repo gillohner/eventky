@@ -3,6 +3,7 @@ import { PubkySpecsBuilder, eventUriBuilder, calendarUriBuilder } from "pubky-ap
 
 /**
  * Create a tag on an event
+ * Requires an authenticated Session
  * Tags are stored at /pub/pubky.app/tags/<tag_id>
  * where tag_id is derived from hash of uri:label
  */
@@ -34,10 +35,9 @@ export async function addTagToEvent(
       eventUri,
       label,
       tagPath,
-      tagJson,
     });
 
-    // Save the tag to Pubky storage
+    // Save the tag to Pubky storage using session
     await session.storage.putJson(tagPath, tagJson);
 
     console.log("Tag created successfully");
@@ -50,6 +50,7 @@ export async function addTagToEvent(
 
 /**
  * Remove a tag from an event
+ * Requires an authenticated Session
  */
 export async function removeTagFromEvent(
   session: Session,
@@ -80,7 +81,7 @@ export async function removeTagFromEvent(
       tagPath,
     });
 
-    // Delete the tag from Pubky storage
+    // Delete the tag from Pubky storage using session
     await session.storage.delete(tagPath);
 
     console.log("Tag removed successfully");
@@ -93,6 +94,7 @@ export async function removeTagFromEvent(
 
 /**
  * Create a tag on a calendar
+ * Requires an authenticated Session
  * Tags are stored at /pub/pubky.app/tags/<tag_id>
  * where tag_id is derived from hash of uri:label
  */
@@ -124,10 +126,9 @@ export async function addTagToCalendar(
       calendarUri,
       label,
       tagPath,
-      tagJson,
     });
 
-    // Save the tag to Pubky storage
+    // Save the tag to Pubky storage using session
     await session.storage.putJson(tagPath, tagJson);
 
     console.log("Calendar tag created successfully");
@@ -140,6 +141,7 @@ export async function addTagToCalendar(
 
 /**
  * Remove a tag from a calendar
+ * Requires an authenticated Session
  */
 export async function removeTagFromCalendar(
   session: Session,
@@ -170,7 +172,7 @@ export async function removeTagFromCalendar(
       tagPath,
     });
 
-    // Delete the tag from Pubky storage
+    // Delete the tag from Pubky storage using session
     await session.storage.delete(tagPath);
 
     console.log("Calendar tag removed successfully");

@@ -20,6 +20,7 @@ export interface SaveAttendeeResult {
 
 /**
  * Create or update an RSVP for an event
+ * Requires an authenticated Session
  *
  * @param session - Authenticated Pubky session
  * @param eventAuthorId - Author ID of the event
@@ -37,7 +38,6 @@ export async function saveAttendee(
     partstat: string,
     recurrenceId?: string
 ): Promise<SaveAttendeeResult> {
-    // Validate session
     if (!session || !session.storage) {
         throw new Error("Invalid session: No storage available. Please sign in again.");
     }
@@ -68,7 +68,6 @@ export async function saveAttendee(
         eventUri,
         partstat: normalizedPartstat,
         recurrenceId,
-        attendeeJson,
     });
 
     // Save to Pubky storage using session
@@ -86,6 +85,7 @@ export async function saveAttendee(
 
 /**
  * Delete an RSVP for an event
+ * Requires an authenticated Session
  *
  * @param session - Authenticated Pubky session
  * @param eventAuthorId - Author ID of the event
@@ -98,7 +98,6 @@ export async function deleteAttendee(
     eventId: string,
     userId: string
 ): Promise<void> {
-    // Validate session
     if (!session || !session.storage) {
         throw new Error("Invalid session: No storage available. Please sign in again.");
     }
@@ -120,7 +119,7 @@ export async function deleteAttendee(
         eventUri,
     });
 
-    // Delete from Pubky storage
+    // Delete from Pubky storage using session
     await session.storage.delete(attendeePath);
 
     console.log("Attendee RSVP deleted successfully");

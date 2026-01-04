@@ -82,7 +82,9 @@ export function PubkyAuthWidget({
       const relayUrl = relay || config.relay.url;
 
       // Start the flow with the SDK's client
-      const flow = sdkRef.current.startAuthFlow(caps as pubky.Capabilities, relayUrl);
+      // AuthFlowKind.signin() is for apps that need a session with storage access
+      const flowKind = pubky.AuthFlowKind.signin();
+      const flow = sdkRef.current.startAuthFlow(caps as pubky.Capabilities, flowKind, relayUrl);
 
       // Capture the deep link before awaiting
       const url = flow.authorizationUrl;

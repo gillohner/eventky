@@ -25,6 +25,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { saveAttendee, type SaveAttendeeResult } from "@/lib/pubky/attendees";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 import { eventUriBuilder, attendeeUriBuilder } from "pubky-app-specs";
+import { handleMutationError } from "@/lib/pubky/session-utils";
 import { toast } from "sonner";
 import type { NexusEventResponse } from "@/lib/nexus/events";
 import {
@@ -90,7 +91,7 @@ export interface RsvpMutationOptions {
  */
 export function useRsvpMutation(options?: RsvpMutationOptions) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -229,9 +230,7 @@ export function useRsvpMutation(options?: RsvpMutationOptions) {
         },
 
         onError: (error, _input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to RSVP: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to RSVP", { showToasts, logout });
 
             // Rollback all previous event data
             if (context?.previousQueries) {

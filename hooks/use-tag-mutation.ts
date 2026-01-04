@@ -13,6 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
 import { addTagToEvent, removeTagFromEvent } from "@/lib/pubky/tags";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
+import { handleMutationError } from "@/lib/pubky/session-utils";
 import { toast } from "sonner";
 import type { NexusEventResponse } from "@/lib/nexus/events";
 import {
@@ -85,7 +86,7 @@ export interface TagMutationOptions {
  */
 export function useAddTagMutation(options?: TagMutationOptions) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -94,6 +95,7 @@ export function useAddTagMutation(options?: TagMutationOptions) {
                 throw new Error("Authentication required. Please sign in.");
             }
 
+            // Add tag to event
             return addTagToEvent(
                 auth.session,
                 auth.publicKey,
@@ -213,9 +215,7 @@ export function useAddTagMutation(options?: TagMutationOptions) {
         },
 
         onError: (error, _input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to add tag: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to add tag", { showToasts, logout });
 
             // Rollback all previous event data
             if (context?.previousQueries) {
@@ -237,7 +237,7 @@ export function useAddTagMutation(options?: TagMutationOptions) {
  */
 export function useRemoveTagMutation(options?: TagMutationOptions) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -246,6 +246,7 @@ export function useRemoveTagMutation(options?: TagMutationOptions) {
                 throw new Error("Authentication required. Please sign in.");
             }
 
+            // Remove tag from event
             return removeTagFromEvent(
                 auth.session,
                 auth.publicKey,
@@ -351,9 +352,7 @@ export function useRemoveTagMutation(options?: TagMutationOptions) {
         },
 
         onError: (error, _input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to remove tag: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to remove tag", { showToasts, logout });
 
             // Rollback all previous event data
             if (context?.previousQueries) {

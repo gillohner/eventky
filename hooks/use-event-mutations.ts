@@ -32,6 +32,7 @@ import {
     createLocalSyncMeta,
 } from "@/lib/cache";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
+import { handleMutationError } from "@/lib/pubky/session-utils";
 import { toast } from "sonner";
 import type { CachedEvent } from "@/types/nexus";
 
@@ -76,7 +77,7 @@ export interface MutationOptions<TResult> {
  */
 export function useCreateEvent(options?: MutationOptions<CreateEventResult>) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -172,9 +173,7 @@ export function useCreateEvent(options?: MutationOptions<CreateEventResult>) {
         },
 
         onError: (error, _input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to create event: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to create event", { showToasts, logout });
 
             // Rollback optimistic update if we have context
             if (context?.eventId && auth?.publicKey) {
@@ -205,7 +204,7 @@ export interface UpdateEventInput {
  */
 export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -307,9 +306,7 @@ export function useUpdateEvent(options?: MutationOptions<CreateEventResult>) {
         },
 
         onError: (error, input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to update event: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to update event", { showToasts, logout });
 
             // Rollback ALL matching queries to previous cached value
             if (context?.previousData && auth?.publicKey) {
@@ -350,7 +347,7 @@ export interface DeleteEventInput {
  */
 export function useDeleteEvent(options?: MutationOptions<void>) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -394,9 +391,7 @@ export function useDeleteEvent(options?: MutationOptions<void>) {
         },
 
         onError: (error, input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to delete event: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to delete event", { showToasts, logout });
 
             // Rollback deletion
             if (context?.previousData && auth?.publicKey) {

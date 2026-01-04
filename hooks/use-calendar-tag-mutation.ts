@@ -13,6 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
 import { addTagToCalendar, removeTagFromCalendar } from "@/lib/pubky/tags";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
+import { handleMutationError } from "@/lib/pubky/session-utils";
 import { toast } from "sonner";
 import type { NexusCalendarResponse } from "@/lib/nexus/calendars";
 import {
@@ -86,7 +87,7 @@ export interface CalendarTagMutationOptions {
  */
 export function useAddCalendarTagMutation(options?: CalendarTagMutationOptions) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -95,6 +96,7 @@ export function useAddCalendarTagMutation(options?: CalendarTagMutationOptions) 
                 throw new Error("Authentication required. Please sign in.");
             }
 
+            // Add tag to calendar
             return addTagToCalendar(
                 auth.session,
                 auth.publicKey,
@@ -213,9 +215,7 @@ export function useAddCalendarTagMutation(options?: CalendarTagMutationOptions) 
         },
 
         onError: (error, _input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to add tag: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to add tag", { showToasts, logout });
 
             // Rollback all previous calendar data
             if (context?.previousQueries) {
@@ -236,7 +236,7 @@ export function useAddCalendarTagMutation(options?: CalendarTagMutationOptions) 
  */
 export function useRemoveCalendarTagMutation(options?: CalendarTagMutationOptions) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -245,6 +245,7 @@ export function useRemoveCalendarTagMutation(options?: CalendarTagMutationOption
                 throw new Error("Authentication required. Please sign in.");
             }
 
+            // Remove tag from calendar
             return removeTagFromCalendar(
                 auth.session,
                 auth.publicKey,
@@ -349,9 +350,7 @@ export function useRemoveCalendarTagMutation(options?: CalendarTagMutationOption
         },
 
         onError: (error, _input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to remove tag: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to remove tag", { showToasts, logout });
 
             // Rollback all previous calendar data
             if (context?.previousQueries) {

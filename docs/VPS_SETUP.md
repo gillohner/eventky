@@ -1,5 +1,35 @@
 # VPS Setup Guide
 
+## Quick Reference (Daily Operations)
+
+**SSH into VPS:**
+```bash
+ssh eventky@34.88.231.77
+```
+
+**Update to latest main:**
+```bash
+cd ~/apps/eventky && git pull && npm install && npm run build && sudo systemctl restart eventky.service
+```
+
+**Test a different branch:**
+```bash
+cd ~/apps/eventky && git fetch origin && git checkout BRANCH_NAME && npm install && npm run build && sudo systemctl restart eventky.service
+```
+
+**View logs:**
+```bash
+sudo journalctl -u eventky.service -f     # Eventky logs
+sudo journalctl -u nexus.service -f       # Nexus logs
+```
+
+**Check status:**
+```bash
+sudo systemctl status eventky.service nexus.service eventky-db.service
+```
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -454,7 +484,7 @@ sudo journalctl -u nexus.service -f
 sudo journalctl -u eventky.service -f
 ```
 
-### Update Eventky
+### Update Eventky (Main Branch)
 
 ```bash
 cd ~/apps/eventky
@@ -462,6 +492,91 @@ git pull
 npm install
 npm run build
 sudo systemctl restart eventky.service
+```
+
+### Test a Feature Branch on VPS
+
+```bash
+cd ~/apps/eventky
+
+# 1. Save current state (optional - useful if you have local changes)
+git stash
+
+# 2. Fetch all remote branches
+git fetch origin
+
+# 3. Checkout the feature branch
+git checkout feature/some-branch
+# Or create local tracking branch:
+git checkout -b feature/some-branch origin/feature/some-branch
+
+# 4. Install dependencies (in case package.json changed)
+npm install
+
+# 5. Build and restart
+npm run build
+sudo systemctl restart eventky.service
+
+# 6. Test the feature...
+
+# 7. When done, go back to main
+git checkout main
+git pull
+npm install
+npm run build
+sudo systemctl restart eventky.service
+
+# 8. Restore any stashed changes (if needed)
+git stash pop
+```
+
+### Quick Deploy Script
+
+Create a deploy script for convenience:
+
+```bash
+# Create deploy script
+cat > ~/deploy-eventky.sh << 'EOF'
+#!/bin/bash
+set -e
+
+BRANCH=${1:-main}
+cd ~/apps/eventky
+
+echo "🔄 Fetching latest changes..."
+git fetch origin
+
+echo "📦 Checking out $BRANCH..."
+git checkout $BRANCH
+git pull origin $BRANCH || true  # Pull fails on detached HEAD, that's ok
+
+echo "📥 Installing dependencies..."
+npm install
+
+echo "🔨 Building..."
+npm run build
+
+echo "🔄 Restarting service..."
+sudo systemctl restart eventky.service
+
+echo "✅ Deployed $BRANCH successfully!"
+echo "📊 Check status: sudo systemctl status eventky.service"
+echo "📝 View logs: sudo journalctl -u eventky.service -f"
+EOF
+
+chmod +x ~/deploy-eventky.sh
+```
+
+Usage:
+```bash
+# Deploy main branch
+~/deploy-eventky.sh
+
+# Deploy a feature branch
+~/deploy-eventky.sh feature/auth-improvements
+
+# Deploy a specific commit/tag
+~/deploy-eventky.sh v0.1.0
 ```
 
 ### Update Nexus

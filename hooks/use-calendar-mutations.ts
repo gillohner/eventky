@@ -20,6 +20,7 @@ import {
     createLocalSyncMeta,
 } from "@/lib/cache";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
+import { handleMutationError } from "@/lib/pubky/session-utils";
 import { toast } from "sonner";
 import type { CachedCalendar } from "@/types/nexus";
 
@@ -58,7 +59,7 @@ export interface MutationOptions<TResult> {
  */
 export function useCreateCalendar(options?: MutationOptions<CreateCalendarResult>) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -151,9 +152,7 @@ export function useCreateCalendar(options?: MutationOptions<CreateCalendarResult
         },
 
         onError: (error, _input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to create calendar: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to create calendar", { showToasts, logout });
 
             if (context?.calendarId && auth?.publicKey) {
                 const queryKey = queryKeys.calendars.detail(auth.publicKey, context.calendarId, {});
@@ -181,7 +180,7 @@ export interface UpdateCalendarInput {
  */
 export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult>) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -190,6 +189,7 @@ export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult
                 throw new Error("Authentication required. Please sign in.");
             }
 
+            // Save to Pubky Homeserver
             await saveCalendar(auth.session, input.calendar, input.calendarId, auth.publicKey);
 
             return {
@@ -280,9 +280,7 @@ export function useUpdateCalendar(options?: MutationOptions<CreateCalendarResult
         },
 
         onError: (error, input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to update calendar: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to update calendar", { showToasts, logout });
 
             // Rollback ALL matching queries to previous cached value
             if (context?.previousData && auth?.publicKey) {
@@ -320,7 +318,7 @@ export interface DeleteCalendarInput {
  */
 export function useDeleteCalendar(options?: MutationOptions<void>) {
     const queryClient = useQueryClient();
-    const { auth } = useAuth();
+    const { auth, logout } = useAuth();
     const showToasts = options?.showToasts ?? true;
 
     return useMutation({
@@ -362,9 +360,7 @@ export function useDeleteCalendar(options?: MutationOptions<void>) {
         },
 
         onError: (error, input, context) => {
-            if (showToasts) {
-                toast.error(`Failed to delete calendar: ${error.message}`);
-            }
+            handleMutationError(error, "Failed to delete calendar", { showToasts, logout });
 
             if (context?.previousData && auth?.publicKey) {
                 const queryKey = queryKeys.calendars.detail(auth.publicKey, input.calendarId, {});

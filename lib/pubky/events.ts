@@ -28,6 +28,7 @@ export async function getEvent(
 
 /**
  * Delete an event from Pubky Homeserver
+ * Requires an authenticated Session
  */
 export async function deleteEvent(
   session: Session,
@@ -35,10 +36,14 @@ export async function deleteEvent(
   userId: string
 ): Promise<boolean> {
   try {
+    if (!session || !session.storage) {
+      throw new Error("Invalid session: No storage available. Please sign in again.");
+    }
+
     const eventUri = eventUriBuilder(userId, eventId);
     const eventPath = eventUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 
-    // Delete from Pubky storage
+    // Delete from Pubky storage using session
     await session.storage.delete(eventPath);
 
     return true;
@@ -50,6 +55,7 @@ export async function deleteEvent(
 
 /**
  * Create or update an event on Pubky Homeserver
+ * Requires an authenticated Session
  */
 export async function saveEvent(
   session: Session,
@@ -58,11 +64,6 @@ export async function saveEvent(
   userId: string
 ): Promise<boolean> {
   try {
-    // Validate session
-    console.log("Session object:", session);
-    console.log("Session.storage:", session?.storage);
-    console.log("Session.info:", session?.info);
-
     if (!session || !session.storage) {
       throw new Error("Invalid session: No storage available. Please sign in again.");
     }
@@ -79,21 +80,12 @@ export async function saveEvent(
       eventId,
       userId,
       eventPath,
-      eventJson,
     });
 
     // Save to Pubky storage using session
-    const result = await session.storage.putJson(eventPath, eventJson);
+    await session.storage.putJson(eventPath, eventJson);
 
-    console.log("Event saved successfully, result:", result);
-
-    // Verify the save by reading it back
-    try {
-      const verification = await session.storage.getJson(eventPath);
-      console.log("Verification read:", verification);
-    } catch (verifyError) {
-      console.error("Failed to verify event save:", verifyError);
-    }
+    console.log("Event saved successfully");
 
     return true;
   } catch (error) {

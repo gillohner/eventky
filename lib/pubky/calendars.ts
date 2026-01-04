@@ -28,6 +28,7 @@ export async function getCalendar(
 
 /**
  * Create or update a calendar on Pubky Homeserver
+ * Requires an authenticated Session
  */
 export async function saveCalendar(
     session: Session,
@@ -36,6 +37,10 @@ export async function saveCalendar(
     userId: string
 ): Promise<boolean> {
     try {
+        if (!session || !session.storage) {
+            throw new Error("Invalid session: No storage available. Please sign in again.");
+        }
+
         // Use calendarUriBuilder to construct the full URI, then extract the path
         const calendarUri = calendarUriBuilder(userId, calendarId);
         // Convert pubky://userId/path to /path
@@ -56,6 +61,7 @@ export async function saveCalendar(
 
 /**
  * Delete a calendar from Pubky Homeserver
+ * Requires an authenticated Session
  */
 export async function deleteCalendar(
     session: Session,
@@ -63,10 +69,14 @@ export async function deleteCalendar(
     userId: string
 ): Promise<boolean> {
     try {
+        if (!session || !session.storage) {
+            throw new Error("Invalid session: No storage available. Please sign in again.");
+        }
+
         const calendarUri = calendarUriBuilder(userId, calendarId);
         const calendarPath = calendarUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 
-        // Delete from Pubky storage
+        // Delete from Pubky storage using session
         await session.storage.delete(calendarPath);
 
         return true;
