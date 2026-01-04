@@ -27,8 +27,6 @@ flowchart TB
     NEXUS --> REDIS
 ```
 
-**Key difference from testnet:** No local homeserver or relay. Uses production Synonym services for writes/auth, VPS Nexus for reads/indexing.
-
 ---
 
 ## Phase 1: VPS Initial Setup
