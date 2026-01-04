@@ -69,6 +69,15 @@ export {
 // Profile hooks
 export { useProfile } from "./use-profile";
 
+// Author profile hooks - for fetching profile data from Nexus
+export {
+    useAuthorProfile,
+    useAuthorProfiles,
+    authorProfileKeys,
+    type AuthorProfile,
+    type UseAuthorProfileResult,
+} from "./use-author-profile";
+
 // User search hooks
 export {
     useUserSearch,

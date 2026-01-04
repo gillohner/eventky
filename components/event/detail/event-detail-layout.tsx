@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useAuthorProfile } from "@/hooks";
 import { EventHeader } from "./event-header";
 import { DateTimeRecurrence } from "./datetime-recurrence";
 import { LocationDisplay } from "./location-display";
@@ -64,6 +65,10 @@ export function EventDetailLayout({
     isDeleting,
     className,
 }: EventDetailLayoutProps) {
+    // Hooks must be called unconditionally (before any early returns)
+    // Fetch author profile for display - uses event author if available
+    const { author } = useAuthorProfile(event?.details.author);
+
     // Loading state
     if (isLoading) {
         return <EventDetailSkeleton />;
@@ -113,6 +118,8 @@ export function EventDetailLayout({
             <EventHeader
                 summary={details.summary}
                 authorId={details.author}
+                authorName={author?.name}
+                authorAvatar={author?.avatarUrl ?? undefined}
                 imageUri={details.image_uri}
                 status={details.status}
                 isRecurring={isRecurring}

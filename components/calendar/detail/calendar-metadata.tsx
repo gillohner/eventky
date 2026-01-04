@@ -1,10 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { useAuthorProfiles, type AuthorProfile } from "@/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Link as LinkIcon,
     Globe,
@@ -58,6 +60,10 @@ export function CalendarMetadata({
     className,
 }: CalendarMetadataProps) {
     const [copied, setCopied] = useState(false);
+
+    // Fetch author profiles for all authors (cached via React Query)
+    const authorIds = useMemo(() => authors || [], [authors]);
+    const { authors: authorProfiles } = useAuthorProfiles(authorIds);
 
     const handleCopyUri = async () => {
         if (!authorId || !calendarId) return;
@@ -136,8 +142,12 @@ export function CalendarMetadata({
                                 Authors ({authors.length})
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {authors.map((authorId) => (
-                                    <AdminBadge key={authorId} adminId={authorId} />
+                                {authors.map((id) => (
+                                    <AuthorBadge
+                                        key={id}
+                                        authorId={id}
+                                        profile={authorProfiles.get(id)}
+                                    />
                                 ))}
                             </div>
                         </div>
@@ -194,18 +204,28 @@ export function CalendarMetadata({
 }
 
 /**
- * Admin badge component (placeholder for user profile integration)
+ * Author badge component with profile data
  */
-function AdminBadge({ adminId }: { adminId: string }) {
-    const initials = adminId.slice(0, 2).toUpperCase();
-    const displayId = `${adminId.slice(0, 8)}...`;
+function AuthorBadge({
+    authorId,
+    profile,
+}: {
+    authorId: string;
+    profile?: AuthorProfile;
+}) {
+    // Use profile name if available, otherwise use truncated ID
+    const displayName = profile?.name || `${authorId.slice(0, 8)}...`;
+    const initials = profile?.name
+        ? profile.name.slice(0, 2).toUpperCase()
+        : authorId.slice(0, 2).toUpperCase();
 
     return (
         <Badge variant="secondary" className="gap-2 pr-2">
             <Avatar className="h-5 w-5">
+                <AvatarImage src={profile?.avatarUrl ?? undefined} alt={displayName} />
                 <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
             </Avatar>
-            <span className="text-xs font-mono">{displayId}</span>
+            <span className="text-xs">{displayName}</span>
         </Badge>
     );
 }

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { useAuthorProfile } from "@/hooks";
 import { CalendarHeader } from "./calendar-header";
 import { CalendarMetadata } from "./calendar-metadata";
 import { CalendarTagsSection } from "./calendar-tags-section";
@@ -55,6 +56,10 @@ export function CalendarDetailLayout({
     onRemoveTag,
     className,
 }: CalendarDetailLayoutProps) {
+    // Hooks must be called unconditionally (before any early returns)
+    // Fetch author profile for display - uses calendar author if available
+    const { author } = useAuthorProfile(calendar?.details.author);
+
     // Memoize calendar filter unconditionally (hooks must be called in same order)
     const calendarFilter = useMemo(() => {
         if (!calendar) return [];
@@ -112,6 +117,8 @@ export function CalendarDetailLayout({
             <CalendarHeader
                 name={details.name}
                 authorId={details.author}
+                authorName={author?.name}
+                authorAvatar={author?.avatarUrl ?? undefined}
                 imageUri={details.image_uri}
                 color={details.color}
                 timezone={details.timezone}

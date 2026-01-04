@@ -91,5 +91,31 @@ TanStack Query persists to localStorage with 24-hour max age:
 | `lib/cache/utils.ts`                      | Query keys, config constants         |
 | `hooks/use-event-hooks.ts`                | Event hooks with sync status         |
 | `hooks/use-event-mutations.ts`            | Event mutation hooks                 |
+| `hooks/use-author-profile.ts`             | Author profile caching               |
 | `components/ui/sync-status-indicator.tsx` | Sync badge UI                        |
 | `components/providers/query-provider.tsx` | TanStack Query persistence setup     |
+
+## Author Profile Caching
+
+Author profiles are fetched from Nexus and cached separately from events/calendars:
+
+```typescript
+import { useAuthorProfile, useAuthorProfiles } from "@/hooks";
+
+// Single author
+const { author, isLoading } = useAuthorProfile(authorId);
+// author?.name, author?.avatarUrl
+
+// Multiple authors (batch)
+const { authors, isLoading } = useAuthorProfiles(authorIds);
+// authors.get(authorId)?.name
+```
+
+**Query Keys**: `["nexus", "author", authorId]` — shared across both hooks for cache efficiency.
+
+**Stale Time**: 5 minutes — profiles change less frequently than events.
+
+**Usage Pattern**:
+- Detail pages: `useAuthorProfile` in layout, pass `authorName`/`authorAvatar` as props
+- Lists with multiple authors: `useAuthorProfiles` in parent component, pass profiles to rows
+- Always use `getPubkyAvatarUrl(userId)` for avatar URLs (Nexus static endpoint)

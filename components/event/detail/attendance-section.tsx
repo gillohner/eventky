@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { config } from "@/lib/config";
+import { useAuthorProfiles, type AuthorProfile } from "@/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -193,6 +194,13 @@ export function AttendanceSection({
     const tentativeCount = groupedAttendees["TENTATIVE"]?.length || 0;
     const totalCount = deduplicatedAttendees.length;
 
+    // Fetch author profiles for all attendees (cached via React Query)
+    const attendeeAuthorIds = useMemo(
+        () => deduplicatedAttendees.map((a) => a.author),
+        [deduplicatedAttendees]
+    );
+    const { authors: attendeeProfiles } = useAuthorProfiles(attendeeAuthorIds);
+
     // Find current user's RSVP status
     const currentUserAttendance = deduplicatedAttendees.find((a) => a.author === currentUserId);
     const currentUserStatus = currentUserAttendance?.partstat?.toUpperCase() as PartStat | undefined;
@@ -298,7 +306,11 @@ export function AttendanceSection({
                         </p>
                         <div className="space-y-2">
                             {displayAttendees.map((attendee) => (
-                                <AttendeeRow key={attendee.id} attendee={attendee} />
+                                <AttendeeRow
+                                    key={attendee.id}
+                                    attendee={attendee}
+                                    profile={attendeeProfiles.get(attendee.author)}
+                                />
                             ))}
                         </div>
 
@@ -384,10 +396,21 @@ function RsvpButton({
 /**
  * Attendee row component
  */
-function AttendeeRow({ attendee }: { attendee: Attendee }) {
+function AttendeeRow({
+    attendee,
+    profile,
+}: {
+    attendee: Attendee;
+    profile?: AuthorProfile;
+}) {
     const statusIcon = getStatusIcon(attendee.partstat);
     const statusColor = getStatusColor(attendee.partstat);
-    const initials = attendee.author.slice(0, 2).toUpperCase();
+
+    // Use profile name if available, otherwise use truncated ID
+    const displayName = profile?.name || truncateId(attendee.author);
+    const initials = profile?.name
+        ? profile.name.slice(0, 2).toUpperCase()
+        : attendee.author.slice(0, 2).toUpperCase();
 
     return (
         <a
@@ -397,12 +420,12 @@ function AttendeeRow({ attendee }: { attendee: Attendee }) {
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
         >
             <Avatar className="h-8 w-8">
-                <AvatarImage src={undefined} alt={attendee.author} />
+                <AvatarImage src={profile?.avatarUrl ?? undefined} alt={displayName} />
                 <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
-                    {truncateId(attendee.author)}
+                    {displayName}
                 </p>
             </div>
             <div className={cn("flex items-center gap-1 text-xs", statusColor)}>
