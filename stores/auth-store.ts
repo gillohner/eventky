@@ -176,9 +176,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                         // This works as long as the browser's HTTP-only cookie is still valid
                         try {
                             const session = await pubky.restoreSession(parsed.sessionSnapshot);
-                            
+
                             console.log("QR auth session restored successfully");
-                            
+
                             set({
                                 isAuthenticated: true,
                                 publicKey: parsed.publicKey,
