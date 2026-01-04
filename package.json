@@ -40,7 +40,7 @@
     "date-fns-tz": "^3.2.0",
     "ics": "^3.8.1",
     "lucide-react": "^0.553.0",
-    "next": "16.0.7",
+    "next": "^16.1.1",
     "pubky-app-specs": "file:../pubky-app-specs/pkg",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
