@@ -1,12 +1,11 @@
 /**
- * Dev Mode - JSON View Component
- * Displays raw JSON data for development and debugging
- * Only visible in development mode
+ * Debug Mode - JSON View Component
+ * Displays raw JSON data for debugging
+ * Visibility is controlled by the calling component via useDebugView hook
  */
 
 "use client";
 
-import { config } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
@@ -19,8 +18,9 @@ interface DevJsonViewProps {
 }
 
 /**
- * Component to display raw JSON data in development mode
+ * Component to display raw JSON data when debug mode is enabled
  * Shows loading state, errors, and formatted JSON
+ * Note: Visibility should be controlled by the parent component using useDebugView hook
  */
 export function DevJsonView({
     data,
@@ -29,11 +29,6 @@ export function DevJsonView({
     error = null,
 }: DevJsonViewProps) {
     const [copied, setCopied] = useState(false);
-
-    // Only render in development mode
-    if (!config.isDevelopment) {
-        return null;
-    }
 
     const handleCopy = async () => {
         try {
@@ -51,7 +46,7 @@ export function DevJsonView({
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold">{title}</h1>
                     <div className="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-medium">
-                        DEV MODE
+                        DEBUG MODE
                     </div>
                 </div>
 
