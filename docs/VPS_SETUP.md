@@ -7,6 +7,11 @@
 ssh eventky@34.88.231.77
 ```
 
+**Access URLs:**
+- App: https://eventky.app
+- Nexus API: https://nexus.eventky.app
+- Swagger UI: https://nexus.eventky.app/swagger-ui/
+
 **Update to latest main:**
 ```bash
 cd ~/apps/eventky && git pull && npm ci && npm run build && sudo systemctl restart eventky.service
@@ -150,8 +155,9 @@ cd ~/apps/docker
 
 ### 2.2 Create Docker Compose File
 
-```bash
-cat > docker-compose.yml << 'EOF'
+Create `~/apps/docker/docker-compose.yml`:
+
+```yaml
 services:
   neo4j:
     image: neo4j:5.26.7-community
@@ -180,7 +186,6 @@ services:
       - "8001:8001"
     volumes:
       - ./redis/data:/data
-EOF
 ```
 
 ### 2.3 Start Databases
@@ -196,8 +201,9 @@ docker compose logs redis
 
 ### 2.4 Create Systemd Service for Docker Compose
 
-```bash
-sudo cat > /etc/systemd/system/eventky-db.service << 'EOF'
+Create `/etc/systemd/system/eventky-db.service`:
+
+```ini
 [Unit]
 Description=Eventky Databases (Neo4j + Redis)
 Requires=docker.service
@@ -213,8 +219,11 @@ ExecStop=/usr/bin/docker compose down
 
 [Install]
 WantedBy=multi-user.target
-EOF
+```
 
+Enable the service:
+
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable eventky-db.service
 ```
@@ -241,7 +250,12 @@ cargo build --release -p nexusd
 
 ```bash
 mkdir -p ~/apps/nexus-config
-cat > ~/apps/nexus-config/config.toml << 'EOF'
+mkdir -p ~/apps/nexus-data/static/files
+```
+
+Create `~/apps/nexus-config/config.toml`:
+
+```toml
 [api]
 name = "nexusd.api"
 public_ip = "34.88.231.77"
@@ -277,16 +291,13 @@ redis = "redis://127.0.0.1:6379"
 [stack.db.neo4j]
 uri = "bolt://127.0.0.1:7687"
 password = "eventky_neo4j_secure_2024"
-EOF
-
-# Create data directory
-mkdir -p ~/apps/nexus-data/static/files
 ```
 
 ### 3.3 Create Nexus Systemd Service
 
-```bash
-sudo cat > /etc/systemd/system/nexus.service << 'EOF'
+Create `/etc/systemd/system/nexus.service`:
+
+```ini
 [Unit]
 Description=Pubky Nexus Indexer
 After=network.target eventky-db.service
@@ -303,8 +314,11 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-EOF
+```
 
+Enable and start the service:
+
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable nexus.service
 sudo systemctl start nexus.service
@@ -356,13 +370,14 @@ npm install ../pubky-app-specs/pkg
 
 ```bash
 cd ~/apps/eventky
-npm install
+npm ci
 ```
 
 ### 4.4 Create Environment File
 
+Create `~/apps/eventky/.env.local`:
+
 ```bash
-cat > .env.local << 'EOF'
 # Production environment with custom Nexus
 NEXT_PUBLIC_PUBKY_ENV=production
 
@@ -382,7 +397,6 @@ NEXT_PUBLIC_GITHUB_REPO=https://github.com/gillohner/eventky
 
 # Debug available for demo
 NEXT_PUBLIC_DEBUG_AVAILABLE=true
-EOF
 ```
 
 ### 4.5 Build Production Bundle
@@ -393,8 +407,9 @@ npm run build
 
 ### 4.6 Create Eventky Systemd Service
 
-```bash
-sudo cat > /etc/systemd/system/eventky.service << 'EOF'
+Create `/etc/systemd/system/eventky.service`:
+
+```ini
 [Unit]
 Description=Eventky Next.js Application
 After=network.target nexus.service
@@ -412,8 +427,11 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-EOF
+```
 
+Enable and start the service:
+
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable eventky.service
 sudo systemctl start eventky.service
@@ -470,6 +488,277 @@ curl -I http://34.88.231.77:7474
 
 ---
 
+## Phase 6: Domain & SSL Setup (nginx + Let's Encrypt)
+
+### 6.1 Install nginx
+
+```bash
+sudo apt install -y nginx
+sudo systemctl enable nginx
+sudo systemctl start nginx
+```
+
+### 6.2 Configure DNS Records
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| A | @ | 34.88.231.77 | 3600 |
+| A | nexus | 34.88.231.77 | 3600 |
+
+### 6.3 Open Firewall Ports
+
+Before running Certbot, ensure ports 80 and 443 are open in your cloud provider's firewall.
+
+**Current required ports:**
+- `tcp:80` - HTTP (nginx)
+- `tcp:443` - HTTPS (nginx)
+- `tcp:3000` - Eventky (internal, can be removed after nginx setup)
+- `tcp:8080` - Nexus API (internal, can be removed after nginx setup)
+- `tcp:7474` - Neo4j Browser (optional, for debugging)
+- `tcp:7687` - Neo4j Bolt (internal)
+- `tcp:8001` - Redis Insight (optional, for debugging)
+
+### 6.4 Install Certbot (Let's Encrypt)
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### 6.5 Create nginx Configuration for Eventky
+
+Create `/etc/nginx/sites-available/eventky.app`:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name eventky.app www.eventky.app;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Next.js specific timeouts
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+}
+```
+
+Enable the site:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/eventky.app /etc/nginx/sites-enabled/
+```
+
+### 6.6 Create nginx Configuration for Nexus
+
+Create `/etc/nginx/sites-available/nexus.eventky.app`:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name nexus.eventky.app;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # CORS headers for API
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization' always;
+        
+        # Handle preflight requests
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+    }
+}
+```
+
+Enable the site:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/nexus.eventky.app /etc/nginx/sites-enabled/
+```
+
+### 6.7 Remove Default nginx Site
+
+```bash
+sudo rm -f /etc/nginx/sites-enabled/default
+```
+
+### 6.8 Test nginx Configuration
+
+```bash
+sudo nginx -t
+```
+
+If successful, reload nginx:
+```bash
+sudo systemctl reload nginx
+```
+
+### 6.9 Get Certbot SSL Certificates
+
+**Note:** You don't need a DNS record for `www.eventky.app` unless you want it. You can skip it:
+
+```bash
+# Get certificates for both domains (without www)
+sudo certbot --nginx -d eventky.app -d nexus.eventky.app
+### 6.10 Test Auto-Renewal
+
+Or if you want www support, add an A record for `www` pointing to `34.88.231.77` first, then run:
+
+```bash
+# Get certificates including www subdomain
+### 6.11 Update Eventky Environment -d www.eventky.app -d nexus.eventky.app
+```
+
+### 6.9 Test Auto-Renewal
+
+```bash
+sudo certbot renew --dry-run
+```
+
+### 6.10 Update Eventky Environment
+
+Update `~/apps/eventky/.env.local` to use the new domain:
+
+```bash
+# Production environment with custom Nexus
+NEXT_PUBLIC_PUBKY_ENV=production
+
+# Override gateway to use domain
+NEXT_PUBLIC_PUBKY_GATEWAY=https://nexus.eventky.app
+
+# Use production Synonym homeserver (default for production env)
+# NEXT_PUBLIC_PUBKY_HOMESERVER=ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy
+
+# Use production Synonym relay (default for production env)
+# NEXT_PUBLIC_PUBKY_RELAY=https://httprelay.pubky.app/link/
+
+# App configuration
+NEXT_PUBLIC_APP_NAME=Eventky
+NEXT_PUBLIC_APP_VERSION=0.1.0
+NEXT_PUBLIC_GITHUB_REPO=https://github.com/gillohner/eventky
+
+# Debug available for demo
+NEXT_PUBLIC_DEBUG_AVAILABLE=true
+```
+
+Rebuild and restart:
+
+```bash
+cd ~/apps/eventky
+npm run build
+sudo systemctl restart eventky.service
+```
+
+### 6.12 Verify SSL Setup
+
+```bash
+# Check SSL certificates
+curl -I https://eventky.app
+curl -I https://nexus.eventky.app
+
+# Test Nexus API
+curl https://nexus.eventky.app/v0/info
+```
+
+### 6.13 Final Access URLs
+
+| Service | URL |
+|---------|-----|
+| **Eventky** | https://eventky.app |
+| **Nexus API** | https://nexus.eventky.app |
+| **Nexus Swagger** | https://nexus.eventky.app/swagger-ui/ |
+| **Neo4j Browser** | http://34.88.231.77:7474 (internal only) |
+| **Redis Insight** | http://34.88.231.77:8001 (internal only) |
+
+### 6.14 Firewall Configuration (Optional but Recommended)
+
+If you want to restrict direct access to ports using ufw:
+
+```bash
+# Install ufw if not present
+sudo apt install -y ufw
+
+# Allow SSH (IMPORTANT: do this first!)
+sudo ufw allow 22/tcp
+
+# Allow HTTP and HTTPS (nginx)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Enable firewall
+sudo ufw --force enable
+
+# Check status
+sudo ufw status
+```
+
+### 6.16 Certificate Renewal ports 3000, 8080, 7474, 8001 from outside, while allowing nginx to proxy through. However, **Google Cloud's firewall takes precedence**, so you should primarily manage ports there.
+
+### 6.15 nginx Troubleshooting
+
+```bash
+# Check nginx status
+sudo systemctl status nginx
+
+# View nginx error logs
+sudo tail -f /var/log/nginx/error.log
+
+# View nginx access logs
+sudo tail -f /var/log/nginx/access.log
+
+# Test configuration syntax
+sudo nginx -t
+
+# Reload after config changes
+sudo systemctl reload nginx
+
+# Restart if needed
+sudo systemctl restart nginx
+```
+
+### 6.15 Certificate Renewal
+
+Certbot sets up automatic renewal via systemd timer. Check renewal status:
+
+```bash
+# Check renewal timer
+sudo systemctl status certbot.timer
+
+# List certificates
+sudo certbot certificates
+
+# Manual renewal (if needed)
+sudo certbot renew
+```
+
+---
+
 ## Management Commands
 
 ### Service Control
@@ -488,17 +777,17 @@ sudo systemctl stop eventky-db.service
 # Restart individual service
 sudo systemctl restart eventky.service
 
-# View logs
-sudo journalctl -u nexus.service -f
-sudo journalctl -u eventky.service -f
-```
-
 ### Update Eventky (Main Branch)
 
 ```bash
 cd ~/apps/eventky
 git pull
-npm install
+npm ci
+npm run build
+sudo systemctl restart eventky.service
+```~/apps/eventky
+git pull
+npm ci
 npm run build
 sudo systemctl restart eventky.service
 ```
@@ -520,7 +809,7 @@ git checkout feature/some-branch
 git checkout -b feature/some-branch origin/feature/some-branch
 
 # 4. Install dependencies (in case package.json changed)
-npm install
+npm ci
 
 # 5. Build and restart
 npm run build
@@ -531,61 +820,12 @@ sudo systemctl restart eventky.service
 # 7. When done, go back to main
 git checkout main
 git pull
-npm install
+npm ci
 npm run build
 sudo systemctl restart eventky.service
 
 # 8. Restore any stashed changes (if needed)
 git stash pop
-```
-
-### Quick Deploy Script
-
-Create a deploy script for convenience:
-
-```bash
-# Create deploy script
-cat > ~/deploy-eventky.sh << 'EOF'
-#!/bin/bash
-set -e
-
-BRANCH=${1:-main}
-cd ~/apps/eventky
-
-echo "🔄 Fetching latest changes..."
-git fetch origin
-
-echo "📦 Checking out $BRANCH..."
-git checkout $BRANCH
-git pull origin $BRANCH || true  # Pull fails on detached HEAD, that's ok
-
-echo "📥 Installing dependencies..."
-npm install
-
-echo "🔨 Building..."
-npm run build
-
-echo "🔄 Restarting service..."
-sudo systemctl restart eventky.service
-
-echo "✅ Deployed $BRANCH successfully!"
-echo "📊 Check status: sudo systemctl status eventky.service"
-echo "📝 View logs: sudo journalctl -u eventky.service -f"
-EOF
-
-chmod +x ~/deploy-eventky.sh
-```
-
-Usage:
-```bash
-# Deploy main branch
-~/deploy-eventky.sh
-
-# Deploy a feature branch
-~/deploy-eventky.sh feature/auth-improvements
-
-# Deploy a specific commit/tag
-~/deploy-eventky.sh v0.1.0
 ```
 
 ### Update Nexus
@@ -624,7 +864,6 @@ sudo systemctl start nexus.service
 | Eventky build fails | Node version (`node -v`), dependencies |
 | Login not working | Production relay URL, CORS |
 | Events not appearing | Nexus logs, homeserver connection |
-| Port not accessible | `ufw status`, security groups |
 
 ### Common Fixes
 
@@ -639,8 +878,6 @@ docker compose up -d
 which node
 # Update systemd service with correct path
 
-# If ports blocked by cloud provider:
-# Check GCP/AWS security group rules
 ```
 
 ---
