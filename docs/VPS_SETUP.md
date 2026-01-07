@@ -505,18 +505,28 @@ sudo systemctl start nginx
 | A | @ | 34.88.231.77 | 3600 |
 | A | nexus | 34.88.231.77 | 3600 |
 
-### 6.3 Open Firewall Ports
+### 6.3 Required Firewall Ports
 
-Before running Certbot, ensure ports 80 and 443 are open in your cloud provider's firewall.
+Configure your cloud provider's firewall (or local firewall like UFW/iptables) to allow the following ports:
 
-**Current required ports:**
-- `tcp:80` - HTTP (nginx)
-- `tcp:443` - HTTPS (nginx)
-- `tcp:3000` - Eventky (internal, can be removed after nginx setup)
-- `tcp:8080` - Nexus API (internal, can be removed after nginx setup)
-- `tcp:7474` - Neo4j Browser (optional, for debugging)
-- `tcp:7687` - Neo4j Bolt (internal)
-- `tcp:8001` - Redis Insight (optional, for debugging)
+**Essential Ports (Required for HTTPS setup):**
+- `tcp:80` - HTTP (nginx) - Required for Let's Encrypt certificate validation
+- `tcp:443` - HTTPS (nginx) - Required for secure web access
+- `tcp:22` - SSH - For remote management
+
+**Application Ports (Can be internal-only after nginx setup):**
+- `tcp:3000` - Eventky (Next.js) - Can be localhost-only after nginx reverse proxy
+- `tcp:8080` - Nexus API - Can be localhost-only after nginx reverse proxy
+
+**Database Ports (Should be internal-only):**
+- `tcp:7474` - Neo4j Browser - Optional, for debugging (recommend localhost-only or VPN)
+- `tcp:7687` - Neo4j Bolt - Should be localhost-only
+- `tcp:6379` - Redis - Should be localhost-only
+- `tcp:8001` - Redis Insight - Optional, for debugging (recommend localhost-only or VPN)
+
+**Recommended Configuration:**
+
+After nginx is set up with SSL, only ports 80, 443, and 22 need to be open to the public internet. All other ports should be restricted to localhost or accessible only via VPN/SSH tunnel for administrative purposes.
 
 ### 6.4 Install Certbot (Let's Encrypt)
 
@@ -549,6 +559,10 @@ server {
         proxy_read_timeout 60s;
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
+        
+        # Fix for Next.js chunk loading errors
+        proxy_buffering off;
+        proxy_request_buffering off;
     }
 }
 ```
@@ -577,7 +591,8 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         
-        # CORS headers for API
+        # CORS headers for API (only add once, not in both HTTP and HTTPS blocks)
+        # Certbot will preserve these when adding SSL
         add_header 'Access-Control-Allow-Origin' '*' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization' always;
@@ -595,6 +610,8 @@ server {
     }
 }
 ```
+
+**Important:** After running Certbot, check that CORS headers are not duplicated in the HTTPS block.
 
 Enable the site:
 
@@ -626,22 +643,15 @@ sudo systemctl reload nginx
 ```bash
 # Get certificates for both domains (without www)
 sudo certbot --nginx -d eventky.app -d nexus.eventky.app
-### 6.10 Test Auto-Renewal
-
-Or if you want www support, add an A record for `www` pointing to `34.88.231.77` first, then run:
-
-```bash
-# Get certificates including www subdomain
-### 6.11 Update Eventky Environment -d www.eventky.app -d nexus.eventky.app
 ```
 
-### 6.9 Test Auto-Renewal
+### 6.10 Test Auto-Renewal
 
 ```bash
 sudo certbot renew --dry-run
 ```
 
-### 6.10 Update Eventky Environment
+### 6.11 Update Eventky Environment
 
 Update `~/apps/eventky/.env.local` to use the new domain:
 
@@ -696,31 +706,8 @@ curl https://nexus.eventky.app/v0/info
 | **Neo4j Browser** | http://34.88.231.77:7474 (internal only) |
 | **Redis Insight** | http://34.88.231.77:8001 (internal only) |
 
-### 6.14 Firewall Configuration (Optional but Recommended)
 
-If you want to restrict direct access to ports using ufw:
-
-```bash
-# Install ufw if not present
-sudo apt install -y ufw
-
-# Allow SSH (IMPORTANT: do this first!)
-sudo ufw allow 22/tcp
-
-# Allow HTTP and HTTPS (nginx)
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# Enable firewall
-sudo ufw --force enable
-
-# Check status
-sudo ufw status
-```
-
-### 6.16 Certificate Renewal ports 3000, 8080, 7474, 8001 from outside, while allowing nginx to proxy through. However, **Google Cloud's firewall takes precedence**, so you should primarily manage ports there.
-
-### 6.15 nginx Troubleshooting
+### 6.14 nginx Troubleshooting
 
 ```bash
 # Check nginx status
@@ -864,6 +851,7 @@ sudo systemctl start nexus.service
 | Eventky build fails | Node version (`node -v`), dependencies |
 | Login not working | Production relay URL, CORS |
 | Events not appearing | Nexus logs, homeserver connection |
+| Chunk loading errors (500) | nginx buffering, rebuild Next.js |
 
 ### Common Fixes
 
@@ -877,7 +865,163 @@ docker compose up -d
 # If Eventky won't start, check Node path:
 which node
 # Update systemd service with correct path
-
 ```
+
+### Next.js Chunk Loading Errors (HTTP 500)
+
+If you see `ChunkLoadError: Failed to load chunk` errors in the browser console with 500 status codes:
+
+**Symptoms:**
+- App works on `http://34.88.231.77:3000` (direct)
+- App fails on `https://eventky.app` (nginx)
+- Specific chunks return 500 errors
+
+**Solutions:**
+
+1. **Update nginx configuration** (add buffering settings):
+   ```bash
+   # Edit the eventky nginx config
+   sudo nano /etc/nginx/sites-available/eventky.app
+   
+   # Add these lines inside the location / block:
+   proxy_buffering off;
+   proxy_request_buffering off;
+   
+   # Test and reload
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+2. **Rebuild Next.js with correct environment**:
+   ```bash
+   cd ~/apps/eventky
+   
+   # Ensure NEXT_PUBLIC_PUBKY_GATEWAY uses HTTPS domain
+   # Edit .env.local to use https://nexus.eventky.app
+   
+   # Clean build
+   rm -rf .next
+   npm run build
+   sudo systemctl restart eventky.service
+   ```
+
+3. **Check nginx error logs**:
+   ```bash
+   sudo tail -f /var/log/nginx/error.log
+   ```
+
+4. **Check Eventky service logs**:
+   ```bash
+   sudo journalctl -u eventky.service -f
+   ```
+
+5. **Verify Next.js is running correctly**:
+   ```bash
+   # Test direct access
+   curl -I http://localhost:3000/_next/static/chunks/6d013e083006e011.js
+   
+   # Should return 200 OK
+   ```
+
+### CORS Errors with Nexus API
+
+If you see `CORS header 'Access-Control-Allow-Origin' does not match '*, *'` errors:
+
+**Symptoms:**
+- Direct API access works: `curl https://nexus.eventky.app/v0/stream/events?limit=100`
+- Browser console shows CORS errors
+- Error message shows duplicate asterisks: `'*, *'`
+
+**Root Cause:**
+nginx is adding CORS headers multiple times (once in HTTP block, once in HTTPS block after Certbot SSL setup).
+
+**Solution:**
+
+1. **Check for duplicate CORS headers**:
+   ```bash
+   # View the nginx config
+   sudo cat /etc/nginx/sites-available/nexus.eventky.app
+   ```
+
+2. **Look for BOTH an HTTP (port 80) and HTTPS (port 443) server block with CORS headers**:
+   ```nginx
+   # You'll see something like:
+   server {
+       listen 80;
+       # ... CORS headers here ...
+   }
+   
+   server {
+       listen 443 ssl;
+       # ... CORS headers here AGAIN (duplicate!) ...
+   }
+   ```
+
+3. **Remove CORS headers from ONE of the blocks** (keep them in the HTTPS/443 block):
+   ```bash
+   sudo nano /etc/nginx/sites-available/nexus.eventky.app
+   
+   # Remove these lines from the HTTP (port 80) block only:
+   # add_header 'Access-Control-Allow-Origin' '*' always;
+   # add_header 'Access-Control-Allow-Methods' '...' always;
+   # add_header 'Access-Control-Allow-Headers' '...' always;
+   # (and the if block for OPTIONS)
+   ```
+
+4. **Correct configuration** - only HTTPS block should have CORS headers:
+   ```nginx
+   # HTTP block - redirect to HTTPS, NO CORS headers
+   server {
+       listen 80;
+       server_name nexus.eventky.app;
+       return 301 https://$server_name$request_uri;
+   }
+   
+   # HTTPS block - CORS headers HERE
+   server {
+       listen 443 ssl;
+       server_name nexus.eventky.app;
+       
+       # SSL certificates (managed by Certbot)
+       ssl_certificate /etc/letsencrypt/live/nexus.eventky.app/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/nexus.eventky.app/privkey.pem;
+       
+       location / {
+           proxy_pass http://localhost:8080;
+           proxy_http_version 1.1;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           
+           # CORS headers - ONLY in HTTPS block
+           add_header 'Access-Control-Allow-Origin' '*' always;
+           add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+           add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization' always;
+           
+           if ($request_method = 'OPTIONS') {
+               add_header 'Access-Control-Allow-Origin' '*';
+               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+               add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+               add_header 'Access-Control-Max-Age' 1728000;
+               add_header 'Content-Type' 'text/plain; charset=utf-8';
+               add_header 'Content-Length' 0;
+               return 204;
+           }
+       }
+   }
+   ```
+
+5. **Test and reload**:
+   ```bash
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+6. **Verify CORS headers**:
+   ```bash
+   # Should show Access-Control-Allow-Origin only ONCE
+   curl -I https://nexus.eventky.app/v0/stream/events?limit=100
+   ```
 
 ---
