@@ -505,18 +505,28 @@ sudo systemctl start nginx
 | A | @ | 34.88.231.77 | 3600 |
 | A | nexus | 34.88.231.77 | 3600 |
 
-### 6.3 Open Firewall Ports
+### 6.3 Required Firewall Ports
 
-Before running Certbot, ensure ports 80 and 443 are open in your cloud provider's firewall.
+Configure your cloud provider's firewall (or local firewall like UFW/iptables) to allow the following ports:
 
-**Current required ports:**
-- `tcp:80` - HTTP (nginx)
-- `tcp:443` - HTTPS (nginx)
-- `tcp:3000` - Eventky (internal, can be removed after nginx setup)
-- `tcp:8080` - Nexus API (internal, can be removed after nginx setup)
-- `tcp:7474` - Neo4j Browser (optional, for debugging)
-- `tcp:7687` - Neo4j Bolt (internal)
-- `tcp:8001` - Redis Insight (optional, for debugging)
+**Essential Ports (Required for HTTPS setup):**
+- `tcp:80` - HTTP (nginx) - Required for Let's Encrypt certificate validation
+- `tcp:443` - HTTPS (nginx) - Required for secure web access
+- `tcp:22` - SSH - For remote management
+
+**Application Ports (Can be internal-only after nginx setup):**
+- `tcp:3000` - Eventky (Next.js) - Can be localhost-only after nginx reverse proxy
+- `tcp:8080` - Nexus API - Can be localhost-only after nginx reverse proxy
+
+**Database Ports (Should be internal-only):**
+- `tcp:7474` - Neo4j Browser - Optional, for debugging (recommend localhost-only or VPN)
+- `tcp:7687` - Neo4j Bolt - Should be localhost-only
+- `tcp:6379` - Redis - Should be localhost-only
+- `tcp:8001` - Redis Insight - Optional, for debugging (recommend localhost-only or VPN)
+
+**Recommended Configuration:**
+
+After nginx is set up with SSL, only ports 80, 443, and 22 need to be open to the public internet. All other ports should be restricted to localhost or accessible only via VPN/SSH tunnel for administrative purposes.
 
 ### 6.4 Install Certbot (Let's Encrypt)
 
@@ -549,6 +559,10 @@ server {
         proxy_read_timeout 60s;
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
+        
+        # Fix for Next.js chunk loading errors
+        proxy_buffering off;
+        proxy_request_buffering off;
     }
 }
 ```
@@ -626,22 +640,15 @@ sudo systemctl reload nginx
 ```bash
 # Get certificates for both domains (without www)
 sudo certbot --nginx -d eventky.app -d nexus.eventky.app
-### 6.10 Test Auto-Renewal
-
-Or if you want www support, add an A record for `www` pointing to `34.88.231.77` first, then run:
-
-```bash
-# Get certificates including www subdomain
-### 6.11 Update Eventky Environment -d www.eventky.app -d nexus.eventky.app
 ```
 
-### 6.9 Test Auto-Renewal
+### 6.10 Test Auto-Renewal
 
 ```bash
 sudo certbot renew --dry-run
 ```
 
-### 6.10 Update Eventky Environment
+### 6.11 Update Eventky Environment
 
 Update `~/apps/eventky/.env.local` to use the new domain:
 
@@ -696,31 +703,8 @@ curl https://nexus.eventky.app/v0/info
 | **Neo4j Browser** | http://34.88.231.77:7474 (internal only) |
 | **Redis Insight** | http://34.88.231.77:8001 (internal only) |
 
-### 6.14 Firewall Configuration (Optional but Recommended)
 
-If you want to restrict direct access to ports using ufw:
-
-```bash
-# Install ufw if not present
-sudo apt install -y ufw
-
-# Allow SSH (IMPORTANT: do this first!)
-sudo ufw allow 22/tcp
-
-# Allow HTTP and HTTPS (nginx)
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# Enable firewall
-sudo ufw --force enable
-
-# Check status
-sudo ufw status
-```
-
-### 6.16 Certificate Renewal ports 3000, 8080, 7474, 8001 from outside, while allowing nginx to proxy through. However, **Google Cloud's firewall takes precedence**, so you should primarily manage ports there.
-
-### 6.15 nginx Troubleshooting
+### 6.14 nginx Troubleshooting
 
 ```bash
 # Check nginx status
