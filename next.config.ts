@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
     root: join(__dirname, ".."),
   },
 
+  // Experimental features for WASM
+  experimental: {
+    // Enable WebAssembly support
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
+
   // Webpack config for production builds (Turbopack only used in dev)
   webpack: (config, { isServer }) => {
     // Handle WASM files

@@ -73,7 +73,7 @@ function createMockNexusEvent(overrides?: Partial<NexusEventResponse['details']>
             dtend_tzid: 'America/New_York',
             description: 'Test event description',
             status: 'CONFIRMED',
-            location: 'Test Location',
+            locations: JSON.stringify([{ uid: 'loc1', name: 'Test Location' }]),
             sequence: 1,
             created: TEST_TIMESTAMP,
             last_modified: TEST_TIMESTAMP + 50,

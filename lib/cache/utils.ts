@@ -122,6 +122,12 @@ export function pubkyEventToNexusFormat(
     // Get current timestamp for indexed_at (local writes aren't indexed yet)
     const now = Date.now();
 
+    // Get the full event data including locations/conferences via toJson()
+    // The TypeScript bindings may not expose locationsJson directly
+    const eventJson = event.toJson?.() ?? event;
+    const locationsJson = eventJson.locations ? JSON.stringify(eventJson.locations) : undefined;
+    const conferencesJson = eventJson.conferences ? JSON.stringify(eventJson.conferences) : undefined;
+
     return {
         details: {
             id: eventId,
@@ -141,8 +147,8 @@ export function pubkyEventToNexusFormat(
             exdate: event.exdate ?? undefined,
             description: event.description ?? undefined,
             status: event.status ?? undefined,
-            location: event.location ?? undefined,
-            geo: event.geo ?? undefined,
+            locations: locationsJson,
+            conferences: conferencesJson,
             url: event.url ?? undefined,
             sequence: event.sequence ?? 0,
             last_modified: event.last_modified ? Number(event.last_modified) : undefined,

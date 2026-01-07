@@ -249,11 +249,11 @@ function parseCalendarUri(uri: string): {
     authorId?: string;
     calendarId?: string;
 } {
-    // Parse pubky://authorId/pub/eventky.app/calendars/calendarId using pubky-app-specs
+    // Parse pubky://authorId/pub/eventky.app/calendars/calendarId manually
     try {
-        const parsed = parse_uri(uri);
-        if (parsed.resource === "calendars" && parsed.resource_id) {
-            return { authorId: parsed.user_id, calendarId: parsed.resource_id };
+        const match = uri.match(/^pubky:\/\/([^\/]+)\/pub\/eventky\.app\/calendars\/(.+)$/);
+        if (match) {
+            return { authorId: match[1], calendarId: match[2] };
         }
     } catch {
         // Fall through to return empty

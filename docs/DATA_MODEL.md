@@ -42,7 +42,17 @@ graph TB
 - **Path**: `/pub/eventky.app/events/:event_id` (timestamp-based ID)
 - **Storage**: Creator's homeserver
 - **Required**: `uid`, `summary`, `dtstart`, `dtstamp`
-- **Optional**: `dtend`, `duration`, `location`, `description`, `rrule` (recurrence), `x_pubky_calendar_uris`
+- **Optional**: `dtend`, `duration`, `description`, `rrule` (recurrence), `x_pubky_calendar_uris`
+- **Locations**: `locations` (RFC 9073 VLOCATION array) - structured physical locations
+- **Conferences**: `conferences` (RFC 7986 CONFERENCE array) - virtual meeting links
+
+### EventLocation (RFC 9073 VLOCATION)
+- **Fields**: `uid` (required), `name`, `location_type` (RFC 4589), `description`, `geo` (RFC 5870), `structured_data_uri`
+- **Example**: `{ "uid": "main-venue", "name": "Convention Center", "location_type": "venue", "geo": "geo:47.3769,8.5417" }`
+
+### EventConference (RFC 7986 CONFERENCE)
+- **Fields**: `uri` (required), `features` (AUDIO, VIDEO, CHAT, etc.), `label`
+- **Example**: `{ "uri": "https://zoom.us/j/123456789", "features": ["AUDIO", "VIDEO"], "label": "Main Room" }`
 
 ### Attendee (RSVP)
 - **Path**: `/pub/eventky.app/attendees/:attendee_id` (hash of event URI + recurrence_id)

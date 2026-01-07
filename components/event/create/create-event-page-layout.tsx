@@ -19,7 +19,9 @@ import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { EventFormData, useEventFormStore } from "@/stores/event-form-store";
-import { PubkyAppEvent } from "pubky-app-specs";
+// PubkyAppEvent is lazy-loaded in onSubmit to avoid WASM initialization issues
+import type { PubkyAppEvent } from "pubky-app-specs";
+import { initWasm } from "@/lib/pubky/wasm-init";
 import {
   formDataToEventData,
   eventToFormData,
@@ -47,7 +49,8 @@ export function CreateEventPageLayout({
     eventId: persistedEventId,
     setFormData,
     clearFormData,
-    initializeRecurrenceFromEvent
+    initializeRecurrenceFromEvent,
+    resetRecurrence,
   } = useEventFormStore();
 
   // Mutation hooks with optimistic updates
@@ -135,17 +138,26 @@ export function CreateEventPageLayout({
     mode: "onChange", // Validate on change for better UX
   });
 
-  // Update form when existing event loads
+  // Update form when existing event loads or reset recurrence for new events
   useEffect(() => {
     if (mode === "edit" && existingEvent) {
       const formData = eventToFormData(existingEvent);
       form.reset(formData);
       // Initialize recurrence state from event data
       initializeRecurrenceFromEvent(formData);
+    } else if (mode === "create") {
+      // Reset recurrence state for new events to prevent stale data
+      // Only reset if there's no persisted form data (fresh create)
+      if (!persistedFormData || !persistedFormData.rrule) {
+        resetRecurrence();
+      } else {
+        // Restore persisted recurrence state
+        initializeRecurrenceFromEvent(persistedFormData);
+      }
     }
-    // form.reset is stable and doesn't need to be in deps
+    // We intentionally only run this on mode/existingEvent changes, not on every persistedFormData change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingEvent, mode, initializeRecurrenceFromEvent]);
+  }, [existingEvent, mode]);
 
   // Set timezone from calendar when creating event from calendar page
   useEffect(() => {
@@ -260,10 +272,13 @@ export function CreateEventPageLayout({
         return;
       }
 
+      // Initialize WASM module
+      const { PubkyAppEvent: PubkyAppEventClass } = await initWasm();
+
       // Create PubkyAppEvent from JSON (this will sanitize via WASM)
       let event: PubkyAppEvent;
       try {
-        event = PubkyAppEvent.fromJson(eventData);
+        event = PubkyAppEventClass.fromJson(eventData);
       } catch (wasmError: unknown) {
         const errorMessage = wasmError instanceof Error ? wasmError.message : String(wasmError);
         toast.error(errorMessage || "Invalid event data");
@@ -381,8 +396,7 @@ export function CreateEventPageLayout({
         <section>
           <LocationFields
             control={form.control}
-            locationError={form.formState.errors.location}
-            geoError={form.formState.errors.geo}
+            locationsError={form.formState.errors.locations}
           />
         </section>
 

@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { getValidEventStatuses } from "@/lib/pubky/validation";
+import { EVENT_STATUSES } from "@/types/event";
 
 interface BasicInfoFieldsProps {
     control: Control<EventFormData>;
@@ -142,7 +142,7 @@ export function BasicInfoFields({
                                 <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                             <SelectContent>
-                                {getValidEventStatuses().map((status) => (
+                                {EVENT_STATUSES.map((status) => (
                                     <SelectItem key={status} value={status}>
                                         {status.charAt(0) + status.slice(1).toLowerCase()}
                                     </SelectItem>

@@ -8,9 +8,9 @@
  * - NO Date objects used to avoid timezone conversion issues
  */
 
-import { EventFormData } from "@/stores/event-form-store";
+import { EventFormData, EventLocation } from "@/types/event";
 import { PubkyAppEvent } from "pubky-app-specs";
-import { NexusEventResponse } from "@/lib/nexus/events";
+import { NexusEventResponse, parseLocationsJson } from "@/types/nexus";
 
 /**
  * Convert EventFormData (UI layer) to PubkyAppEvent data object (WASM layer)
@@ -43,6 +43,15 @@ export function formDataToEventData(
 
     const newSequence = mode === "edit" ? (eventDetails?.sequence || 0) + 1 : 0;
 
+    // Pass locations and conferences as arrays (WASM expects Vec, not JSON string)
+    const locations = data.locations && data.locations.length > 0
+        ? data.locations
+        : null;
+
+    const conferences = data.conferences && data.conferences.length > 0
+        ? data.conferences
+        : null;
+
     return {
         uid,
         dtstamp,
@@ -54,8 +63,8 @@ export function formDataToEventData(
         dtend_tzid: data.dtend_tzid || null,
         description: data.description || null,
         status: data.status || null,
-        location: data.location || null,
-        geo: data.geo || null,
+        locations,
+        conferences,
         image_uri: data.image_uri || null,
         url: data.url || null,
         sequence: newSequence,
@@ -99,6 +108,22 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
         }
     }
 
+    // Parse locations from JSON string (Nexus API format) or via toJson (WASM)
+    let locations: EventLocation[] | undefined = undefined;
+    if ('details' in event) {
+        // NexusEventResponse - locations is a JSON string on details
+        const nexusDetails = event.details;
+        if (nexusDetails.locations) {
+            locations = parseLocationsJson(nexusDetails.locations);
+        }
+    } else if ('toJson' in event && typeof event.toJson === 'function') {
+        // PubkyAppEvent - use toJson() to get the full data including locations
+        const eventJson = event.toJson?.();
+        if (eventJson?.locations) {
+            locations = eventJson.locations;
+        }
+    }
+
     return {
         summary: eventDetails.summary,
         dtstart: eventDetails.dtstart, // Keep as ISO string
@@ -108,8 +133,7 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
         dtend_tzid: eventDetails.dtend_tzid || undefined,
         description: eventDetails.description || undefined,
         status: eventDetails.status || undefined,
-        location: eventDetails.location || undefined,
-        geo: eventDetails.geo || undefined,
+        locations: locations,
         image_uri: eventDetails.image_uri || undefined,
         url: eventDetails.url || undefined,
         rrule: eventDetails.rrule || undefined,

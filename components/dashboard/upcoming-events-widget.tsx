@@ -7,6 +7,7 @@ import { CalendarDays, TrendingUp } from "lucide-react";
 import { DashboardWidget } from "./dashboard-widget";
 import { useEventsStream } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getDisplayLocation } from "@/types/nexus";
 
 interface UpcomingEventsWidgetProps {
     daysAhead?: number;
@@ -96,9 +97,9 @@ export function UpcomingEventsWidget({ daysAhead = 7, maxItems = 5 }: UpcomingEv
                                     <h4 className="font-medium text-sm line-clamp-1">
                                         {event.summary}
                                     </h4>
-                                    {event.location && (
+                                    {getDisplayLocation(event) && (
                                         <p className="text-xs text-muted-foreground truncate">
-                                            {event.location}
+                                            {getDisplayLocation(event)}
                                         </p>
                                     )}
                                 </div>

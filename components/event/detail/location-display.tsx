@@ -4,14 +4,16 @@ import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, ExternalLink, Copy, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Navigation, ExternalLink, Copy, Check, Video, Phone, Monitor, MessageSquare, Rss } from "lucide-react";
 import { useState } from "react";
+import type { EventLocation, EventConference } from "@/types/event";
 
 interface LocationDisplayProps {
-    /** Location name/address string */
-    location?: string;
-    /** Geographic coordinates in "lat;lng" format */
-    geo?: string;
+    /** Structured locations array (RFC 9073) */
+    locations?: EventLocation[];
+    /** Virtual conferences array (RFC 7986) */
+    conferences?: EventConference[];
     /** Whether to show map preview */
     showMapPreview?: boolean;
     /** Additional CSS classes */
@@ -19,42 +21,66 @@ interface LocationDisplayProps {
 }
 
 /**
+ * Parse geo URI (geo:lat,lon) to coordinates object
+ */
+function parseGeoUri(geo?: string): { lat: number; lng: number } | null {
+    if (!geo) return null;
+    const match = geo.match(/^geo:(-?[\d.]+),(-?[\d.]+)/);
+    if (!match) return null;
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return { lat, lng };
+}
+
+/**
+ * Get icon for conference feature
+ */
+function getFeatureIcon(feature: string) {
+    switch (feature.toUpperCase()) {
+        case "VIDEO": return <Video className="h-3 w-3" />;
+        case "PHONE": return <Phone className="h-3 w-3" />;
+        case "SCREEN": return <Monitor className="h-3 w-3" />;
+        case "CHAT": return <MessageSquare className="h-3 w-3" />;
+        case "FEED": return <Rss className="h-3 w-3" />;
+        default: return null;
+    }
+}
+
+/**
  * Display event location with optional map preview and actions
+ * Supports RFC 9073 structured locations and RFC 7986 conferences
  */
 export function LocationDisplay({
-    location,
-    geo,
+    locations,
+    conferences,
     showMapPreview = true,
     className,
 }: LocationDisplayProps) {
     const [copied, setCopied] = useState(false);
 
-    const coordinates = useMemo(() => {
-        if (!geo) return null;
-        const [lat, lng] = geo.split(";").map(Number);
-        if (isNaN(lat) || isNaN(lng)) return null;
-        return { lat, lng };
-    }, [geo]);
+    // Get the primary location (first in array)
+    const primaryLocation = locations?.[0];
+    const coordinates = useMemo(() => parseGeoUri(primaryLocation?.geo), [primaryLocation?.geo]);
 
     const mapUrls = useMemo(() => {
         if (!coordinates) return null;
         const { lat, lng } = coordinates;
-        const query = location ? encodeURIComponent(location) : `${lat},${lng}`;
+        const query = primaryLocation?.name ? encodeURIComponent(primaryLocation.name) : `${lat},${lng}`;
 
         return {
             google: `https://www.google.com/maps/search/?api=1&query=${query}`,
             apple: `https://maps.apple.com/?q=${query}&ll=${lat},${lng}`,
             osm: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15`,
-            // Static map preview (using OSM tiles via a public service)
             preview: `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=14&size=400x200&markers=${lat},${lng},red`,
         };
-    }, [coordinates, location]);
+    }, [coordinates, primaryLocation?.name]);
 
     const handleCopyLocation = async () => {
-        const text = location
+        const text = primaryLocation?.name
             ? coordinates
-                ? `${location}\n${coordinates.lat}, ${coordinates.lng}`
-                : location
+                ? `${primaryLocation.name}\n${coordinates.lat}, ${coordinates.lng}`
+                : primaryLocation.name
             : coordinates
                 ? `${coordinates.lat}, ${coordinates.lng}`
                 : "";
@@ -65,7 +91,9 @@ export function LocationDisplay({
     };
 
     // Don't render if no location data
-    if (!location && !geo) return null;
+    if ((!locations || locations.length === 0) && (!conferences || conferences.length === 0)) {
+        return null;
+    }
 
     return (
         <Card className={cn("", className)}>
@@ -76,10 +104,24 @@ export function LocationDisplay({
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                {/* Location Name */}
-                {location && (
-                    <div className="space-y-1">
-                        <p className="font-medium text-base">{location}</p>
+                {/* Physical Locations */}
+                {locations && locations.length > 0 && (
+                    <div className="space-y-3">
+                        {locations.map((loc, index) => (
+                            <div key={loc.uid || index} className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <p className="font-medium text-base">{loc.name || "Unnamed Location"}</p>
+                                    {loc.location_type && (
+                                        <Badge variant="secondary" className="text-xs capitalize">
+                                            {loc.location_type.replace(/-/g, " ")}
+                                        </Badge>
+                                    )}
+                                </div>
+                                {loc.description && (
+                                    <p className="text-sm text-muted-foreground">{loc.description}</p>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -99,7 +141,7 @@ export function LocationDisplay({
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={mapUrls.preview}
-                            alt={`Map showing ${location || "event location"}`}
+                            alt={`Map showing ${primaryLocation?.name || "event location"}`}
                             className="w-full h-40 object-cover"
                             loading="lazy"
                         />
@@ -107,42 +149,66 @@ export function LocationDisplay({
                     </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex flex-wrap gap-2">
-                    {mapUrls && (
-                        <>
-                            <Button asChild variant="outline" size="sm">
-                                <a href={mapUrls.google} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4 mr-1" />
-                                    Google Maps
-                                </a>
-                            </Button>
-                            <Button asChild variant="outline" size="sm">
-                                <a href={mapUrls.apple} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4 mr-1" />
-                                    Apple Maps
-                                </a>
-                            </Button>
-                        </>
-                    )}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCopyLocation}
-                    >
-                        {copied ? (
-                            <>
-                                <Check className="h-4 w-4 mr-1" />
-                                Copied
-                            </>
-                        ) : (
-                            <>
-                                <Copy className="h-4 w-4 mr-1" />
-                                Copy
-                            </>
-                        )}
-                    </Button>
-                </div>
+                {/* Map Links */}
+                {mapUrls && (
+                    <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <a href={mapUrls.google} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                Google Maps
+                            </a>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                            <a href={mapUrls.apple} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                Apple Maps
+                            </a>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCopyLocation}
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Copied
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-4 w-4 mr-1" />
+                                    Copy
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                )}
+
+                {/* Virtual Conferences */}
+                {conferences && conferences.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t">
+                        <p className="text-sm font-medium text-muted-foreground">Virtual Meeting</p>
+                        {conferences.map((conf, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Button asChild variant="default" size="sm">
+                                    <a href={conf.uri} target="_blank" rel="noopener noreferrer">
+                                        <Video className="h-4 w-4 mr-1" />
+                                        {conf.label || "Join Meeting"}
+                                    </a>
+                                </Button>
+                                {conf.features && conf.features.length > 0 && (
+                                    <div className="flex gap-1">
+                                        {conf.features.map((feat) => (
+                                            <span key={feat} className="text-muted-foreground" title={feat}>
+                                                {getFeatureIcon(feat)}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

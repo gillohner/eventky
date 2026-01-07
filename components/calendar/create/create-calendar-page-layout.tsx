@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BasicInfoFields } from "./basic-info";
 import { SettingsFields } from "./settings";
-import { PubkySpecsBuilder, PubkyAppCalendar, parse_uri } from "pubky-app-specs";
+import { PubkySpecsBuilder, PubkyAppCalendar } from "pubky-app-specs";
 import { useCreateCalendar, useUpdateCalendar } from "@/hooks/use-calendar-mutations";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { NexusCalendarResponse } from "@/lib/nexus/calendars";
@@ -31,9 +31,11 @@ function extractUserIdFromUri(uri: string): string {
     if (!uri.startsWith("pubky://")) {
         return uri;
     }
-    // Use parse_uri from pubky-app-specs for proper parsing
+    // Parse pubky URI manually: pubky://authorId/pub/pubky.app/profile.json
     try {
-        const parsed = parse_uri(uri);
+        const match = uri.match(/^pubky:\/\/([^\/]+)\/pub\/pubky\.app\/profile\.json$/);
+        if (!match) return uri; // Return as-is if not a valid profile URI
+        const parsed = { user_id: match[1] };
         return parsed.user_id;
     } catch {
         // Fallback to returning the original if parsing fails

@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import type { NexusEventResponse } from "@/lib/nexus/events";
+import { parseNexusLocations, parseNexusConferences } from "@/types/nexus";
 
 interface EventDetailLayoutProps {
     /** Event data from Nexus */
@@ -161,8 +162,8 @@ export function EventDetailLayout({
 
                     {/* Location */}
                     <LocationDisplay
-                        location={details.location}
-                        geo={details.geo}
+                        locations={parseNexusLocations(details)}
+                        conferences={parseNexusConferences(details)}
                     />
                 </div>
 

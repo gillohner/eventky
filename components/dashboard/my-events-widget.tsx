@@ -8,6 +8,7 @@ import { DashboardWidget } from "./dashboard-widget";
 import { useEventsStream } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { getDisplayLocation } from "@/types/nexus";
 
 interface MyEventsWidgetProps {
     userId?: string;
@@ -110,11 +111,11 @@ export function MyEventsWidget({ userId, maxItems = 5 }: MyEventsWidgetProps) {
                                             <Clock className="h-3 w-3" />
                                             <span>{format(startDate, "h:mm a")}</span>
                                         </div>
-                                        {event.location && (
+                                        {getDisplayLocation(event) && (
                                             <div className="flex items-center gap-1">
                                                 <MapPin className="h-3 w-3" />
                                                 <span className="truncate max-w-[150px]">
-                                                    {event.location}
+                                                    {getDisplayLocation(event)}
                                                 </span>
                                             </div>
                                         )}

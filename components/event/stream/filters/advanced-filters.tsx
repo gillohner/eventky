@@ -10,9 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/ui/user-search";
 import { useUsersByIds, type SelectedUser } from "@/hooks/use-user-search";
 import { Settings2, User } from "lucide-react";
-import { getValidEventStatuses } from "pubky-app-specs";
+import { EVENT_STATUSES as RFC_EVENT_STATUSES } from "@/types/event";
 
-const EVENT_STATUSES = getValidEventStatuses().map((status) => ({
+const EVENT_STATUSES = RFC_EVENT_STATUSES.map((status) => ({
     value: status,
     label: status.charAt(0) + status.slice(1).toLowerCase(),
 }));

@@ -30,6 +30,7 @@ import type {
     CalendarFilterOption,
 } from "@/types/calendar-view";
 import type { NexusEventResponse } from "@/types/nexus";
+import { getDisplayLocation } from "@/types/nexus";
 
 // =============================================================================
 // Type Guards & Helpers
@@ -254,7 +255,7 @@ export function useCalendarView(
                         dtstart: occurrenceDate,
                         dtend: event.dtend,
                         duration: event.duration,
-                        location: event.location,
+                        location: getDisplayLocation(event),
                         description: event.description,
                         image: event.image_uri,
                         color: primaryCalendar.color,
@@ -282,7 +283,7 @@ export function useCalendarView(
                     dtstart: event.dtstart,
                     dtend: event.dtend,
                     duration: event.duration,
-                    location: event.location,
+                    location: getDisplayLocation(event),
                     description: event.description,
                     image: event.image_uri,
                     color: primaryCalendar.color,

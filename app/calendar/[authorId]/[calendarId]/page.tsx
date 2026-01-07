@@ -3,7 +3,6 @@
 import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQueries } from "@tanstack/react-query";
-import { parse_uri } from "pubky-app-specs";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { useDeleteCalendar } from "@/hooks/use-calendar-mutations";
 import { useAddCalendarTagMutation, useRemoveCalendarTagMutation } from "@/hooks/use-calendar-tag-mutation";
@@ -14,7 +13,6 @@ import { SyncBadge } from "@/components/ui/sync-status-indicator";
 import { DevJsonView } from "@/components/dev-json-view";
 import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { Button } from "@/components/ui/button";
-import { calendarUriBuilder } from "pubky-app-specs";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { fetchEventFromNexus } from "@/lib/nexus";
@@ -43,8 +41,12 @@ export default function CalendarPage({ params }: CalendarPageProps) {
         isOptimistic
     } = useCalendar(authorId, calendarId);
 
-    // Build calendar URI
-    const calendarUri = calendar?.details.uri || calendarUriBuilder(authorId, calendarId);
+    // Build calendar URI only when needed (lazy)
+    const getCalendarUri = () => {
+        if (calendar?.details.uri) return calendar.details.uri;
+        // Construct URI manually without WASM (format: pubky://authorId/pub/eventky.app/calendars/calendarId)
+        return `pubky://${authorId}/pub/eventky.app/calendars/${calendarId}`;
+    };
 
     // Parse event URIs to get author and event IDs
     const eventQueries = useMemo(() => {
@@ -54,10 +56,16 @@ export default function CalendarPage({ params }: CalendarPageProps) {
         return events
             .map((uri) => {
                 try {
-                    const parsed = parse_uri(uri);
+                    // Parse pubky URI manually: pubky://authorId/pub/eventky.app/events/eventId
+                    const match = uri.match(/^pubky:\/\/([^\/]+)\/pub\/eventky\.app\/events\/(.+)$/);
+                    if (!match) {
+                        console.error("Invalid event URI format:", uri);
+                        return null;
+                    }
+
                     return {
-                        authorId: parsed.user_id,
-                        eventId: parsed.resource_id || "",
+                        authorId: match[1],
+                        eventId: match[2],
                     };
                 } catch (error) {
                     console.error("Failed to parse event URI:", uri, error);
@@ -153,7 +161,7 @@ export default function CalendarPage({ params }: CalendarPageProps) {
                     {canManage && (
                         <Button
                             variant="default"
-                            onClick={() => router.push(`/event/create?calendar=${encodeURIComponent(calendarUri)}`)}
+                            onClick={() => router.push(`/event/create?calendar=${encodeURIComponent(getCalendarUri())}`)}
                             className="gap-2"
                         >
                             <Plus className="h-4 w-4" />

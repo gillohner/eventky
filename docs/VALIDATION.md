@@ -18,7 +18,10 @@ import {
 validateTimezone("America/New_York");     // true
 validateColor("#FF5733");                 // true
 validateDuration("PT1H30M");              // true
-validateGeoCoordinates("47.3769;8.5417"); // true
+validateGeoCoordinates("47.3769;8.5417"); // true (legacy format)
+isValidGeoUri("geo:47.3769,8.5417");      // true (RFC 5870)
+isValidLocationType("venue");              // true (RFC 4589)
+isValidConferenceFeatures(["AUDIO", "VIDEO"]); // true (RFC 7986)
 validateRrule("FREQ=WEEKLY;BYDAY=MO");    // true
 
 getValidEventStatuses();  // ["CONFIRMED", "TENTATIVE", "CANCELLED"]
@@ -63,8 +66,8 @@ const parsed = parse_uri("pubky://pk1abc.../pub/eventky.app/events/0034B3SX1FQC0
 | `duration`              |          | ISO 8601 duration (PT1H30M)          |
 | `dtstart_tzid`          |          | IANA timezone                        |
 | `status`                |          | CONFIRMED, TENTATIVE, CANCELLED      |
-| `location`              |          | Max 500 characters                   |
-| `geo`                   |          | "lat;lon" format                     |
+| `locations`             |          | RFC 9073 VLOCATION array (max 10)    |
+| `conferences`           |          | RFC 7986 CONFERENCE array (max 10)   |
 | `rrule`                 |          | RFC 5545 RRULE                       |
 | `x_pubky_calendar_uris` |          | Max 10 calendar URIs                 |
 | `x_pubky_rsvp_access`   |          | "PUBLIC" only                        |

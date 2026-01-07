@@ -3,8 +3,8 @@
  */
 
 import { Session } from "@synonymdev/pubky";
-import { PubkySpecsBuilder } from "pubky-app-specs";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
+import { initWasm } from "@/lib/pubky/wasm-init";
 
 /**
  * Upload an image file to Pubky homeserver
@@ -20,6 +20,8 @@ export async function uploadImageFile(
     userId: string,
     file: File
 ): Promise<string> {
+    // Initialize WASM module
+    const { PubkySpecsBuilder } = await initWasm();
     const builder = new PubkySpecsBuilder(userId);
 
     // Read file as blob data

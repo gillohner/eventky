@@ -5,6 +5,8 @@
  * These types align with pubky-nexus API responses.
  */
 
+import type { EventLocation, EventConference } from './event';
+
 // =============================================================================
 // Core Nexus Response Types
 // =============================================================================
@@ -55,8 +57,10 @@ export interface NexusEventDetails {
     exdate?: string[];
     description?: string;
     status?: string;
-    location?: string;
-    geo?: string;
+    /** RFC 9073 structured locations (JSON string from Nexus, needs parsing) */
+    locations?: string;
+    /** RFC 7986 virtual conferences (JSON string from Nexus, needs parsing) */
+    conferences?: string;
     url?: string;
     sequence?: number;
     last_modified?: number;
@@ -66,6 +70,72 @@ export interface NexusEventDetails {
     styled_description?: string | { fmttype: string; value: string };
     x_pubky_calendar_uris?: string[];
     x_pubky_rsvp_access?: string;
+}
+
+/**
+ * Helper to parse locations JSON from NexusEventDetails
+ */
+export function parseNexusLocations(details: NexusEventDetails): EventLocation[] | undefined {
+    if (!details.locations) return undefined;
+    try {
+        return JSON.parse(details.locations);
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Helper to parse conferences JSON from NexusEventDetails
+ */
+export function parseNexusConferences(details: NexusEventDetails): EventConference[] | undefined {
+    if (!details.conferences) return undefined;
+    try {
+        return JSON.parse(details.conferences);
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Helper to parse locations JSON string (for stream items or raw JSON)
+ */
+export function parseLocationsJson(locationsJson?: string): EventLocation[] | undefined {
+    if (!locationsJson) return undefined;
+    try {
+        return JSON.parse(locationsJson);
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Get the display location name from either NexusEventDetails or NexusEventStreamItem
+ * Returns the first location's name if available, undefined otherwise
+ */
+export function getDisplayLocation(event: NexusEventDetails | NexusEventStreamItem): string | undefined {
+    const locationsJson = event.locations;
+    if (!locationsJson) return undefined;
+    const locations = parseLocationsJson(locationsJson);
+    if (!locations || locations.length === 0) return undefined;
+    return locations[0].name;
+}
+
+/**
+ * Get the first geo coordinates from a locations JSON string
+ * Returns geo in display format (e.g., "lat;lon") for LocationDisplay component
+ * Converts from RFC 5870 format ("geo:lat,lon") to display format
+ */
+export function getDisplayGeo(event: NexusEventDetails | NexusEventStreamItem): string | undefined {
+    const locationsJson = event.locations;
+    if (!locationsJson) return undefined;
+    const locations = parseLocationsJson(locationsJson);
+    if (!locations || locations.length === 0) return undefined;
+    const geo = locations[0].geo;
+    if (!geo) return undefined;
+    // Convert from RFC 5870 format "geo:lat,lon" to display format "lat;lon"
+    const match = geo.match(/^geo:(-?[\d.]+),(-?[\d.]+)/);
+    if (!match) return undefined;
+    return `${match[1]};${match[2]}`;
 }
 
 /**
@@ -98,8 +168,10 @@ export interface NexusEventStreamItem {
     exdate?: string[];
     description?: string;
     status?: string;
-    location?: string;
-    geo?: string;
+    /** RFC 9073 structured locations (JSON string from Nexus, needs parsing) */
+    locations?: string;
+    /** RFC 7986 virtual conferences (JSON string from Nexus, needs parsing) */
+    conferences?: string;
     url?: string;
     sequence?: number;
     last_modified?: number;
