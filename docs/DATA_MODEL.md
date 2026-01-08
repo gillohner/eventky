@@ -36,7 +36,14 @@ graph TB
 - **Path**: `/pub/eventky.app/calendars/:calendar_id` (timestamp-based ID)
 - **Storage**: Owner's homeserver
 - **Required**: `name`, `timezone`
-- **Optional**: `color`, `image_uri`, `description`, `x_pubky_authors` (URIs of users who can add events)
+- **Optional**: `color`, `image_uri`, `description`, `x_pubky_authors` (array of Pubky user URIs)
+
+**Permission Model (`x_pubky_authors`)**:
+- **Calendar Owner**: Full control (edit calendar, add/remove admins)
+- **Authors** (listed in `x_pubky_authors`): Can create events that reference this calendar
+- **Events remain on creator's homeserver**: Authors don't write to calendar owner's homeserver
+- **Reference-based**: Events link to calendar via `x_pubky_calendar_uris`, calendar doesn't store event list
+- **Max admins**: 10 users per calendar
 
 ### Event
 - **Path**: `/pub/eventky.app/events/:event_id` (timestamp-based ID)
@@ -79,10 +86,20 @@ graph LR
 ```
 
 ### Calendar ← Events (Many-to-Many)
-- Events reference calendars via `x_pubky_calendar_uris`
-- Calendar admins create events on their own homeservers
-- No calendar modification needed when events added/removed
-- Nexus indexes by calendar URI
+
+**How It Works**:
+- Events reference calendars via `x_pubky_calendar_uris` (array of calendar URIs)
+- **Admins create events on their own homeservers** (not calendar owner's)
+- No calendar modification needed when events added/removed (reference-only)
+- Nexus indexes events by calendar URI to enable queries like "all events in Calendar X"
+
+**Permission Flow**:
+1. Calendar Owner adds Admin to `x_pubky_authors` array
+2. Admin creates event on their homeserver with `x_pubky_calendar_uris: ["pubky://owner/.../calendars/123"]`
+3. Nexus detects reference and indexes event under calendar
+4. Anyone querying calendar sees events from all admins
+
+**Key Principle**: Calendar is a grouping mechanism, not a storage container. Events are always stored on event creator's homeserver.
 
 ### Event ← Attendees (One-to-Many)
 - Attendees reference events via `x_pubky_event_uri`
