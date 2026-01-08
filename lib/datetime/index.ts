@@ -33,4 +33,5 @@ export {
     parseRRuleToLabel,
     getRecurrenceType,
     getRecurrenceInterval,
+    isIndefiniteRecurrence,
 } from "./rrule-display";

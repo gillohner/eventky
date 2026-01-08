@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
     Select,
     SelectContent,
@@ -372,9 +373,22 @@ export function ComprehensiveRuleBuilder({
                     </span>
                 </div>
                 {state.count === undefined && (
-                    <p className="text-xs text-muted-foreground">
-                        Event will repeat indefinitely
-                    </p>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    Event will repeat indefinitely
+                                    <span className="text-sm font-medium">∞</span>
+                                </p>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>This event has no end date</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Occurrences shown limited to 1 year
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 )}
             </div>
         </div>

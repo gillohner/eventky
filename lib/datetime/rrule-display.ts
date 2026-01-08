@@ -32,6 +32,13 @@ export function formatWeekday(code: string, format: "short" | "long" = "short"):
 }
 
 /**
+ * Check if RRULE represents indefinite recurrence (no COUNT or UNTIL)
+ */
+export function isIndefiniteRecurrence(rrule: string): boolean {
+    return !rrule.includes('COUNT=') && !rrule.includes('UNTIL=');
+}
+
+/**
  * Parse RRULE to human-readable label
  */
 export function parseRRuleToLabel(rrule: string): string {
@@ -83,6 +90,9 @@ export function parseRRuleToLabel(rrule: string): string {
         } catch {
             // Ignore format errors
         }
+    } else {
+        // No COUNT or UNTIL - indefinite recurrence
+        label += ' ∞';
     }
 
     return label;

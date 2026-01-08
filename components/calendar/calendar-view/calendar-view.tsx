@@ -52,6 +52,8 @@ export function CalendarView({
         toggleCalendar,
         selectAllCalendars,
         deselectAllCalendars,
+        loadMoreAgenda,
+        canLoadMore,
     } = useCalendarView(events, {
         calendars,
         initialSelectedCalendars,
@@ -195,6 +197,8 @@ export function CalendarView({
                     <CalendarAgendaView
                         dateRange={dateRange}
                         events={calendarEvents}
+                        onLoadMore={loadMoreAgenda}
+                        canLoadMore={canLoadMore}
                     />
                 </div>
 
@@ -218,6 +222,8 @@ export function CalendarView({
                         <CalendarAgendaView
                             dateRange={dateRange}
                             events={calendarEvents}
+                            onLoadMore={loadMoreAgenda}
+                            canLoadMore={canLoadMore}
                         />
                     )}
                 </div>

@@ -92,6 +92,10 @@ export interface UseCalendarViewResult {
     toggleCalendar: (calendarId: string) => void;
     selectAllCalendars: () => void;
     deselectAllCalendars: () => void;
+
+    // Agenda view extension
+    loadMoreAgenda: () => void;
+    canLoadMore: boolean;
 }
 
 /**
@@ -127,6 +131,15 @@ export function useCalendarView(
     const [selectedCalendars, setSelectedCalendars] = useState<string[]>(
         initialSelectedCalendars ?? []
     );
+    const [agendaYearsToShow, setAgendaYearsToShow] = useState(1); // Start with 1 year
+
+    // Reset agenda years when changing to/from agenda view
+    const setViewModeWithReset = useCallback((mode: CalendarViewMode) => {
+        setViewMode(mode);
+        if (mode === "agenda") {
+            setAgendaYearsToShow(1); // Reset to 1 year when entering agenda view
+        }
+    }, []);
 
     // Calculate date range based on view mode or use external range
     const dateRange = useMemo(() => {
@@ -153,7 +166,7 @@ export function useCalendarView(
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 start = currentDate > today ? currentDate : today;
-                end = addDays(start, 90); // Show 90 days ahead from start
+                end = addDays(start, 365 * agendaYearsToShow); // Show N years ahead from start
                 break;
             default:
                 start = startOfMonth(currentDate);
@@ -161,7 +174,7 @@ export function useCalendarView(
         }
 
         return { start, end };
-    }, [currentDate, viewMode, externalDateRange]);
+    }, [currentDate, viewMode, externalDateRange, agendaYearsToShow]);
 
     // Transform events to calendar events with occurrences
     const calendarEvents = useMemo(() => {
@@ -236,7 +249,7 @@ export function useCalendarView(
                     dtstart: event.dtstart,
                     rdate: event.rdate,
                     exdate: event.exdate,
-                    maxCount: 100,
+                    maxCount: 1000, // Allow up to 1000 occurrences for 1 year display
                     from: dateRange.start, // Limit occurrences to date range start
                     until: dateRange.end, // Limit occurrences to date range end
                 });
@@ -352,10 +365,20 @@ export function useCalendarView(
         setSelectedCalendars([]);
     }, []);
 
+    // Load more events in agenda view (add another year)
+    const loadMoreAgenda = useCallback(() => {
+        if (viewMode === "agenda") {
+            setAgendaYearsToShow((prev) => prev + 1);
+        }
+    }, [viewMode]);
+
+    // Check if we can load more (max 3 years)
+    const canLoadMore = viewMode === "agenda" && agendaYearsToShow < 3;
+
     return {
         currentDate,
         viewMode,
-        setViewMode,
+        setViewMode: setViewModeWithReset,
         calendarEvents,
         selectedCalendars,
         toggleCalendar,
@@ -365,5 +388,7 @@ export function useCalendarView(
         goToPrevious,
         goToToday,
         dateRange,
+        loadMoreAgenda,
+        canLoadMore,
     };
 }

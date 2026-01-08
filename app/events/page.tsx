@@ -37,9 +37,9 @@ export default function EventsPage() {
             today.setHours(0, 0, 0, 0);
             defaultStartDate = today.getTime() * 1000; // Today in microseconds
 
-            const ninetyDaysAhead = new Date(today);
-            ninetyDaysAhead.setDate(ninetyDaysAhead.getDate() + 90);
-            defaultEndDate = ninetyDaysAhead.getTime() * 1000; // 90 days ahead in microseconds
+            const oneYearAhead = new Date(today);
+            oneYearAhead.setDate(oneYearAhead.getDate() + 365);
+            defaultEndDate = oneYearAhead.getTime() * 1000; // 365 days (1 year) ahead in microseconds
         }
 
         return {

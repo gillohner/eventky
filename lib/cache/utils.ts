@@ -141,8 +141,6 @@ export function pubkyEventToNexusFormat(
             exdate: event.exdate ?? undefined,
             description: event.description ?? undefined,
             status: event.status ?? undefined,
-            location: event.location ?? undefined,
-            geo: event.geo ?? undefined,
             url: event.url ?? undefined,
             sequence: event.sequence ?? 0,
             last_modified: event.last_modified ? Number(event.last_modified) : undefined,

@@ -104,5 +104,7 @@ export interface CalendarAgendaViewProps {
     dateRange: { start: Date; end: Date };
     events: CalendarEvent[];
     onEventClick?: (event: CalendarEvent) => void;
+    onLoadMore?: () => void;
+    canLoadMore?: boolean;
     className?: string;
 }

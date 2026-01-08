@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
     Clock,
     Calendar,
@@ -14,6 +15,7 @@ import {
     Repeat,
     ChevronLeft,
     ChevronRight,
+    Plus,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -26,6 +28,7 @@ import {
     formatDuration,
     formatDurationMs,
     parseRRuleToLabel,
+    isIndefiniteRecurrence,
 } from "@/lib/datetime";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -63,7 +66,7 @@ interface DateTimeRecurrenceProps {
     currentUserId?: string;
     /** Attendees list for showing user's attendance per instance */
     attendees?: Attendee[];
-    /** Maximum occurrences to show */
+    /** Maximum occurrences to show initially */
     maxOccurrences?: number;
     /** Additional CSS classes */
     className?: string;
@@ -89,7 +92,7 @@ export function DateTimeRecurrence({
     selectedInstance,
     currentUserId,
     attendees = [],
-    maxOccurrences = 10,
+    maxOccurrences = 50, // Start with 50 occurrences
     className,
 }: DateTimeRecurrenceProps) {
     const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("event");
@@ -97,6 +100,7 @@ export function DateTimeRecurrence({
     const { timeFormat } = usePreferencesStore();
 
     const isRecurring = Boolean(rrule);
+    const isInfinite = rrule ? isIndefiniteRecurrence(rrule) : false;
     const localTimezone = getLocalTimezone();
     const displayTimezone = timezoneMode === "local" ? localTimezone : (dtstartTzid || localTimezone);
 
@@ -104,8 +108,8 @@ export function DateTimeRecurrence({
     const occurrences = useMemo(() => {
         if (!rrule) return [];
 
-        // For recurring events, calculate occurrences for up to 1 year ahead or 500 occurrences
-        const maxCount = Math.max(loadedOccurrences, 500);
+        // For recurring events, calculate occurrences for up to 1 year ahead or 1000 occurrences max
+        const maxCount = Math.min(loadedOccurrences, 1000);
         const allOccurrences = calculateNextOccurrences({
             rrule,
             dtstart,
@@ -121,7 +125,7 @@ export function DateTimeRecurrence({
         return allOccurrences.filter((occ) => {
             const occDate = new Date(occ);
             return occDate <= oneYearFromNow;
-        }).slice(0, loadedOccurrences);
+        });
     }, [rrule, dtstart, rdate, exdate, loadedOccurrences]);
 
     // Build a map of user's attendance per instance
@@ -237,10 +241,24 @@ export function DateTimeRecurrence({
                         <Clock className="h-5 w-5 text-muted-foreground" />
                         Date & Time
                         {isRecurring && (
-                            <Badge variant="secondary" className="ml-2 flex items-center gap-1">
-                                <Repeat className="h-3 w-3" />
-                                {recurrenceLabel}
-                            </Badge>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Badge variant="secondary" className="ml-2 flex items-center gap-1">
+                                            <Repeat className="h-3 w-3" />
+                                            {recurrenceLabel}
+                                        </Badge>
+                                    </TooltipTrigger>
+                                    {isInfinite && (
+                                        <TooltipContent>
+                                            <p>This event repeats indefinitely</p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Showing occurrences within 1 year
+                                            </p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                            </TooltipProvider>
                         )}
                     </CardTitle>
                     {hasEventTimezone && (
@@ -313,7 +331,32 @@ export function DateTimeRecurrence({
 
                         {/* Occurrences List */}
                         <div>
-                            <p className="text-sm text-muted-foreground mb-2">Upcoming instances:</p>
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Upcoming instances:
+                                    {isInfinite ? (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="ml-1 font-medium">
+                                                        Showing {occurrences.length} of ∞
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>This event repeats indefinitely</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        Limited to 1 year from today
+                                                    </p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ) : (
+                                        <span className="ml-1 font-medium">
+                                            {occurrences.length} instance{occurrences.length !== 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
                             <ScrollArea className="w-full whitespace-nowrap">
                                 <div className="flex gap-2 pb-3">
                                     {occurrences.map((occ, index) => {
@@ -337,6 +380,18 @@ export function DateTimeRecurrence({
                                 </div>
                                 <ScrollBar orientation="horizontal" />
                             </ScrollArea>
+                            {/* Load More Button */}
+                            {loadedOccurrences < 1000 && occurrences.length >= loadedOccurrences && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setLoadedOccurrences((prev) => Math.min(prev + 50, 1000))}
+                                    className="w-full mt-2"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Load 50 more occurrences
+                                </Button>
+                            )}
                         </div>
                     </div>
                 )}

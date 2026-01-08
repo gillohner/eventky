@@ -1,10 +1,11 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { Calendar, MapPin, Users, Repeat } from "lucide-react";
+import { Calendar, MapPin, Users, Repeat, Plus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ import type { CalendarAgendaViewProps } from "@/types";
  */
 export function CalendarAgendaView({
     events,
+    onLoadMore,
+    canLoadMore,
     className,
 }: CalendarAgendaViewProps) {
     const { timeFormat } = usePreferencesStore();
@@ -163,6 +166,21 @@ export function CalendarAgendaView({
                         </div>
                     );
                 })}
+
+                {/* Load More Button */}
+                {canLoadMore && onLoadMore && (
+                    <div className="pt-4">
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            onClick={onLoadMore}
+                            className="w-full"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Load next year of events
+                        </Button>
+                    </div>
+                )}
             </div>
         </ScrollArea>
     );
