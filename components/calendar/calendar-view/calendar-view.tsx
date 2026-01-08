@@ -34,9 +34,17 @@ export function CalendarView({
     const urlViewMode = searchParams.get("view") as CalendarViewMode | null;
     const urlDate = searchParams.get("date");
 
-    const initialViewMode = (urlViewMode && ["month", "week", "agenda"].includes(urlViewMode))
-        ? urlViewMode
-        : "month";
+    // Default to agenda on mobile, month on desktop (if no URL param)
+    const getDefaultViewMode = (): CalendarViewMode => {
+        if (urlViewMode && ["month", "week", "agenda"].includes(urlViewMode)) {
+            return urlViewMode;
+        }
+        // Check if mobile (this is a simple check that works server-side)
+        // On mobile, always default to agenda view for better UX
+        return typeof window !== "undefined" && window.innerWidth < 768 ? "agenda" : "month";
+    };
+
+    const initialViewMode = getDefaultViewMode();
     const initialDate = urlDate ? parseISO(urlDate) : new Date();
 
     const {
