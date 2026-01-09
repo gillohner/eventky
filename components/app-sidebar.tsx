@@ -31,7 +31,7 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { useProfile } from "@/hooks/use-profile"
 import { useDebugStore } from "@/stores/debug-store"
 import { usePreferencesStore } from "@/stores/preferences-store"
-import { getPubkyAvatarUrl, getInitials, truncatePublicKey } from "@/lib/pubky/utils"
+import { getPubkyAvatarUrl, getInitials, truncatePublicKey, getPubkyProfileUrl } from "@/lib/pubky/utils"
 import { config } from "@/lib/config"
 import { toast } from "sonner"
 
@@ -94,18 +94,25 @@ export function AppSidebar() {
                     <SidebarGroupContent className="px-2 py-4">
                         {isHydrated && isAuthenticated ? (
                             <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors">
-                                <Avatar className="h-10 w-10">
-                                    {avatarUrl && <AvatarImage src={avatarUrl} alt={profile?.name || "User"} />}
-                                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                                        {initials || <User className="h-5 w-5" />}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{displayName}</p>
-                                    {profile?.bio && (
-                                        <p className="text-xs text-muted-foreground truncate">{profile.bio}</p>
-                                    )}
-                                </div>
+                                <a
+                                    href={auth?.publicKey ? getPubkyProfileUrl(auth.publicKey) : undefined}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 flex-1 min-w-0 group"
+                                >
+                                    <Avatar className="h-10 w-10">
+                                        {avatarUrl && <AvatarImage src={avatarUrl} alt={profile?.name || "User"} />}
+                                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                            {initials || <User className="h-5 w-5" />}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate group-hover:underline">{displayName}</p>
+                                        {profile?.bio && (
+                                            <p className="text-xs text-muted-foreground truncate">{profile.bio}</p>
+                                        )}
+                                    </div>
+                                </a>
                                 <Button
                                     variant="ghost"
                                     size="icon"

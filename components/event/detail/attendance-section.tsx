@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { config } from "@/lib/config";
+import { getPubkyProfileUrl } from "@/lib/pubky/utils";
 import { useAuthorProfiles, type AuthorProfile } from "@/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -414,7 +414,7 @@ function AttendeeRow({
 
     return (
         <a
-            href={`${config.pubkyApp.profileUrl}/${attendee.author}`}
+            href={getPubkyProfileUrl(attendee.author)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"

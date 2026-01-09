@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { getPubkyProfileUrl } from "@/lib/pubky/utils";
 import { useAuthorProfiles, type AuthorProfile } from "@/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -205,6 +206,7 @@ export function CalendarMetadata({
 
 /**
  * Author badge component with profile data
+ * Clickable to open profile in pubky.app
  */
 function AuthorBadge({
     authorId,
@@ -220,13 +222,20 @@ function AuthorBadge({
         : authorId.slice(0, 2).toUpperCase();
 
     return (
-        <Badge variant="secondary" className="gap-2 pr-2">
-            <Avatar className="h-5 w-5">
-                <AvatarImage src={profile?.avatarUrl ?? undefined} alt={displayName} />
-                <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
-            </Avatar>
-            <span className="text-xs">{displayName}</span>
-        </Badge>
+        <a
+            href={getPubkyProfileUrl(authorId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex"
+        >
+            <Badge variant="secondary" className="gap-2 pr-2 hover:bg-secondary/80 cursor-pointer transition-colors">
+                <Avatar className="h-5 w-5">
+                    <AvatarImage src={profile?.avatarUrl ?? undefined} alt={displayName} />
+                    <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                </Avatar>
+                <span className="text-xs">{displayName}</span>
+            </Badge>
+        </a>
     );
 }
 

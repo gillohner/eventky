@@ -1,12 +1,12 @@
 "use client";
 
-import { User, Globe } from "lucide-react";
+import { User, Globe, ExternalLink } from "lucide-react";
 import { DashboardWidget } from "./dashboard-widget";
 import { useProfile } from "@/hooks/use-profile";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getPubkyAvatarUrl, getInitials, truncatePublicKey } from "@/lib/pubky/utils";
+import { getPubkyAvatarUrl, getInitials, truncatePublicKey, getPubkyProfileUrl } from "@/lib/pubky/utils";
 
 /**
  * Widget showing user's profile information
@@ -38,8 +38,13 @@ export function ProfileWidget() {
     return (
         <DashboardWidget title="Profile" icon={User}>
             <div className="space-y-4">
-                {/* Avatar and Name */}
-                <div className="flex items-center gap-4">
+                {/* Avatar and Name - Clickable to open in pubky.app */}
+                <a
+                    href={auth?.publicKey ? getPubkyProfileUrl(auth.publicKey) : undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 group cursor-pointer"
+                >
                     <Avatar className="h-16 w-16">
                         {avatarUrl && <AvatarImage src={avatarUrl} alt={profile?.name || "User"} />}
                         <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xl">
@@ -47,14 +52,17 @@ export function ProfileWidget() {
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-semibold truncate">{displayName}</h3>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-xl font-semibold truncate group-hover:underline">{displayName}</h3>
+                            <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
                         {profile?.bio && (
                             <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                                 {profile.bio}
                             </p>
                         )}
                     </div>
-                </div>
+                </a>
 
                 {/* Additional Info */}
                 {profile && (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { getPubkyImageUrl } from "@/lib/pubky/utils";
+import { getPubkyImageUrl, getPubkyProfileUrl } from "@/lib/pubky/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,18 +137,25 @@ export function CalendarHeader({
 
                 {/* Author Info */}
                 <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border-2 border-background">
-                        <AvatarImage src={authorAvatar} alt={authorName || authorId} />
-                        <AvatarFallback className="text-xs font-medium">
-                            {authorInitials}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <p className="font-medium">
-                            {authorName || truncateId(authorId)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Calendar Owner</p>
-                    </div>
+                    <a
+                        href={getPubkyProfileUrl(authorId)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 group"
+                    >
+                        <Avatar className="h-10 w-10 border-2 border-background">
+                            <AvatarImage src={authorAvatar} alt={authorName || authorId} />
+                            <AvatarFallback className="text-xs font-medium">
+                                {authorInitials}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p className="font-medium group-hover:underline">
+                                {authorName || truncateId(authorId)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Calendar Owner</p>
+                        </div>
+                    </a>
                 </div>
 
                 {/* Metadata Badges */}

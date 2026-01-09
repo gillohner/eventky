@@ -5,6 +5,16 @@
 import { config } from "@/lib/config";
 import { imageVariant } from "@/types/image";
 
+/**
+ * Get the pubky.app profile URL for a user
+ * Uses config.pubkyApp.profileUrl for consistent URL generation
+ * @param userId - The user's public key
+ * @returns Full profile URL (e.g., https://pubky.app/profile/abc123)
+ */
+export function getPubkyProfileUrl(userId: string): string {
+  return `${config.pubkyApp.profileUrl}/${userId}`;
+}
+
 export function getPubkyAvatarUrl(pubkyUrl: string): string {
   return `${config.gateway.url}${config.gateway.baseAvatarPath}/${pubkyUrl.replace("pubky://", "")}`;
 }

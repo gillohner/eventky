@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { config } from "@/lib/config";
-import { getPubkyImageUrl } from "@/lib/pubky/utils";
+import { getPubkyImageUrl, getPubkyProfileUrl } from "@/lib/pubky/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -161,7 +160,7 @@ export function EventHeader({
                 {/* Author Info */}
                 <div className="flex items-center gap-3">
                     <a
-                        href={`${config.pubkyApp.profileUrl}/${authorId}`}
+                        href={getPubkyProfileUrl(authorId)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 group">
