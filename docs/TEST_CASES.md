@@ -23,7 +23,8 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | CAL-004 | Delete calendar as owner | 1. User A creates calendar<br>2. Click delete, confirm<br>3. Refresh page | Calendar removed from list, events show as "Calendar deleted" | High |
 | CAL-005 | View calendar as non-author | 1. User A creates public calendar with events<br>2. Login as User B (not author)<br>3. Navigate to calendar URL | Calendar visible, events from current authors shown, no edit buttons for User B | Medium |
 | CAL-006 | Calendar name validation | 1. Try creating calendar with empty name (0 chars)<br>2. Try 101+ character name<br>3. Try name with only whitespace | Error shown for empty/whitespace, name truncated to 100 chars, special characters allowed | Medium |
-| CAL-007 | Calendar with maximum authors | 1. Create calendar<br>2. Try adding 21+ authors (max is 20)<br>3. Save | Error shown OR only first 20 authors saved | Medium |
+| CAL-007 | Calendar with maximum authors | 1. Create calendar<br>2. Try adding 11+ authors (max is 10)<br>3. Save | Error shown OR only first 10 authors saved | Medium |
+| CAL-008 | Calendar with description | 1. Create calendar<br>2. Add 500 character description<br>3. Save<br>4. Try 501+ chars | Description shown in calendar detail, truncated/error for >500 chars | Medium |
 
 ### 1.2 Calendar Author Management
 
@@ -55,6 +56,13 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | EVT-009 | Event validation - end before start | 1. Create event<br>2. Try to set end time before start time<br>3. Should not work | Should not be able to work | High |
 | EVT-010 | Event with very long summary | 1. Enter 500+ character summary<br>2. Save | Truncated or scrollable display, data preserved | Low |
 | EVT-011 | Event with both dtend and duration | 1. Create event via API<br>2. Set both dtend and duration fields<br>3. Try to save | UI should not allow this (mutually exclusive fields) | Medium |
+| EVT-012 | Create TENTATIVE event | 1. Create event<br>2. Set status to TENTATIVE<br>3. Save and view | Event shows "Tentative" badge or visual indicator | Medium |
+| EVT-013 | Create CANCELLED event | 1. Create event<br>2. Set status to CANCELLED<br>3. View in list and detail | Event shows strikethrough or "Cancelled" badge, still visible | Medium |
+| EVT-014 | Change event status | 1. Create CONFIRMED event<br>2. Edit and change to CANCELLED<br>3. Save | Status updates, UI reflects change | Medium |
+| EVT-015 | Event with geo coordinates | 1. Create event<br>2. Add geo field "47.3769;8.5417"<br>3. Save | Coordinates stored, shown in event detail (map link or display) | Low |
+| EVT-016 | Invalid geo format | 1. Try to create event via API<br>2. Set geo to "invalid" or "91;181"<br>3. Check validation | Validation error from pubky-app-specs | Low |
+| EVT-017 | Rich HTML description | 1. Create event<br>2. Add description with `<b>bold</b>`, `<a href="...">link</a>`<br>3. Save and view | HTML rendered correctly, links clickable | Medium |
+| EVT-018 | XSS prevention in description | 1. Create event via API<br>2. Add `<script>alert(1)</script>` in description<br>3. View event | Script NOT executed, sanitized or escaped | High |
 
 ### 2.2 Event-Calendar Association
 
@@ -66,6 +74,7 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | EVT-104 | Event in multiple calendars | 1. User A is author of Calendar X and Y<br>2. Create event, select both calendars<br>3. Save | Event will be displayed in both Calendars. Both calendar-colors will be shown in Event-Overview | High |
 | EVT-105 | Change event calendar association | 1. Create event linked to Calendar X<br>2. Edit event<br>3. Change to Calendar Y<br>4. Save | Event moves to Calendar Y, removed from X | Medium |
 | EVT-106 | Event calendar deleted | 1. Create event in Calendar X<br>2. Delete Calendar X<br>3. View event | Event still exists but Calendar view not existing | Medium |
+| EVT-107 | Event with maximum calendars | 1. User A is author of 11 calendars<br>2. Create event, select all 11 calendars<br>3. Save | Error shown OR only first 10 calendars saved (max is 10) | Medium |
 
 ### 2.3 Event Discovery & Visibility
 
@@ -130,6 +139,16 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | RSV-103 | Per-instance RSVP overrides series | 1. Create series-level attendee (status: ACCEPTED, no recurrence_id)<br>2. Create instance-specific attendee (status: DECLINED, with recurrence_id for Week 2)<br>3. View Week 2 instance | Week 2 shows DECLINED (instance override), other weeks show ACCEPTED (series default) | High |
 | RSV-104 | Change RSVP on recurring instance | 1. User B accepts Week 2 instance<br>2. User B views Week 3 and accepts<br>3. User B changes Week 2 to declined<br>4. Check all instances | Week 2: DECLINED, Week 3: ACCEPTED, other weeks: no RSVP (each instance tracked separately) | High |
 | RSV-105 | Multiple users RSVP to instances | 1. Weekly event (4 instances)<br>2. User B accepts Week 1<br>3. User C accepts Week 2<br>4. User D accepts all weeks via API (no recurrence_id)<br>5. View attendees for each week | Week 1: B+D, Week 2: C+D, Week 3: D only, Week 4: D only | Medium |
+
+### 4.3 Orphaned RSVP Handling
+
+**Behavior:** Attendee objects can exist on homeserver but are hidden in UI if the referenced event or instance no longer exists.
+
+| Test ID | Test Case | Steps | Expected Result | Priority |
+|---------|-----------|-------|-----------------|----------|
+| RSV-201 | RSVP to deleted event | 1. User B RSVPs to User A's event<br>2. User A deletes event<br>3. View User B's RSVPs/dashboard | RSVP not shown in UI (orphaned), homeserver still has attendee record | High |
+| RSV-202 | RSVP with invalid recurrence_id | 1. User B RSVPs to instance (recurrence_id: 2026-01-15T10:00:00)<br>2. User A edits RRULE (changes occurrences, 2026-01-15 no longer valid)<br>3. View event attendees | Orphaned RSVP not displayed, only RSVPs matching current occurrences shown | High |
+| RSV-203 | Orphaned RSVP cleanup visibility | 1. Create multiple orphaned RSVPs (deleted events, invalid instances)<br>2. Check user's RSVP list | Only valid RSVPs shown, no broken entries | Medium |
 
 ---
 
@@ -198,6 +217,9 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | SRC-003 | Search by author | 1. Filter by User A<br>2. View results | Only User A's events shown | Medium |
 | SRC-004 | Combined filters | 1. Search: "tech" + Jan<br>2. Apply all filters | Events matching ALL criteria shown | High |
 | SRC-005 | Empty search results | 1. Search nonsense string<br>2. View results | "No results found" message, clear filters option | Low |
+| SRC-006 | Filter by event status | 1. Create CONFIRMED and CANCELLED events<br>2. Filter by status=CONFIRMED<br>3. View results | Only CONFIRMED events shown | Medium |
+| SRC-007 | URL filter synchronization | 1. Apply filters (tags, date, status)<br>2. Copy URL<br>3. Open in new browser/incognito | Same filters applied, same results shown | High |
+| SRC-008 | Max tags in filter | 1. Try filtering with 6+ tags<br>2. Check URL and results | Only first 5 tags applied (max 5 per query) | Low |
 
 ### 7.2 Calendar Filtering
 
@@ -321,6 +343,8 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | AUTH-003 | Logout | 1. Click logout<br>2. Try to access protected page | Session cleared, redirected to login | High |
 | AUTH-004 | Session persistence | 1. Login<br>2. Close browser<br>3. Reopen and navigate to app | Still logged in (if session not expired) | Medium |
 | AUTH-005 | Protected routes | 1. Without login, navigate to /events/new<br>2. Check behavior | Redirected to login, return URL preserved | High |
+| AUTH-006 | QR code login (Pubky Ring) | 1. Click QR login option<br>2. Scan with Pubky Ring<br>3. Complete authentication | Session established, logged in | Medium |
+| AUTH-007 | Testnet signup | 1. Click signup (testnet only)<br>2. Generate new account<br>3. Download .pkarr file | Account created, recovery file downloaded automatically | Medium |
 
 ---
 
