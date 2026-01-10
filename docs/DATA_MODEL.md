@@ -39,11 +39,11 @@ graph TB
 - **Optional**: `color`, `image_uri`, `description`, `x_pubky_authors` (array of Pubky user URIs)
 
 **Permission Model (`x_pubky_authors`)**:
-- **Calendar Owner**: Full control (edit calendar, add/remove admins)
+- **Calendar Owner**: Full control (edit calendar, add/remove authors)
 - **Authors** (listed in `x_pubky_authors`): Can create events that reference this calendar
 - **Events remain on creator's homeserver**: Authors don't write to calendar owner's homeserver
 - **Reference-based**: Events link to calendar via `x_pubky_calendar_uris`, calendar doesn't store event list
-- **Max admins**: 10 users per calendar
+- **Max authors**: 20 users per calendar
 
 ### Event
 - **Path**: `/pub/eventky.app/events/:event_id` (timestamp-based ID)

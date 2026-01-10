@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tag, X } from "lucide-react";
+import { sanitizeTagLabel, validateTagLabel } from "@/lib/utils/tag-validation";
+import { toast } from "sonner";
 
 interface TagsFilterProps {
     tags?: string[];
@@ -17,9 +19,22 @@ export function TagsFilter({ tags = [], onChange }: TagsFilterProps) {
     const handleAddTag = () => {
         if (!tagInput.trim()) return;
         if (tags.length >= 5) return; // Max 5 tags
-        if (tags.includes(tagInput.trim())) return; // No duplicates
 
-        onChange([...tags, tagInput.trim()]);
+        // Sanitize and validate tag
+        const sanitized = sanitizeTagLabel(tagInput);
+        const validationError = validateTagLabel(sanitized);
+
+        if (validationError) {
+            toast.error(validationError);
+            return;
+        }
+
+        if (tags.includes(sanitized)) {
+            toast.error("Tag already added");
+            return; // No duplicates
+        }
+
+        onChange([...tags, sanitized]);
         setTagInput("");
     };
 

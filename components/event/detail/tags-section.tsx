@@ -23,6 +23,10 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getPendingTagsForEvent } from "@/hooks/use-tag-mutation";
+import { sanitizeTagLabel, validateTagLabel, MAX_TAG_LABEL_LENGTH } from "@/lib/utils/tag-validation";
+import { getUnicodeLength } from "@/lib/utils/unicode-length";
+import { CharacterCounter } from "@/components/ui/character-counter";
+import { toast } from "sonner";
 
 interface EventTag {
     label: string;
@@ -146,9 +150,21 @@ export function TagsSection({
     const displayTags = expanded ? sortedTags : sortedTags.slice(0, 20);
 
     const handleAddTag = () => {
-        const trimmed = newTag.trim().toLowerCase();
-        if (trimmed && onAddTag) {
-            onAddTag(trimmed);
+        if (!newTag.trim()) {
+            return;
+        }
+
+        // Sanitize and validate tag
+        const sanitized = sanitizeTagLabel(newTag);
+        const validationError = validateTagLabel(sanitized);
+
+        if (validationError) {
+            toast.error(validationError);
+            return;
+        }
+
+        if (onAddTag) {
+            onAddTag(sanitized);
             setNewTag("");
             setShowInput(false);
         }
@@ -206,37 +222,44 @@ export function TagsSection({
             <CardContent className="space-y-4">
                 {/* Tag Input */}
                 {showInput && (
-                    <div className="flex items-center gap-2">
-                        <Input
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Enter tag..."
-                            className="flex-1"
-                            autoFocus
-                            disabled={isTagLoading}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Input
+                                value={newTag}
+                                onChange={(e) => setNewTag(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Enter tag..."
+                                className="flex-1"
+                                autoFocus
+                                disabled={isTagLoading}
+                                maxLength={MAX_TAG_LABEL_LENGTH}
+                            />
+                            <Button
+                                size="sm"
+                                onClick={handleAddTag}
+                                disabled={!newTag.trim() || isTagLoading}
+                            >
+                                {isTagLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    "Add"
+                                )}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setShowInput(false);
+                                    setNewTag("");
+                                }}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <CharacterCounter
+                            current={getUnicodeLength(newTag)}
+                            max={MAX_TAG_LABEL_LENGTH}
                         />
-                        <Button
-                            size="sm"
-                            onClick={handleAddTag}
-                            disabled={!newTag.trim() || isTagLoading}
-                        >
-                            {isTagLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                "Add"
-                            )}
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                                setShowInput(false);
-                                setNewTag("");
-                            }}
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
                     </div>
                 )}
 

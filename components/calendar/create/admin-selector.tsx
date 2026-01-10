@@ -6,7 +6,7 @@ import { UserSearch } from "@/components/ui/user-search";
 import { useUsersByIds, type SelectedUser } from "@/hooks/use-user-search";
 import { useMemo } from "react";
 
-interface AdminSelectorProps {
+interface AuthorSelectorProps {
     control: Control<CalendarFormData>;
     /** The calendar owner's user ID - will be excluded from search and always has full edit rights */
     ownerUserId?: string;
@@ -19,13 +19,13 @@ interface AdminSelectorProps {
  * Authors are stored as x_pubky_authors in the calendar data as per pubky-app-specs
  * Only the owner can edit the calendar itself, authors can only add events to it
  */
-export function AdminSelector({ control, ownerUserId }: AdminSelectorProps) {
+export function AuthorSelector({ control, ownerUserId }: AuthorSelectorProps) {
     return (
         <Controller
             name="x_pubky_authors"
             control={control}
             render={({ field }) => (
-                <AdminSelectorInner
+                <AuthorSelectorInner
                     value={field.value || []}
                     onChange={field.onChange}
                     ownerUserId={ownerUserId}
@@ -35,7 +35,7 @@ export function AdminSelector({ control, ownerUserId }: AdminSelectorProps) {
     );
 }
 
-interface AdminSelectorInnerProps {
+interface AuthorSelectorInnerProps {
     value: string[];
     onChange: (value: string[]) => void;
     ownerUserId?: string;
@@ -45,11 +45,11 @@ interface AdminSelectorInnerProps {
  * Inner component that handles the conversion between string[] (user IDs) 
  * and SelectedUser[] (UI representation)
  */
-function AdminSelectorInner({
+function AuthorSelectorInner({
     value,
     onChange,
     ownerUserId,
-}: AdminSelectorInnerProps) {
+}: AuthorSelectorInnerProps) {
     // Fetch existing author user details when value changes
     const { data: existingUsers, isLoading } = useUsersByIds(value);
 
@@ -78,8 +78,8 @@ function AdminSelectorInner({
             selectedUsers={selectedUsers}
             onSelectionChange={handleSelectionChange}
             excludeUserIds={excludeUserIds}
-            maxSelections={20} // MAX_ADMINS from pubky-app-specs
-            label="Calendar Admins"
+            maxSelections={20} // MAX_AUTHORS from pubky-app-specs
+            label="Calendar Authors"
             placeholder="Search users by name or ID..."
             description={
                 isLoading

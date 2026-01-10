@@ -363,6 +363,9 @@ export function CreateEventPageLayout({
                 control={form.control}
                 titleError={form.formState.errors.summary}
                 urlError={form.formState.errors.url}
+                titleValue={form.watch("summary")}
+                urlValue={form.watch("url")}
+                descriptionValue={form.watch("styled_description")}
               />
             </div>
           </div>
@@ -383,6 +386,7 @@ export function CreateEventPageLayout({
             control={form.control}
             locationError={form.formState.errors.location}
             geoError={form.formState.errors.geo}
+            locationValue={form.watch("location")}
           />
         </section>
 

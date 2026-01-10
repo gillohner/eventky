@@ -6,17 +6,25 @@ import { FormSection } from "@/components/ui/form-section";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { getUnicodeLength } from "@/lib/utils/unicode-length";
+import { CharacterCounter } from "@/components/ui/character-counter";
 
 interface BasicInfoFieldsProps {
     control: Control<CalendarFormData>;
     nameError?: FieldError;
     urlError?: FieldError;
+    nameValue?: string;
+    descriptionValue?: string;
+    urlValue?: string;
 }
 
 export function BasicInfoFields({
     control,
     nameError,
     urlError,
+    nameValue = "",
+    descriptionValue = "",
+    urlValue = "",
 }: BasicInfoFieldsProps) {
     return (
         <FormSection>
@@ -28,13 +36,17 @@ export function BasicInfoFields({
                     control={control}
                     rules={{
                         required: "Calendar name is required",
+                        pattern: {
+                            value: /\S/,
+                            message: "Calendar name cannot be only whitespace",
+                        },
                         minLength: {
                             value: 1,
                             message: "Calendar name must be at least 1 character",
                         },
                         maxLength: {
-                            value: 200,
-                            message: "Calendar name must not exceed 200 characters",
+                            value: 100,
+                            message: "Calendar name must not exceed 100 characters",
                         },
                     }}
                     render={({ field }) => (
@@ -47,6 +59,10 @@ export function BasicInfoFields({
                             className={nameError ? "border-destructive" : ""}
                         />
                     )}
+                />
+                <CharacterCounter
+                    current={getUnicodeLength(nameValue)}
+                    max={100}
                 />
                 {nameError && (
                     <p className="text-sm text-destructive">{nameError.message}</p>
@@ -84,9 +100,18 @@ export function BasicInfoFields({
                 {urlError && (
                     <p className="text-sm text-destructive">{urlError.message}</p>
                 )}
-                <p className="text-sm text-muted-foreground">
-                    Link to calendar webpage or information
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-muted-foreground">
+                        Link to calendar webpage or information
+                    </p>
+                    {urlValue && getUnicodeLength(urlValue || "") > 1800 && (
+                        <CharacterCounter
+                            current={getUnicodeLength(urlValue || "")}
+                            max={2048}
+                            warning
+                        />
+                    )}
+                </div>
             </div>
 
             {/* Description Field */}
@@ -97,8 +122,8 @@ export function BasicInfoFields({
                     control={control}
                     rules={{
                         maxLength: {
-                            value: 1000,
-                            message: "Description must not exceed 1000 characters",
+                            value: 10000,
+                            message: "Description must not exceed 10,000 characters",
                         },
                     }}
                     render={({ field }) => (
@@ -111,9 +136,10 @@ export function BasicInfoFields({
                         />
                     )}
                 />
-                <p className="text-sm text-muted-foreground">
-                    Add details about your calendar
-                </p>
+                <CharacterCounter
+                    current={getUnicodeLength(descriptionValue)}
+                    max={10000}
+                />
             </div>
         </FormSection>
     );

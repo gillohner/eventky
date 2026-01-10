@@ -23,8 +23,9 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | CAL-004 | Delete calendar as owner | 1. User A creates calendar<br>2. Click delete, confirm<br>3. Refresh page | Calendar removed from list, events show as "Calendar deleted" | High |
 | CAL-005 | View calendar as non-author | 1. User A creates public calendar with events<br>2. Login as User B (not author)<br>3. Navigate to calendar URL | Calendar visible, events from current authors shown, no edit buttons for User B | Medium |
 | CAL-006 | Calendar name validation | 1. Try creating calendar with empty name (0 chars)<br>2. Try 101+ character name<br>3. Try name with only whitespace | Error shown for empty/whitespace, name truncated to 100 chars, special characters allowed | Medium |
-| CAL-007 | Calendar with maximum authors | 1. Create calendar<br>2. Try adding 11+ authors (max is 10)<br>3. Save | Error shown OR only first 10 authors saved | Medium |
-| CAL-008 | Calendar with description | 1. Create calendar<br>2. Add 500 character description<br>3. Save<br>4. Try 501+ chars | Description shown in calendar detail, truncated/error for >500 chars | Medium |
+| CAL-007 | Calendar with maximum authors | 1. Create calendar<br>2. Try adding 21+ authors (max is 20)<br>3. Save | Error shown OR only first 20 authors saved | Medium |
+| CAL-008 | Calendar with description | 1. Create calendar<br>2. Add 10,000 character description<br>3. Save<br>4. Try 10,001+ chars | Description shown in calendar detail, error shown for >10,000 chars | Medium |
+| CAL-009 | Calendar with very long URL | 1. Create calendar<br>2. Add 2,049+ character URL<br>3. Try to save | Error shown, URL must not exceed 2,048 characters | Low |
 
 ### 1.2 Calendar Author Management
 
@@ -54,7 +55,10 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | EVT-007 | Delete event | 1. Create event<br>2. Click delete, confirm | Event removed from all views, returns 404 on direct access | High |
 | EVT-008 | Event validation - past date | 1. Create event with start date in past<br>2. Try to save | Allowed to create like normal  | Low |
 | EVT-009 | Event validation - end before start | 1. Create event<br>2. Try to set end time before start time<br>3. Should not work | Should not be able to work | High |
-| EVT-010 | Event with very long summary | 1. Enter 500+ character summary<br>2. Save | Truncated or scrollable display, data preserved | Low |
+| EVT-010 | Event with very long summary | 1. Enter 501+ character summary<br>2. Save | Error shown, summary must not exceed 500 characters | Low |
+| EVT-010a | Event with very long description | 1. Create event<br>2. Add 10,001+ character description (text only, not HTML)<br>3. Try to save | Error shown, description must not exceed 10,000 characters | Low |
+| EVT-010b | Event with very long location | 1. Create event<br>2. Add 1,001+ character location<br>3. Try to save | Error shown, location must not exceed 1,000 characters | Low |
+| EVT-010c | Event with very long URL | 1. Create event<br>2. Add 2,049+ character URL<br>3. Try to save | Error shown, URL must not exceed 2,048 characters | Low |
 | EVT-011 | Event with both dtend and duration | 1. Create event via API<br>2. Set both dtend and duration fields<br>3. Try to save | UI should not allow this (mutually exclusive fields) | Medium |
 | EVT-012 | Create TENTATIVE event | 1. Create event<br>2. Set status to TENTATIVE<br>3. Save and view | Event shows "Tentative" badge or visual indicator | Medium |
 | EVT-013 | Create CANCELLED event | 1. Create event<br>2. Set status to CANCELLED<br>3. View in list and detail | Event shows strikethrough or "Cancelled" badge, still visible | Medium |
@@ -100,6 +104,11 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | TAG-006 | Multiple tags on one event | 1. Add tags: "conference", "networking", "tech"<br>2. Save | All tags visible, each independently clickable | Medium |
 | TAG-007 | Click existing tag to add | 1. Event has tag "conference" (by User A)<br>2. Login as User B<br>3. Click "conference" tag to add | Tag added from User B as well | Medium |
 | TAG-008 | Tag case sensitivity | 1. Add tag "Conference"<br>2. Add tag "conference" | tags always lowercase | Low |
+| TAG-009 | Tag exceeds max length | 1. Try to add tag with 21+ characters<br>2. Attempt to save | Error shown: "Tag exceeds maximum length of 20 characters" | Medium |
+| TAG-010 | Tag with invalid characters | 1. Try to add tag with comma "web,dev"<br>2. Try to add tag with colon "web:dev" | Error shown: "Tag cannot contain the character: ," or ":"  | Medium |
+| TAG-011 | Tag with whitespace | 1. Try to add tag "web dev" (with space)<br>2. Attempt to save | Error shown: "Tag cannot contain whitespace characters" | Medium |
+| TAG-012 | Tag auto-lowercase | 1. Add tag "JavaScript"<br>2. View saved tag | Tag displayed as "javascript" (lowercase) | Low |
+| TAG-013 | Whitespace-only tag | 1. Try to add tag with only spaces "   "<br>2. Attempt to save | Error shown or tag input cleared, not saved | Medium |
 
 ### 3.2 Calendar Tags
 
@@ -302,6 +311,9 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | FRM-002 | Required field indicators | 1. Open event form<br>2. Check for asterisks/labels | Required fields clearly marked | Low |
 | FRM-003 | Form persistence on error | 1. Fill event form<br>2. Submit with validation error<br>3. Check fields | Data preserved, not lost | High |
 | FRM-004 | Date picker usability | 1. Open date picker<br>2. Select date<br>3. Check format | Easy to use, correct format applied | Medium |
+| FRM-005 | Character counter display | 1. Open event or calendar form<br>2. Type in title/description/location field<br>3. Observe counter | Real-time character count shown (e.g., "126/500 characters"), updates as you type | Medium |
+| FRM-006 | Character counter warning | 1. Fill field to 90% of limit (e.g., 450/500 chars)<br>2. Observe counter color<br>3. Exceed limit | Counter turns amber at 90%, red when exceeded, shows "(exceeds limit)" text | Medium |
+| FRM-007 | URL counter conditional display | 1. Open event/calendar form<br>2. Enter short URL (< 1800 chars)<br>3. Enter long URL (> 1800 chars) | Counter hidden for short URLs, appears as warning for long URLs approaching 2048 limit | Low |
 
 ### 10.3 Loading & Error States
 

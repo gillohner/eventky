@@ -16,6 +16,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { useState, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 
 interface CalendarSelectorProps {
     control: Control<EventFormData>;
@@ -181,6 +182,12 @@ function CalendarSelectorInner({ value, onChange }: CalendarSelectorInnerProps) 
     );
 
     const handleSelect = useCallback((calendar: UserCalendar) => {
+        if (value.length >= 10) {
+            // Max 10 calendars per event (MAX_CALENDAR_URIS in pubky-app-specs)
+            toast.error("Maximum 10 calendars allowed per event");
+            setOpen(false);
+            return;
+        }
         if (!value.includes(calendar.uri)) {
             onChange([...value, calendar.uri]);
         }
@@ -191,13 +198,15 @@ function CalendarSelectorInner({ value, onChange }: CalendarSelectorInnerProps) 
         onChange(value.filter((u) => u !== uri));
     }, [value, onChange]);
 
+    const isAtMaxCalendars = value.length >= 10;
+
     return (
         <div className="space-y-3">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Calendars
             </label>
             <p className="text-sm text-muted-foreground">
-                Add this event to calendars you own or manage
+                Add this event to calendars you own or manage{isAtMaxCalendars ? " (maximum reached)" : ""}
             </p>
 
             {/* Selected calendars */}
@@ -222,7 +231,7 @@ function CalendarSelectorInner({ value, onChange }: CalendarSelectorInnerProps) 
                         variant="outline"
                         size="sm"
                         className="gap-2"
-                        disabled={isLoading || availableCalendars.length === 0}
+                        disabled={isLoading || availableCalendars.length === 0 || isAtMaxCalendars}
                     >
                         {isLoading ? (
                             <>

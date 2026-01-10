@@ -75,9 +75,9 @@ const parsed = parse_uri("pubky://pk1abc.../pub/eventky.app/events/0034B3SX1FQC0
 | ----------------- | -------- | ----------------------- |
 | `name`            | ✓        | 1-100 characters        |
 | `timezone`        | ✓        | IANA timezone           |
-| `description`     |          | Max 500 characters      |
+| `description`     |          | Max 10,000 characters   |
 | `color`           |          | Hex (#RRGGBB)           |
-| `x_pubky_authors` |          | Max 10 user IDs         |
+| `x_pubky_authors` |          | Max 20 user IDs         |
 
 ### PubkyAppAttendee
 

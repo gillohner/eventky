@@ -1,11 +1,13 @@
 "use client";
 
-import { Control, Controller, FieldError } from "react-hook-form";
+import { Control, Controller, FieldError, useWatch } from "react-hook-form";
 import type { EventFormData } from "@/types/event";
 import { FormSection } from "@/components/ui/form-section";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { validateGeoCoordinates } from "@/lib/pubky/validation";
+import { getUnicodeLength } from "@/lib/utils/unicode-length";
+import { CharacterCounter } from "@/components/ui/character-counter";
 
 interface LocationFieldsProps {
     control: Control<EventFormData>;
@@ -18,6 +20,7 @@ export function LocationFields({
     locationError,
     geoError,
 }: LocationFieldsProps) {
+    const locationValue = useWatch({ control, name: "location" }) || "";
     return (
         <FormSection
             title="Location"
@@ -46,6 +49,10 @@ export function LocationFields({
                             className={locationError ? "border-destructive" : ""}
                         />
                     )}
+                />
+                <CharacterCounter
+                    current={getUnicodeLength(locationValue)}
+                    max={1000}
                 />
                 {locationError && (
                     <p className="text-sm text-destructive">{locationError.message}</p>

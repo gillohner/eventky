@@ -10,8 +10,8 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { useDebugView } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BasicInfoFields } from "./basic-info";
-import { SettingsFields } from "./settings";
+import { BasicInfoFields } from "@/components/calendar/create/basic-info";
+import { SettingsFields } from "@/components/calendar/create/settings";
 import { PubkySpecsBuilder, PubkyAppCalendar, parse_uri } from "pubky-app-specs";
 import { useCreateCalendar, useUpdateCalendar } from "@/hooks/use-calendar-mutations";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
@@ -247,6 +247,9 @@ export function CreateCalendarPageLayout({
                         control={control}
                         nameError={errors.name}
                         urlError={errors.url}
+                        nameValue={watch("name")}
+                        descriptionValue={watch("description")}
+                        urlValue={watch("url")}
                     />
 
                     {/* Settings Section */}

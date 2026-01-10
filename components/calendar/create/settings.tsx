@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { AdminSelector } from "./admin-selector";
+import { AuthorSelector } from "@/components/calendar/create/admin-selector";
 
 interface SettingsFieldsProps {
     control: Control<CalendarFormData>;
@@ -95,8 +95,8 @@ export function SettingsFields({
                 aspectRatio="square"
             />
 
-            {/* Admin Selector */}
-            <AdminSelector control={control} ownerUserId={ownerUserId} />
+            {/* Author Selector */}
+            <AuthorSelector control={control} ownerUserId={ownerUserId} />
         </FormSection>
     );
 }
