@@ -386,7 +386,6 @@ export function CreateEventPageLayout({
             control={form.control}
             locationError={form.formState.errors.location}
             geoError={form.formState.errors.geo}
-            locationValue={form.watch("location")}
           />
         </section>
 
