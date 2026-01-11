@@ -96,7 +96,7 @@ export function CalendarMetadata({
                         <Globe className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium">Description</p>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
                                 {description}
                             </p>
                         </div>
