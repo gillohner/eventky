@@ -270,6 +270,8 @@ testnet = false
 testnet_host = "localhost"
 homeserver = "ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy"
 events_limit = 50
+# Maximum number of monitored homeservers. If set to 1, only the default homeserver is monitored.
+monitored_homeservers_limit = 50
 watcher_sleep = 5000
 moderation_id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 moderated_tags = [
@@ -743,6 +745,7 @@ sudo certbot renew
 
 ---
 
+
 ## Management Commands
 
 ### Service Control
@@ -820,6 +823,21 @@ git pull
 cargo build --release -p nexusd
 sudo systemctl restart nexus.service
 ```
+
+**Important:** After pulling updates, always check if the config needs updating by comparing with the default config:
+
+```bash
+# Check for new config fields in the updated code
+cat ~/apps/pubky-nexus/nexus-common/default.config.toml
+
+# If new fields are added, update your config
+nano ~/apps/nexus-config/config.toml
+```
+
+Common config updates after major merges:
+- New required fields (like `monitored_homeservers_limit`)
+- Updated homeserver IDs
+- New feature flags
 
 ### Reset Nexus Index
 
