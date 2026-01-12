@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { format, parseISO, addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 import { CalendarDays, TrendingUp } from "lucide-react";
-import { DashboardWidget } from "./dashboard-widget";
+import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { useEventsStream } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { User, Globe, ExternalLink } from "lucide-react";
-import { DashboardWidget } from "./dashboard-widget";
+import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { useProfile } from "@/hooks/use-profile";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";

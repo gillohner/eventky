@@ -2,13 +2,13 @@
 
 import { cn } from "@/lib/utils";
 import { useAuthorProfile } from "@/hooks";
-import { EventHeader } from "./event-header";
-import { DateTimeRecurrence } from "./datetime-recurrence";
-import { LocationDisplay } from "./location-display";
-import { EventDescription } from "./event-description";
-import { EventMetadata } from "./event-metadata";
-import { AttendanceSection } from "./attendance-section";
-import { TagsSection } from "./tags-section";
+import { EventHeader } from "@/components/event/detail/event-header";
+import { DateTimeRecurrence } from "@/components/event/detail/datetime-recurrence";
+import { LocationDisplay } from "@/components/event/detail/location-display";
+import { EventDescription } from "@/components/event/detail/event-description";
+import { EventMetadata } from "@/components/event/detail/event-metadata";
+import { AttendanceSection } from "@/components/event/detail/attendance-section";
+import { TagsSection } from "@/components/event/detail/tags-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";

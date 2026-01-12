@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Calendar, XCircle, Check, Plus, Info } from "lucide-react";
 import { formatOccurrence } from "@/lib/pubky/rrule-utils";
-import { OccurrenceListItem } from "./occurrence-list-item";
+import { OccurrenceListItem } from "@/components/event/create/recurrence/occurrence-list-item";
 import {
     Popover,
     PopoverContent,

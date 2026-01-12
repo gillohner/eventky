@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { X } from "lucide-react";
-import { DateRangeFilter } from "./filters/date-range-filter";
-import { AdvancedFilters } from "./filters/advanced-filters";
-import { TagsFilter } from "./filters/tags-filter";
+import { DateRangeFilter } from "@/components/event/stream/filters/date-range-filter";
+import { AdvancedFilters } from "@/components/event/stream/filters/advanced-filters";
+import { TagsFilter } from "@/components/event/stream/filters/tags-filter";
 
 export interface EventStreamFilterValues {
     tags?: string[];

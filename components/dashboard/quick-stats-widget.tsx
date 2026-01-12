@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, CalendarDays, TrendingUp } from "lucide-react";
-import { DashboardWidget } from "./dashboard-widget";
+import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { useEventsStream } from "@/hooks";
 import { useUserCalendars } from "@/hooks/use-user-calendars";
 import { useAuth } from "@/components/providers/auth-provider";

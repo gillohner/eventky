@@ -10,9 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCalendarView } from "@/hooks";
 import type { CalendarViewProps, CalendarViewMode } from "@/types";
-import { CalendarMonthView } from "./calendar-month-view";
-import { CalendarWeekView } from "./calendar-week-view";
-import { CalendarAgendaView } from "./calendar-agenda-view";
+import { CalendarMonthView } from "@/components/calendar/calendar-view/calendar-month-view";
+import { CalendarWeekView } from "@/components/calendar/calendar-view/calendar-week-view";
+import { CalendarAgendaView } from "@/components/calendar/calendar-view/calendar-agenda-view";
 
 /**
  * Complete calendar view component with controls

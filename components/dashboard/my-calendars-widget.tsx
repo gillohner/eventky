@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
-import { DashboardWidget } from "./dashboard-widget";
+import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { useUserCalendars } from "@/hooks/use-user-calendars";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";

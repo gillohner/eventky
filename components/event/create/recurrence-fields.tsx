@@ -7,8 +7,8 @@ import { useEffect, useCallback, useMemo } from "react";
 import { dateToISOString } from "@/lib/pubky/event-utils";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
 import { useEventFormStore } from "@/stores/event-form-store";
-import { ComprehensiveRuleBuilder, type RuleBuilderState } from "./recurrence/comprehensive-rule-builder";
-import { OccurrencePreview } from "./recurrence/occurrence-preview";
+import { ComprehensiveRuleBuilder, type RuleBuilderState } from "@/components/event/create/recurrence/comprehensive-rule-builder";
+import { OccurrencePreview } from "@/components/event/create/recurrence/occurrence-preview";
 
 interface RecurrenceFieldsProps {
     control: Control<EventFormData>;

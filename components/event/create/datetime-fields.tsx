@@ -2,9 +2,9 @@
 
 import { Control, useWatch, UseFormSetValue, FieldErrors } from "react-hook-form";
 import { EventFormData } from "@/stores/event-form-store";
-import { EventDateTimePicker } from "./datetime-picker";
+import { EventDateTimePicker } from "@/components/event/create/datetime-picker";
 import { TimezoneSelector } from "@/components/ui/timezone-selector";
-import { DurationInput } from "./duration-input";
+import { DurationInput } from "@/components/event/create/duration-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormSection } from "@/components/ui/form-section";

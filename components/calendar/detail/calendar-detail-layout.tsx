@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useAuthorProfile } from "@/hooks";
-import { CalendarHeader } from "./calendar-header";
-import { CalendarMetadata } from "./calendar-metadata";
-import { CalendarTagsSection } from "./calendar-tags-section";
+import { CalendarHeader } from "@/components/calendar/detail/calendar-header";
+import { CalendarMetadata } from "@/components/calendar/detail/calendar-metadata";
+import { CalendarTagsSection } from "@/components/calendar/detail/calendar-tags-section";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
