@@ -360,6 +360,1291 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 
 ---
 
+## 13. Pubky Data Integrity Tests
+
+**Purpose:** Verify that Eventky correctly uses Pubky primitives by validating homeserver storage, JSON structure, and Nexus indexing. These tests prove data flows through Pubky's decentralized architecture rather than custom databases.
+
+**Tools:**
+- **Pubky Observer:** Use [pubky.observer](https://pubky.observer) to inspect homeserver paths and view raw JSON
+- **Nexus Swagger UI:** [https://nexus.eventky.app/swagger-ui/](https://nexus.eventky.app/swagger-ui/)
+- **Direct HTTP:** `curl` commands to fetch homeserver data
+
+**Test Format:** Each test includes verification steps for:
+1. Homeserver storage (via Pubky Observer)
+2. JSON structure (matches pubky-app-specs)
+3. Nexus indexing (via API endpoints)
+
+---
+
+### 13.1 Calendar Data Integrity
+
+#### Test: PUBKY-CAL-001 - Calendar Creation & Author Management
+
+**Steps:**
+
+1. **Create Calendar**
+   - Login as User A
+   - Create calendar: "Test Calendar"
+   - Description: "Testing Pubky integration"
+   - Color: `#FF5733`
+   - Authors: User B (author)
+   - Save and note Calendar ID
+
+2. **Verify Homeserver Storage**
+   - Open [pubky.observer](https://pubky.observer)
+   - Enter User A's public key
+   - Navigate to: `/pub/eventky.app/calendars/{calendar_id}`
+   - Verify JSON file exists
+
+3. **Verify JSON Structure**
+   - Check required fields present:
+     - `name`: "Test Calendar"
+     - `timezone`: (e.g., "America/New_York")
+     - `created`: Unix microseconds timestamp
+     - `x_pubky_authors`: Array containing User A and User B public keys
+   - Check optional fields:
+     - `description`: "Testing Pubky integration"
+     - `color`: "#FF5733"
+     - `sequence`: (should be 0. Each edit should increase this by 1)
+
+4. **Verify Nexus Indexing**
+   - Wait 2-3 seconds
+   - Open Nexus Swagger UI
+   - Execute: `GET /v0/calendar/{user_a_id}/{calendar_id}`
+   - Verify response status: 200 OK
+   - Check response contains correct calendar details
+
+5. **Edit Calendar - Add User C as Author**
+   - Login as User A
+   - Edit calendar, add User C to authors
+   - Save
+
+6. **Re-verify Homeserver**
+   - Refresh Pubky Observer
+   - Check `/pub/eventky.app/calendars/{calendar_id}`
+   - Verify `x_pubky_authors` now contains 2 public keys (B, C)
+   - Verify `sequence` incremented by 1
+   - Verify `last_modified` timestamp updated
+
+7. **Re-verify Nexus**
+   - Execute: `GET /v0/calendar/{user_a_id}/{calendar_id}`
+   - Verify 2 authors in response
+
+**Expected Results:**
+- ✅ Calendar JSON stored at correct homeserver path
+- ✅ All fields match PubkyAppCalendar spec
+- ✅ `x_pubky_authors` contains Pubky URIs (format: `pubky://{z32_public_key}`)
+- ✅ Sequence increments on edit
+- ✅ Nexus returns calendar with all authors
+
+**Test Results:**
+
+```
+Date Tested: 13.01.26
+Tester: Gil
+
+Step 2 - Homeserver Storage:
+[X] PASS  [ ] FAIL
+Path checked: https://explorer.pubky.app/#p=51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco%2Fpub%2Feventky.app%2Fcalendars%2F0034GJ3GCQR70
+Notes: 
+
+
+Step 3 - JSON Structure:
+[x] PASS  [ ] FAIL
+Fields verified:
+  [x] name  [x] timezone  [x] created  [x] x_pubky_authors  [x] color
+Notes:
+{
+  "color": "#ff5733",
+  "created": 1768325820838000,
+  "description": "Testing Pubky integration",
+  "image_uri": null,
+  "last_modified": 1768325820838000,
+  "name": "Test Calendar",
+  "sequence": 0,
+  "timezone": "Europe/Zurich",
+  "url": null,
+  "x_pubky_authors": [
+    "1g3ywco754m3oieok3txdp1f6x8hqexwizpzpnuj5ysxwp9dppqo"
+  ]
+}
+
+
+
+Step 4 - Nexus Indexing:
+[x] PASS  [ ] FAIL
+Endpoint: https://nexus.eventky.app/v0/calendar/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJ3GCQR70
+Notes:
+{"details":{"id":"0034GJ3GCQR70","indexed_at":1768325826757,"author":"51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco","uri":"pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJ3GCQR70","name":"Test Calendar","timezone":"Europe/Zurich","color":"#ff5733","description":"Testing Pubky integration","url":null,"image_uri":null,"x_pubky_authors":["1g3ywco754m3oieok3txdp1f6x8hqexwizpzpnuj5ysxwp9dppqo"],"created":1768325820838000,"sequence":0,"last_modified":1768325820838000},"tags":[],"events":[]}
+
+
+
+Step 6 - Homeserver After Edit:
+[x] PASS  [ ] FAIL
+Sequence value: 1
+Notes:
+{
+  "color": "#ff5733",
+  "created": 1768325820838000,
+  "description": "Testing Pubky integration",
+  "image_uri": null,
+  "last_modified": 1768326191780000,
+  "name": "Test Calendar",
+  "sequence": 1,
+  "timezone": "Europe/Zurich",
+  "url": null,
+  "x_pubky_authors": [
+    "1g3ywco754m3oieok3txdp1f6x8hqexwizpzpnuj5ysxwp9dppqo",
+    "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my"
+  ]
+}
+Nexus Response:
+{
+  "details": {
+    "id": "0034GJ3GCQR70",
+    "indexed_at": 1768326196765,
+    "author": "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco",
+    "uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJ3GCQR70",
+    "name": "Test Calendar",
+    "timezone": "Europe/Zurich",
+    "color": "#ff5733",
+    "description": "Testing Pubky integration",
+    "url": null,
+    "image_uri": null,
+    "x_pubky_authors": [
+      "1g3ywco754m3oieok3txdp1f6x8hqexwizpzpnuj5ysxwp9dppqo",
+      "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my"
+    ],
+    "created": 1768325820838000,
+    "sequence": 1,
+    "last_modified": 1768326191780000
+  },
+  "tags": [],
+  "events": []
+}
+
+
+Overall Result: [x] PASS  [ ] FAIL
+```
+
+---
+
+### 13.2 Event & Calendar Association
+
+#### Test: PUBKY-EVT-001 - Event Creation with Calendar Reference
+
+**Steps:**
+
+1. **Setup**
+   - Use calendar from PUBKY-CAL-001 (User A owner, User B author)
+   - Note Calendar URI: `pubky://{user_a_pk}/pub/eventky.app/calendars/{cal_id}`
+
+2. **Create Event as User B**
+   - Login as User B (author, not owner)
+   - Create event:
+     - Summary: "Team Meeting"
+     - Start: 2026-01-20T10:00:00
+     - End: 2026-01-20T11:00:00
+     - Select Calendar: "Test Calendar"
+   - Save and note Event ID
+
+3. **Verify Event on User B's Homeserver**
+   - Open Pubky Observer
+   - Enter User B's public key
+   - Navigate to: `/pub/eventky.app/events/{event_id}`
+   - Verify JSON exists
+
+4. **Verify Event JSON Structure**
+   - Check required fields:
+     - `uid`: UUID format
+     - `dtstamp`: Creation timestamp
+     - `dtstart`: "2026-01-20T10:00:00"
+     - `dtend`: "2026-01-20T11:00:00"
+     - `summary`: "Team Meeting"
+   - **Check Pubky extension:**
+     - `x_pubky_calendar_uris`: Array containing calendar URI from User A
+   - Verify calendar URI format: `pubky://{user_a_pk}/pub/eventky.app/calendars/{cal_id}`
+
+5. **Verify Calendar Still on User A's Homeserver**
+   - Switch to User A's public key in Pubky Observer
+   - Navigate to: `/pub/eventky.app/calendars/{cal_id}`
+   - Confirm calendar unchanged (event data NOT embedded in calendar)
+
+6. **Verify Nexus Event Indexing**
+   - Execute: `GET /v0/event/{user_b_id}/{event_id}`
+   - Verify response includes event details
+   - Verify calendar reference present
+
+7. **Verify Nexus Calendar Includes Event**
+   - Execute: `GET /v0/calendar/{user_a_id}/{calendar_id}`
+   - Check response includes `events` array
+   - Verify array contains User B's event URI: `pubky://{user_b_pk}/pub/eventky.app/events/{event_id}`
+
+8. **Create Event Without Calendar**
+   - Login as User B
+   - Create event: "Personal Task"
+   - Do NOT select any calendar
+   - Save and note Event ID
+
+9. **Verify Event JSON - No Calendar Reference**
+   - Check User B's homeserver: `/pub/eventky.app/events/{event_id2}`
+   - Verify `x_pubky_calendar_uris` is either absent or empty array
+
+**Expected Results:**
+- ✅ Event stored on User B's homeserver (not User A's)
+- ✅ Event references calendar via URI in `x_pubky_calendar_uris`
+- ✅ Calendar unchanged on User A's homeserver
+- ✅ Nexus links event to calendar bidirectionally
+- ✅ Event without calendar has no `x_pubky_calendar_uris` value
+
+**Test Results:**
+
+```
+Date Tested: 13.01.26
+Tester: Gil
+
+Step 3 - Event Homeserver Storage:
+[x] PASS  [ ] FAIL
+User B's homeserver path: https://explorer.pubky.app/#p=c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my%2Fpub%2Feventky.app%2Fevents%2F0034GJ5Q9EGC0
+Event exists: [x] YES  [ ] NO
+Notes:
+
+
+
+
+Step 4 - Event JSON Structure:
+[ ] PASS  [ ] FAIL
+Format correct: [x] YES  [ ] NO
+Points to User A's calendar: [x] YES  [ ] NO
+Notes:
+{
+  "created": 1768327010296000,
+  "description": null,
+  "dtend": "2026-01-20T11:00:32",
+  "dtend_tzid": "UTC",
+  "dtstamp": 1768327010296000,
+  "dtstart": "2026-01-20T10:00:35",
+  "dtstart_tzid": "UTC",
+  "duration": null,
+  "exdate": null,
+  "geo": null,
+  "image_uri": null,
+  "last_modified": 1768327010296000,
+  "location": null,
+  "rdate": null,
+  "recurrence_id": null,
+  "rrule": null,
+  "sequence": 0,
+  "status": "CONFIRMED",
+  "styled_description": null,
+  "summary": "Team Meeting",
+  "uid": "event-1768327010296",
+  "url": null,
+  "x_pubky_calendar_uris": [
+    "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJ3GCQR70"
+  ],
+  "x_pubky_rsvp_access": "PUBLIC"
+}
+
+
+
+Step 5 - Calendar Homeserver Unchanged:
+[x] PASS  [ ] FAIL
+User A's calendar still exists: [x] YES  [ ] NO
+Event data embedded in calendar: [ ] YES (FAIL)  [x] NO (PASS)
+Notes:
+{
+  "color": "#ff5733",
+  "created": 1768325820838000,
+  "description": "Testing Pubky integration",
+  "image_uri": null,
+  "last_modified": 1768326191780000,
+  "name": "Test Calendar",
+  "sequence": 1,
+  "timezone": "Europe/Zurich",
+  "url": null,
+  "x_pubky_authors": [
+    "1g3ywco754m3oieok3txdp1f6x8hqexwizpzpnuj5ysxwp9dppqo",
+    "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my"
+  ]
+}
+
+
+Step 6 - Nexus Event:
+[x] PASS  [ ] FAIL
+Endpoint response: ___________
+Notes:
+https://nexus.eventky.app/v0/event/c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/0034GJ5Q9EGC0
+{
+  "details": {
+    "id": "0034GJ5Q9EGC0",
+    "indexed_at": 1768327019642,
+    "author": "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+    "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJ5Q9EGC0",
+    "uid": "event-1768327010296",
+    "dtstamp": 1768327010296000,
+    "dtstart": "2026-01-20T10:00:35",
+    "dtstart_timestamp": 1768903235000000,
+    "summary": "Team Meeting",
+    "dtend": "2026-01-20T11:00:32",
+    "duration": null,
+    "dtstart_tzid": "UTC",
+    "dtend_tzid": "UTC",
+    "rrule": null,
+    "rdate": null,
+    "exdate": null,
+    "description": null,
+    "status": "CONFIRMED",
+    "location": null,
+    "geo": null,
+    "url": null,
+    "sequence": 0,
+    "last_modified": 1768327010296000,
+    "created": 1768327010296000,
+    "recurrence_id": null,
+    "image_uri": null,
+    "styled_description": null,
+    "x_pubky_calendar_uris": [
+      "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJ3GCQR70"
+    ],
+    "x_pubky_rsvp_access": "PUBLIC"
+  },
+  "tags": [],
+  "attendees": []
+}
+
+
+Step 7 - Nexus Calendar Includes Event:
+[x] PASS  [ ] FAIL
+Events array contains User B's event: [x] YES  [ ] NO
+Notes:
+https://nexus.eventky.app/v0/calendar/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJ3GCQR70
+{
+  "details": {
+    "id": "0034GJ3GCQR70",
+    "indexed_at": 1768326196765,
+    "author": "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco",
+    "uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJ3GCQR70",
+    "name": "Test Calendar",
+    "timezone": "Europe/Zurich",
+    "color": "#ff5733",
+    "description": "Testing Pubky integration",
+    "url": null,
+    "image_uri": null,
+    "x_pubky_authors": [
+      "1g3ywco754m3oieok3txdp1f6x8hqexwizpzpnuj5ysxwp9dppqo",
+      "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my"
+    ],
+    "created": 1768325820838000,
+    "sequence": 1,
+    "last_modified": 1768326191780000
+  },
+  "tags": [],
+  "events": [
+    "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJ5Q9EGC0"
+  ]
+}
+
+
+
+Step 9 - Event Without Calendar:
+[x] PASS  [ ] FAIL
+x_pubky_calendar_uris: [ ] Absent  [x] Empty Array  [ ] Other: _______
+Notes:
+https://explorer.pubky.app/#p=c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my%2Fpub%2Feventky.app%2F0034GJ6CFVFW0
+{
+  "created": 1768327365976000,
+  "description": null,
+  "dtend": null,
+  "dtend_tzid": null,
+  "dtstamp": 1768327365976000,
+  "dtstart": "2026-01-20T19:02:19",
+  "dtstart_tzid": null,
+  "duration": null,
+  "exdate": null,
+  "geo": null,
+  "image_uri": null,
+  "last_modified": 1768327365976000,
+  "location": null,
+  "rdate": null,
+  "recurrence_id": null,
+  "rrule": null,
+  "sequence": 0,
+  "status": "CONFIRMED",
+  "styled_description": null,
+  "summary": "Personal Task",
+  "uid": "event-1768327365976",
+  "url": null,
+  "x_pubky_calendar_uris": null,
+  "x_pubky_rsvp_access": "PUBLIC"
+}
+
+
+Overall Result: [x] PASS  [ ] FAIL
+```
+
+---
+
+### 13.3 RSVP & Attendee Data Flow
+
+#### Test: PUBKY-RSV-001 - RSVP with Recurrence ID
+
+**Steps:**
+
+1. **Create Recurring Event**
+   - Login as User A
+   - Create event: "Weekly Standup"
+   - Start: 2026-01-20T09:00:00
+   - Recurrence: Weekly (4 occurrences)
+   - Save and note Event ID
+
+2. **RSVP to Specific Instance as User C**
+   - Login as User C
+   - Navigate to Week 2 instance (2026-01-27T09:00:00)
+   - Click "Accept" RSVP
+
+3. **Calculate Expected Attendee ID**
+   - Attendee ID = Blake3Hash(event_uri + recurrence_id)
+   - Event URI: `pubky://{user_a_pk}/pub/eventky.app/events/{event_id}`
+   - Recurrence ID: "2026-01-27T09:00:00"
+   - Expected hash format: Base32 encoded Blake3 hash (32 chars)
+
+4. **Verify Attendee on User C's Homeserver**
+   - Open Pubky Observer with User C's public key
+   - Navigate to: `/pub/eventky.app/attendees/{attendee_id}`
+   - Verify JSON file exists
+
+5. **Verify Attendee JSON Structure**
+   - Check required fields:
+     - `partstat`: "ACCEPTED"
+     - `created_at`: Unix microseconds
+     - `x_pubky_event_uri`: `pubky://{user_a_pk}/pub/eventky.app/events/{event_id}`
+   - Check instance-specific field:
+     - `recurrence_id`: "2026-01-27T09:00:00"
+
+6. **Verify Event Unchanged on User A's Homeserver**
+   - Check User A's homeserver: `/pub/eventky.app/events/{event_id}`
+   - Verify event JSON unchanged (RSVP data NOT embedded in event)
+
+7. **Verify Nexus Event Attendees**
+   - Execute: `GET /v0/event/{user_a_id}/{event_id}?limit_attendees=50`
+   - Check response `attendees` array includes User C
+   - Verify User C's RSVP status: "ACCEPTED"
+   - Verify recurrence_id shown: "2026-01-27T09:00:00"
+
+8. **RSVP to Different Instance**
+   - Login as User C
+   - Navigate to Week 3 instance (2026-02-03T09:00:00)
+   - Click "Decline" RSVP
+
+9. **Verify Second Attendee Object**
+   - Calculate new attendee_id (different hash due to different recurrence_id)
+   - Check User C's homeserver: `/pub/eventky.app/attendees/{attendee_id2}`
+   - Verify `partstat`: "DECLINED"
+   - Verify `recurrence_id`: "2026-02-03T09:00:00"
+
+10. **Verify Both RSVPs in Nexus**
+    - Re-execute: `GET /v0/event/{user_a_id}/{event_id}?limit_attendees=50`
+    - Verify attendees array shows User C twice (different recurrence_ids)
+
+**Expected Results:**
+- ✅ Attendee ID is Blake3 hash of event_uri + recurrence_id
+- ✅ Attendee stored on User C's homeserver (not User A's)
+- ✅ Each instance RSVP creates separate attendee object
+- ✅ Event JSON unchanged on User A's homeserver
+- ✅ Nexus aggregates attendees from all users' homeservers
+
+**Test Results:**
+
+```
+Date Tested: 13.01.26
+Tester: Gil
+
+Step 3 - Attendee ID Calculation:
+Event URI: https://explorer.pubky.app/#p=51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco%2Fpub%2Feventky.app%2Fevents%2F0034GJ7PPX0H0
+Recurrence ID: null (override future spec)
+Notes:
+https://explorer.pubky.app/#p=51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco%2Fpub%2Feventky.app%2Fevents%2F0034GJ7PPX0H0
+{
+  "created": 1768328074314000,
+  "description": null,
+  "dtend": null,
+  "dtend_tzid": null,
+  "dtstamp": 1768328074314000,
+  "dtstart": "2026-01-20T09:00:20",
+  "dtstart_tzid": "UTC",
+  "duration": null,
+  "exdate": null,
+  "geo": null,
+  "image_uri": null,
+  "last_modified": 1768328074314000,
+  "location": null,
+  "rdate": null,
+  "recurrence_id": null,
+  "rrule": "FREQ=WEEKLY;COUNT=4",
+  "sequence": 0,
+  "status": "CONFIRMED",
+  "styled_description": null,
+  "summary": "Weekly Standup",
+  "uid": "event-1768328074314",
+  "url": null,
+  "x_pubky_calendar_uris": null,
+  "x_pubky_rsvp_access": "PUBLIC"
+}
+
+
+Step 4 - Attendee Homeserver Storage:
+[x] PASS  [ ] FAIL
+User C's homeserver path: https://explorer.pubky.app/#p=c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my%2Fpub%2Feventky.app%2Fattendees%2Fc5jsbrwm-58HBE27YEBE5NJBXBRR03SA1YM
+Attendee exists: [x] YES  [ ] NO
+Notes:
+
+
+
+
+Step 5 - Attendee JSON Structure:
+[x] PASS  [ ] FAIL
+Fields verified:
+  [x] partstat  [x] created_at  [x] x_pubky_event_uri  [x] recurrence_id
+x_pubky_event_uri points to User A's event: [x] YES  [ ] NO
+Notes:
+{
+  "created_at": 1768328277971000,
+  "last_modified": 1768328277971000,
+  "partstat": "ACCEPTED",
+  "recurrence_id": "2026-01-27T09:00:20",
+  "x_pubky_event_uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJ7PPX0H0"
+}
+
+
+
+Step 6 - Event Homeserver Unchanged:
+[x] PASS  [ ] FAIL
+User A's event unchanged: [x] YES  [ ] NO
+RSVP data embedded: [ ] YES (FAIL)  [x] NO (PASS)
+Notes:
+
+
+
+
+Step 7 - Nexus Event Attendees:
+[x] PASS  [ ] FAIL
+User C in attendees array: [x] YES  [ ] NO
+Correct recurrence_id: [x] YES  [ ] NO
+Notes:
+https://nexus.eventky.app/v0/event/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJ7PPX0H0
+{
+  "details": {
+    "id": "0034GJ7PPX0H0",
+    "indexed_at": 1768328076755,
+    "author": "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco",
+    "uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJ7PPX0H0",
+    "uid": "event-1768328074314",
+    "dtstamp": 1768328074314000,
+    "dtstart": "2026-01-20T09:00:20",
+    "dtstart_timestamp": 1768899620000000,
+    "summary": "Weekly Standup",
+    "dtend": null,
+    "duration": null,
+    "dtstart_tzid": "UTC",
+    "dtend_tzid": null,
+    "rrule": "FREQ=WEEKLY;COUNT=4",
+    "rdate": null,
+    "exdate": null,
+    "description": null,
+    "status": "CONFIRMED",
+    "location": null,
+    "geo": null,
+    "url": null,
+    "sequence": 0,
+    "last_modified": 1768328074314000,
+    "created": 1768328074314000,
+    "recurrence_id": null,
+    "image_uri": null,
+    "styled_description": null,
+    "x_pubky_calendar_uris": null,
+    "x_pubky_rsvp_access": "PUBLIC"
+  },
+  "tags": [],
+  "attendees": [
+    {
+      "id": "c5jsbrwm-58HBE27YEBE5NJBXBRR03SA1YM",
+      "indexed_at": 1768328281759,
+      "author": "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+      "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/attendees/c5jsbrwm-58HBE27YEBE5NJBXBRR03SA1YM",
+      "partstat": "ACCEPTED",
+      "x_pubky_event_uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJ7PPX0H0",
+      "created_at": 1768328277971000,
+      "last_modified": 1768328277971000,
+      "recurrence_id": "2026-01-27T09:00:20"
+    }
+  ]
+}
+
+
+
+Step 9 - Second Attendee Object:
+[x] PASS  [ ] FAIL
+Second attendee_id (calculated): https://explorer.pubky.app/#p=c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my%2Fpub%2Feventky.app%2Fattendees%2Fc5jsbrwm-6760G16F6EASV5N2Q0MXVT72T4
+Exists on homeserver: [x] YES  [ ] NO
+partstat: DECLINED  recurrence_id: 2026-02-10T09:00:20
+Notes:
+
+
+
+Step 10 - Nexus Shows Both RSVPs:
+[x] PASS  [ ] FAIL
+Number of User C attendee entries: 2
+Notes:
+https://nexus.eventky.app/v0/event/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJ7PPX0H0
+
+{
+  "details": {
+    "id": "0034GJ7PPX0H0",
+    "indexed_at": 1768328076755,
+    "author": "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco",
+    "uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJ7PPX0H0",
+    "uid": "event-1768328074314",
+    "dtstamp": 1768328074314000,
+    "dtstart": "2026-01-20T09:00:20",
+    "dtstart_timestamp": 1768899620000000,
+    "summary": "Weekly Standup",
+    "dtend": null,
+    "duration": null,
+    "dtstart_tzid": "UTC",
+    "dtend_tzid": null,
+    "rrule": "FREQ=WEEKLY;COUNT=4",
+    "rdate": null,
+    "exdate": null,
+    "description": null,
+    "status": "CONFIRMED",
+    "location": null,
+    "geo": null,
+    "url": null,
+    "sequence": 0,
+    "last_modified": 1768328074314000,
+    "created": 1768328074314000,
+    "recurrence_id": null,
+    "image_uri": null,
+    "styled_description": null,
+    "x_pubky_calendar_uris": null,
+    "x_pubky_rsvp_access": "PUBLIC"
+  },
+  "tags": [],
+  "attendees": [
+    {
+      "id": "c5jsbrwm-6760G16F6EASV5N2Q0MXVT72T4",
+      "indexed_at": 1768329026760,
+      "author": "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+      "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/attendees/c5jsbrwm-6760G16F6EASV5N2Q0MXVT72T4",
+      "partstat": "DECLINED",
+      "x_pubky_event_uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJ7PPX0H0",
+      "created_at": 1768329021865000,
+      "last_modified": 1768329021865000,
+      "recurrence_id": "2026-02-10T09:00:20"
+    },
+    {
+      "id": "c5jsbrwm-58HBE27YEBE5NJBXBRR03SA1YM",
+      "indexed_at": 1768328281759,
+      "author": "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+      "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/attendees/c5jsbrwm-58HBE27YEBE5NJBXBRR03SA1YM",
+      "partstat": "ACCEPTED",
+      "x_pubky_event_uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJ7PPX0H0",
+      "created_at": 1768328277971000,
+      "last_modified": 1768328277971000,
+      "recurrence_id": "2026-01-27T09:00:20"
+    }
+  ]
+}
+
+
+Overall Result: [x] PASS  [ ] FAIL
+```
+
+---
+
+### 13.4 Tag Data Flow
+
+#### Test: PUBKY-TAG-001 - Cross-User Event Tagging
+
+**Steps:**
+
+1. **Create Event**
+   - Login as User A
+   - Create event: "Blockchain Summit"
+   - Save and note Event ID
+   - Note Event URI: `pubky://{user_a_pk}/pub/eventky.app/events/{event_id}`
+
+2. **User A Tags Own Event**
+   - User A adds tag: "blockchain"
+   - Save
+
+3. **Calculate Expected Tag ID**
+   - Tag ID = Blake3Hash(event_uri + ":" + label)
+   - Label: "blockchain"
+   - Expected hash format: Base32 encoded Blake3 hash (uppercase)
+
+4. **Verify Tag on User A's Homeserver**
+   - Open Pubky Observer with User A's public key
+   - Navigate to: `/pub/pubky.app/tags/{tag_id}`
+   - Verify JSON file exists
+
+5. **Verify Tag JSON Structure**
+   - Check required fields:
+     - `uri`: `pubky://{user_a_pk}/pub/eventky.app/events/{event_id}`
+     - `label`: "blockchain" (lowercase)
+     - `created_at`: Unix microseconds
+
+6. **User B Tags Same Event**
+   - Login as User B
+   - View User A's event
+   - Add tag: "blockchain"
+   - Save
+
+7. **Calculate User B's Tag ID**
+   - Same formula: Blake3Hash(event_uri + ":" + "blockchain")
+   - Same event_uri, same label → same hash
+   - Tag ID should match User A's tag ID
+
+8. **Verify Tag on User B's Homeserver**
+   - Open Pubky Observer with User B's public key
+   - Navigate to: `/pub/pubky.app/tags/{tag_id}`
+   - Verify JSON file exists (same tag_id as User A)
+   - Verify `uri` points to User A's event
+
+9. **Verify Nexus Event Tags**
+   - Execute: `GET /v0/event/{user_a_id}/{event_id}?limit_tags=10&limit_taggers=10`
+   - Check response `tags` array includes "blockchain"
+   - Verify tag has multiple taggers (User A and User B)
+
+10. **User B Adds Different Tag**
+    - User B adds tag: "web3"
+    - Calculate new tag_id (different label)
+    - Verify on User B's homeserver: `/pub/pubky.app/tags/{tag_id2}`
+
+11. **Verify Both Tags in Nexus**
+    - Re-execute: `GET /v0/event/{user_a_id}/{event_id}?limit_tags=10`
+    - Verify tags array shows both "blockchain" and "web3"
+    - Check "blockchain" has 2 taggers, "web3" has 1 tagger
+
+**Expected Results:**
+- ✅ Tag ID is Blake3 hash of tagged_uri + ":" + label
+- ✅ Same tag by different users creates separate files (same ID, different homeservers)
+- ✅ Tags stored at `/pub/pubky.app/tags/` (not `/pub/eventky.app/`)
+- ✅ Tag URI points to original event creator's homeserver
+- ✅ Nexus aggregates tags from all users
+
+**Test Results:**
+
+```
+Date Tested: 13.01.26
+Tester: Gil
+
+Step 3 - Tag ID Calculation (User A):
+Event URI: pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJ5Q9EGC0
+Label: "test-tag"
+Expected tag_id: https://explorer.pubky.app/#p=c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my%2Fpub%2Fpubky.app%2Ftags%2FVDD24NFXX0D052VF5GHA312XBC
+Notes:
+
+
+
+Step 4 - Tag on User A's Homeserver:
+[x] PASS  [ ] FAIL
+Path: /pub/pubky.app/tags/{tag_id}
+Exists: [x] YES  [ ] NO
+Notes:
+https://explorer.pubky.app/#p=c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my%2Fpub%2Fpubky.app%2Ftags%2FVDD24NFXX0D052VF5GHA312XBC
+{
+  "created_at": 1768329230298000,
+  "label": "test-tag",
+  "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJ5Q9EGC0"
+}
+
+
+Step 5 - Tag JSON Structure:
+[x] PASS  [ ] FAIL
+Fields verified:
+  [x] uri  [x] label  [x] created_at
+Label is lowercase: [x] YES  [ ] NO
+URI points to User A's event: [x] YES  [ ] NO
+Notes:
+
+
+
+
+Step 7 - Tag ID Calculation (User B):
+Same as User A's tag_id: [ ] YES  [x] NO
+Notes:
+https://explorer.pubky.app/#p=51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco%2Fpub%2Fpubky.app%2Ftags%2FVDD24NFXX0D052VF5GHA312XBC
+{
+  "created_at": 1768329417587000,
+  "label": "test-tag",
+  "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJ5Q9EGC0"
+}
+
+
+
+Step 8 - Tag on User B's Homeserver:
+[x] PASS  [ ] FAIL
+Path: /pub/pubky.app/tags/{tag_id}
+Exists: [x] YES  [ ] NO
+URI still points to User A's event: [x] YES  [ ] NO
+Notes:
+
+
+
+Step 9 - Nexus Event Tags:
+[x] PASS  [ ] FAIL
+"test-tag" tag present: [x] YES  [ ] NO
+Number of taggers: 2
+Taggers include User A and User B: [x] YES  [ ] NO
+Notes:
+{
+  "details": {
+    "id": "0034GJ5Q9EGC0",
+    "indexed_at": 1768327019642,
+    "author": "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+    "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJ5Q9EGC0",
+    "uid": "event-1768327010296",
+    "dtstamp": 1768327010296000,
+    "dtstart": "2026-01-20T10:00:35",
+    "dtstart_timestamp": 1768903235000000,
+    "summary": "Team Meeting",
+    "dtend": "2026-01-20T11:00:32",
+    "duration": null,
+    "dtstart_tzid": "UTC",
+    "dtend_tzid": "UTC",
+    "rrule": null,
+    "rdate": null,
+    "exdate": null,
+    "description": null,
+    "status": "CONFIRMED",
+    "location": null,
+    "geo": null,
+    "url": null,
+    "sequence": 0,
+    "last_modified": 1768327010296000,
+    "created": 1768327010296000,
+    "recurrence_id": null,
+    "image_uri": null,
+    "styled_description": null,
+    "x_pubky_calendar_uris": [
+      "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJ3GCQR70"
+    ],
+    "x_pubky_rsvp_access": "PUBLIC"
+  },
+  "tags": [
+    {
+      "label": "test-tag",
+      "taggers": [
+        "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+        "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco"
+      ],
+      "taggers_count": 2,
+      "relationship": false
+    }
+  ],
+  "attendees": []
+}
+
+
+
+Step 11 - Multiple Tags in Nexus:
+[x] PASS  [ ] FAIL
+Tags array: ___________________________________________
+"test-tag" taggers: 2  "2-nd-test-tag" taggers: 1
+Notes:
+{
+  "details": {
+    "id": "0034GJ5Q9EGC0",
+    "indexed_at": 1768327019642,
+    "author": "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+    "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJ5Q9EGC0",
+    "uid": "event-1768327010296",
+    "dtstamp": 1768327010296000,
+    "dtstart": "2026-01-20T10:00:35",
+    "dtstart_timestamp": 1768903235000000,
+    "summary": "Team Meeting",
+    "dtend": "2026-01-20T11:00:32",
+    "duration": null,
+    "dtstart_tzid": "UTC",
+    "dtend_tzid": "UTC",
+    "rrule": null,
+    "rdate": null,
+    "exdate": null,
+    "description": null,
+    "status": "CONFIRMED",
+    "location": null,
+    "geo": null,
+    "url": null,
+    "sequence": 0,
+    "last_modified": 1768327010296000,
+    "created": 1768327010296000,
+    "recurrence_id": null,
+    "image_uri": null,
+    "styled_description": null,
+    "x_pubky_calendar_uris": [
+      "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJ3GCQR70"
+    ],
+    "x_pubky_rsvp_access": "PUBLIC"
+  },
+  "tags": [
+    {
+      "label": "test-tag",
+      "taggers": [
+        "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+        "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco"
+      ],
+      "taggers_count": 2,
+      "relationship": false
+    },
+    {
+      "label": "2nd-test-tag",
+      "taggers": [
+        "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco"
+      ],
+      "taggers_count": 1,
+      "relationship": false
+    }
+  ],
+  "attendees": []
+}
+
+
+
+
+Overall Result: [x] PASS  [ ] FAIL
+```
+
+---
+
+### 13.5 Cross-User Data Visibility
+
+#### Test: PUBKY-INT-001 - Complete Data Flow Integration
+
+**Steps:**
+
+1. **Setup**
+   - User A: Calendar owner, Event creator
+   - User B: Calendar author, creates event in calendar
+   - User C: Tags events, RSVPs to events
+
+2. **User A Creates Calendar**
+   - Create calendar: "Public Tech Events"
+   - Add User B as author
+   - Note Calendar ID and URI
+
+3. **User A Creates Event**
+   - Create event: "AI Workshop"
+   - Link to calendar
+   - Note Event ID and URI
+
+4. **User B Creates Event in Same Calendar**
+   - Login as User B
+   - Create event: "Hackathon"
+   - Link to same calendar
+   - Note Event ID and URI
+
+5. **Verify Homeserver Separation**
+   - User A's homeserver:
+     - Has calendar: `/pub/eventky.app/calendars/{cal_id}`
+     - Has User A's event: `/pub/eventky.app/events/{event_a_id}`
+     - Does NOT have User B's event
+   - User B's homeserver:
+     - Does NOT have calendar
+     - Has User B's event: `/pub/eventky.app/events/{event_b_id}`
+     - Event references User A's calendar URI
+
+6. **User C RSVPs to Both Events**
+   - RSVP "ACCEPTED" to User A's event
+   - RSVP "TENTATIVE" to User B's event
+
+7. **Verify User C's Homeserver**
+   - Check User C's homeserver:
+     - Has attendee for User A's event: `/pub/eventky.app/attendees/{hash_a}`
+     - Has attendee for User B's event: `/pub/eventky.app/attendees/{hash_b}`
+     - Does NOT have events or calendar
+
+8. **User C Tags Both Events**
+   - Tag User A's event: "ai"
+   - Tag User B's event: "coding"
+
+9. **Verify User C's Tags**
+   - Check User C's homeserver:
+     - Has tag: `/pub/pubky.app/tags/{tag_id_ai}` (points to User A's event URI)
+     - Has tag: `/pub/pubky.app/tags/{tag_id_coding}` (points to User B's event URI)
+
+10. **Verify Nexus Aggregation**
+    - Execute: `GET /v0/calendar/{user_a_id}/{calendar_id}`
+    - Verify calendar includes both events (from User A and User B)
+    - Execute: `GET /v0/event/{user_a_id}/{event_a_id}?limit_tags=10&limit_attendees=10`
+    - Verify event shows User C's RSVP and tag
+    - Execute: `GET /v0/event/{user_b_id}/{event_b_id}?limit_tags=10&limit_attendees=10`
+    - Verify event shows User C's RSVP and tag
+
+11. **Remove User B as Calendar Author**
+    - Login as User A
+    - Edit calendar, remove User B from authors
+    - Save
+
+12. **Verify Calendar Re-indexing**
+    - Wait 2-3 seconds
+    - Execute: `GET /v0/calendar/{user_a_id}/{calendar_id}`
+    - Verify calendar events array NO LONGER includes User B's event
+    - Execute: `GET /v0/event/{user_b_id}/{event_b_id}` (direct event access)
+    - Verify User B's event still accessible (not deleted)
+    - Verify event's `x_pubky_calendar_uris` still references calendar
+
+13. **Verify Data Persistence**
+    - User B's event still exists on User B's homeserver
+    - User C's RSVP still exists on User C's homeserver
+    - User C's tag still exists on User C's homeserver
+    - Only Nexus index changed (de-indexed from calendar view)
+
+**Expected Results:**
+- ✅ Each user stores only their own data on their homeserver
+- ✅ Events reference calendars via URIs (no data duplication)
+- ✅ RSVPs and tags stored on tagger's homeserver, reference target URIs
+- ✅ Nexus aggregates data from multiple homeservers
+- ✅ Removing author de-indexes events from calendar but doesn't delete data
+- ✅ Direct event access still works after de-indexing
+
+**Test Results:**
+
+```
+Date Tested: 13.01.26
+Tester: Gil
+
+Step 5 - Homeserver Separation:
+[X] PASS  [ ] FAIL
+User A's homeserver contains:
+  [X] Calendar  [X] User A's event  [ ] User B's event (should be NO)
+User B's homeserver contains:
+  [ ] Calendar (should be NO)  [X] User B's event
+Notes:
+User A:
+https://eventky.app/calendar/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJESBWQ10
+https://eventky.app/event/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJF4VFBAG
+User B:
+https://eventky.app/event/c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/0034GJFE11MGG
+
+Step 7 - User C's Attendees:
+[X] PASS  [ ] FAIL
+Attendee objects found: _____
+Point to correct events: [X] YES  [ ] NO
+Notes:
+
+https://explorer.pubky.app/#p=c5nr657md9g8mut1xhjgf9h3cxaio3et9xyupo4fsgi5f7etocey%2Fpub%2Feventky.app%2Fattendees%2Fc5nr657m-003J7HPES1JWY91D3C2S773RRM
+
+Step 9 - User C's Tags:
+[X] PASS  [ ] FAIL
+Tag objects found: _____
+URIs point to correct events: [X] YES  [ ] NO
+Notes:
+
+
+
+
+Step 10 - Nexus Aggregation:
+[X] PASS  [ ] FAIL
+Calendar includes both events: [X] YES  [ ] NO
+User A's event shows User C's RSVP: [X] YES  [ ] NO
+User B's event shows User C's RSVP: [X] YES  [ ] NO
+Notes:
+https://nexus.eventky.app/v0/event/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJF4VFBAG
+{
+  "details": {
+    "id": "0034GJF4VFBAG",
+    "indexed_at": 1768332071704,
+    "author": "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco",
+    "uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJF4VFBAG",
+    "uid": "event-1768332069688",
+    "dtstamp": 1768332069688000,
+    "dtstart": "2026-01-30T20:20:10",
+    "dtstart_timestamp": 1769804410000000,
+    "summary": "AI Workshop",
+    "dtend": null,
+    "duration": null,
+    "dtstart_tzid": "Europe/Zurich",
+    "dtend_tzid": "Europe/Zurich",
+    "rrule": null,
+    "rdate": null,
+    "exdate": null,
+    "description": null,
+    "status": "CONFIRMED",
+    "location": null,
+    "geo": null,
+    "url": null,
+    "sequence": 0,
+    "last_modified": 1768332069688000,
+    "created": 1768332069688000,
+    "recurrence_id": null,
+    "image_uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/pubky.app/files/0034GJF27TK2G",
+    "styled_description": null,
+    "x_pubky_calendar_uris": [
+      "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJESBWQ10"
+    ],
+    "x_pubky_rsvp_access": "PUBLIC"
+  },
+  "tags": [
+    {
+      "label": "ai",
+      "taggers": [
+        "c5nr657md9g8mut1xhjgf9h3cxaio3et9xyupo4fsgi5f7etocey"
+      ],
+      "taggers_count": 1,
+      "relationship": false
+    }
+  ],
+  "attendees": [
+    {
+      "id": "c5nr657m-6J8PNDHMG96HMNPBQXDR3NWA5R",
+      "indexed_at": 1768332521760,
+      "author": "c5nr657md9g8mut1xhjgf9h3cxaio3et9xyupo4fsgi5f7etocey",
+      "uri": "pubky://c5nr657md9g8mut1xhjgf9h3cxaio3et9xyupo4fsgi5f7etocey/pub/eventky.app/attendees/c5nr657m-6J8PNDHMG96HMNPBQXDR3NWA5R",
+      "partstat": "ACCEPTED",
+      "x_pubky_event_uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJF4VFBAG",
+      "created_at": 1768332519669000,
+      "last_modified": 1768332519669000,
+      "recurrence_id": null
+    }
+  ]
+}
+
+https://nexus.eventky.app/v0/event/c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/0034GJFE11MGG
+{
+  "details": {
+    "id": "0034GJFE11MGG",
+    "indexed_at": 1768332226758,
+    "author": "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my",
+    "uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJFE11MGG",
+    "uid": "event-1768332223605",
+    "dtstamp": 1768332223605000,
+    "dtstart": "2026-01-31T20:23:27",
+    "dtstart_timestamp": 1769891007000000,
+    "summary": "Hackathon",
+    "dtend": null,
+    "duration": null,
+    "dtstart_tzid": "Europe/Zurich",
+    "dtend_tzid": "Europe/Zurich",
+    "rrule": null,
+    "rdate": null,
+    "exdate": null,
+    "description": null,
+    "status": "CONFIRMED",
+    "location": null,
+    "geo": null,
+    "url": null,
+    "sequence": 0,
+    "last_modified": 1768332223605000,
+    "created": 1768332223605000,
+    "recurrence_id": null,
+    "image_uri": null,
+    "styled_description": null,
+    "x_pubky_calendar_uris": [
+      "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJESBWQ10"
+    ],
+    "x_pubky_rsvp_access": "PUBLIC"
+  },
+  "tags": [
+    {
+      "label": "coding",
+      "taggers": [
+        "c5nr657md9g8mut1xhjgf9h3cxaio3et9xyupo4fsgi5f7etocey"
+      ],
+      "taggers_count": 1,
+      "relationship": false
+    }
+  ],
+  "attendees": [
+    {
+      "id": "c5nr657m-N2MWRAXPQEG2K82520M0TM5KFM",
+      "indexed_at": 1768332531694,
+      "author": "c5nr657md9g8mut1xhjgf9h3cxaio3et9xyupo4fsgi5f7etocey",
+      "uri": "pubky://c5nr657md9g8mut1xhjgf9h3cxaio3et9xyupo4fsgi5f7etocey/pub/eventky.app/attendees/c5nr657m-N2MWRAXPQEG2K82520M0TM5KFM",
+      "partstat": "TENTATIVE",
+      "x_pubky_event_uri": "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJFE11MGG",
+      "created_at": 1768332528443000,
+      "last_modified": 1768332528443000,
+      "recurrence_id": null
+    }
+  ]
+}
+
+https://nexus.eventky.app/v0/calendar/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJESBWQ10
+{
+  "details": {
+    "id": "0034GJESBWQ10",
+    "indexed_at": 1768331881756,
+    "author": "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco",
+    "uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJESBWQ10",
+    "name": "Public Tech Events",
+    "timezone": "Europe/Zurich",
+    "color": "#9141ac",
+    "description": null,
+    "url": null,
+    "image_uri": null,
+    "x_pubky_authors": [
+      "c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my"
+    ],
+    "created": 1768331876970000,
+    "sequence": 0,
+    "last_modified": 1768331876970000
+  },
+  "tags": [],
+  "events": [
+    "pubky://c5jsbrwmouzedmf11qijk3gp8qeizkdsgtneq5t185jc41wxn6my/pub/eventky.app/events/0034GJFE11MGG",
+    "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJF4VFBAG"
+  ]
+}
+
+
+Step 12 - Calendar Re-indexing After Author Removal:
+[x] PASS  [ ] FAIL
+Calendar events array excludes User B's event: [x] YES  [ ] NO
+User B's event still accessible via direct URL: [x] YES  [ ] NO
+Notes:
+https://nexus.eventky.app/v0/calendar/51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/0034GJESBWQ10
+{
+  "details": {
+    "id": "0034GJESBWQ10",
+    "indexed_at": 1768335743221,
+    "author": "51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco",
+    "uri": "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/calendars/0034GJESBWQ10",
+    "name": "Public Tech Events",
+    "timezone": "Europe/Zurich",
+    "color": "#9141ac",
+    "description": null,
+    "url": null,
+    "image_uri": null,
+    "x_pubky_authors": null,
+    "created": 1768331876970000,
+    "sequence": 4,
+    "last_modified": 1768335742195000
+  },
+  "tags": [],
+  "events": [
+    "pubky://51da3n5m8s6oaq38uqs7jznp6ezbc3qbtmic8oy6fj3g6mokdyco/pub/eventky.app/events/0034GJF4VFBAG"
+  ]
+}
+
+
+
+Step 13 - Data Persistence:
+[x] PASS  [ ] FAIL
+User B's event on homeserver: [x] Exists  [ ] Deleted
+User C's RSVP on homeserver: [x] Exists  [ ] Deleted
+User C's tag on homeserver: [x] Exists  [ ] Deleted
+Notes:
+
+
+
+
+Overall Result: [x] PASS  [ ] FAIL
+```
+
+---
+
 ## Priority Guidelines
 
 - **High Priority:** Core functionality, data integrity, security, user-blocking issues
@@ -377,6 +1662,8 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 3. **Cache Behavior:** React Query caches data. Hard refresh (Ctrl+Shift+R) bypasses cache. Understand difference between cache and source data.
 
 4. **Cross-User Testing:** Many tests require multiple logged-in users. Use different browsers or incognito windows.
+
+5. **Pubky Data Integrity Tests:** Section 13 tests validate the actual Pubky protocol implementation. These tests prove Eventky uses decentralized storage correctly and can be demonstrated during technical presentations or Q&A.
 
 ---
 

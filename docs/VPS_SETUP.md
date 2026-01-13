@@ -4,7 +4,7 @@
 
 **SSH into VPS:**
 ```bash
-ssh eventky@34.88.231.77
+ssh gil@34.88.231.77
 ```
 
 **Access URLs:**
