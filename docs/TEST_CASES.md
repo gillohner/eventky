@@ -18,12 +18,12 @@ Comprehensive end-to-end test scenarios for validating Eventky functionality.
 | Test ID | Test Case | Steps | Expected Result | Priority |
 |---------|-----------|-------|-----------------|----------|
 | CAL-001 | Create calendar as owner | 1. Login as User A<br>2. Navigate to Calendars<br>3. Click "New Calendar"<br>4. Fill name, description, color<br>5. Save | Calendar created, appears in "My Calendars" list, User A is owner | High |
-| CAL-002 | Create calendar with authors | 1. Login as User A<br>2. Create calendar<br>3. Add User B and User C as authors<br>4. Save | Calendar created with 3 authors (A, B, C), all listed in calendar details | High |
+| CAL-002 | Create calendar with authors | 1. Login as User A<br>2. Create calendar<br>3. Add User B and User C as authors<br>4. Save | Calendar created with 2 authors (B, C), all listed in calendar details | High |
 | CAL-003 | Edit calendar metadata | 1. User A creates calendar<br>2. Edit name, description, color<br>3. Save | Changes reflected immediately, persisted after refresh | High |
 | CAL-004 | Delete calendar as owner | 1. User A creates calendar<br>2. Click delete, confirm<br>3. Refresh page | Calendar removed from list, events show as "Calendar deleted" | High |
 | CAL-005 | View calendar as non-author | 1. User A creates public calendar with events<br>2. Login as User B (not author)<br>3. Navigate to calendar URL | Calendar visible, events from current authors shown, no edit buttons for User B | Medium |
 | CAL-006 | Calendar name validation | 1. Try creating calendar with empty name (0 chars)<br>2. Try 101+ character name<br>3. Try name with only whitespace | Error shown for empty/whitespace, name truncated to 100 chars, special characters allowed | Medium |
-| CAL-007 | Calendar with maximum authors | 1. Create calendar<br>2. Try adding 21+ authors (max is 20)<br>3. Save | Error shown OR only first 20 authors saved | Medium |
+| CAL-007 | Calendar with maximum authors | 1. Create calendar<br>2. Try adding 21+ authors (max is 20)<br>3. Save | Only 20 authors can be saved | Medium |
 | CAL-008 | Calendar with description | 1. Create calendar<br>2. Add 10,000 character description<br>3. Save<br>4. Try 10,001+ chars | Description shown in calendar detail, error shown for >10,000 chars | Medium |
 | CAL-009 | Calendar with very long URL | 1. Create calendar<br>2. Add 2,049+ character URL<br>3. Try to save | Error shown, URL must not exceed 2,048 characters | Low |
 
@@ -556,7 +556,7 @@ Overall Result: [x] PASS  [ ] FAIL
 
 4. **Verify Event JSON Structure**
    - Check required fields:
-     - `uid`: UUID format
+     - `uid`: Globally unique identifier
      - `dtstamp`: Creation timestamp
      - `dtstart`: "2026-01-20T10:00:00"
      - `dtend`: "2026-01-20T11:00:00"
