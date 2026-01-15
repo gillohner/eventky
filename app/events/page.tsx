@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useEventsStream } from "@/hooks/use-event-hooks";
 import { useCalendarsStream } from "@/hooks/use-calendar-hooks";
+import { fetchEventFromNexus } from "@/lib/nexus/events";
 import { useDebugView } from "@/hooks";
 import { DevJsonView } from "@/components/dev-json-view";
 import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
@@ -97,6 +99,39 @@ export default function EventsPage() {
     // Fetch all calendars for color mapping
     const { data: calendarsData } = useCalendarsStream({ limit: 100 });
 
+    // Fetch event views with tags for visible events
+    const { data: eventViews } = useQuery({
+        queryKey: ['event-views', filteredEvents?.map(e => `${e.author}/${e.id}`).join(',')],
+        queryFn: async () => {
+            if (!filteredEvents || filteredEvents.length === 0) return new Map();
+
+            // Fetch all events in parallel (limit to first 50 to avoid too many requests)
+            const eventsToFetch = filteredEvents.slice(0, 50);
+            const promises = eventsToFetch.map(event =>
+                fetchEventFromNexus(event.author, event.id, 20, 5)
+                    .then(data => ({ key: `${event.author}/${event.id}`, data }))
+                    .catch(error => {
+                        console.warn(`Failed to fetch event ${event.author}/${event.id}:`, error);
+                        return { key: `${event.author}/${event.id}`, data: null };
+                    })
+            );
+
+            const results = await Promise.all(promises);
+
+            // Convert to map, filtering out nulls
+            const map = new Map();
+            results.forEach(({ key, data }) => {
+                if (data) {
+                    map.set(key, data);
+                }
+            });
+
+            return map;
+        },
+        enabled: !!filteredEvents && filteredEvents.length > 0,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+
     const { debugEnabled, showRawData, toggleRawData } = useDebugView();
 
     // Transform calendars to CalendarFilterOption format
@@ -130,6 +165,28 @@ export default function EventsPage() {
                 color: cal.color || "#3b82f6", // Default to blue if no color
             }));
     }, [calendarsData, filteredEvents]);
+
+    // Extract popular tags from event views
+    const popularTags = useMemo(() => {
+        if (!eventViews || !filteredEvents) return [];
+        const tagCounts = new Map<string, number>();
+
+        filteredEvents.forEach((event) => {
+            const viewKey = `${event.author}/${event.id}`;
+            const view = eventViews.get(viewKey);
+            if (view?.tags) {
+                view.tags.forEach((tag: { label: string }) => {
+                    tagCounts.set(tag.label, (tagCounts.get(tag.label) || 0) + 1);
+                });
+            }
+        });
+
+        // Convert to array and sort by count
+        return Array.from(tagCounts.entries())
+            .map(([label, count]) => ({ label, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 20); // Top 20 tags
+    }, [eventViews, filteredEvents]);
 
     // Update URL when filters change
     useEffect(() => {
@@ -198,6 +255,7 @@ export default function EventsPage() {
             <EventStreamFilters
                 filters={filters}
                 onFiltersChange={setFilters}
+                popularTags={popularTags}
             />
 
             {showRawData ? (

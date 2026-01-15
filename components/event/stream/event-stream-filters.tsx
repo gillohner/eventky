@@ -21,9 +21,10 @@ export interface EventStreamFilterValues {
 interface EventStreamFiltersProps {
     filters: EventStreamFilterValues;
     onFiltersChange: (filters: EventStreamFilterValues) => void;
+    popularTags?: Array<{ label: string; count: number }>;
 }
 
-export function EventStreamFilters({ filters, onFiltersChange }: EventStreamFiltersProps) {
+export function EventStreamFilters({ filters, onFiltersChange, popularTags = [] }: EventStreamFiltersProps) {
     const currentPreset = filters.preset || "upcoming";
 
     // Check if filters are at default state (upcoming with no other filters)
@@ -94,6 +95,14 @@ export function EventStreamFilters({ filters, onFiltersChange }: EventStreamFilt
         }
 
         onFiltersChange(newFilters);
+    };
+
+    const handleToggleTag = (tag: string) => {
+        const currentTags = filters.tags || [];
+        const newTags = currentTags.includes(tag)
+            ? currentTags.filter((t) => t !== tag)
+            : [...currentTags, tag];
+        onFiltersChange({ ...filters, tags: newTags.length > 0 ? newTags : undefined });
     };
 
     const handleResetToUpcoming = () => {
@@ -250,8 +259,30 @@ export function EventStreamFilters({ filters, onFiltersChange }: EventStreamFilt
                     <div className="flex-1">
                         <TagsFilter
                             tags={filters.tags}
-                            onChange={(tags) => onFiltersChange({ ...filters, tags })}
+                            onChange={(tags) => onFiltersChange({ ...filters, tags: tags.length > 0 ? tags : undefined })}
                         />
+
+                        {/* Popular Tags */}
+                        {popularTags.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                                <p className="text-xs text-muted-foreground">Popular tags:</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {popularTags.slice(0, 15).map(({ label, count }) => {
+                                        const isSelected = filters.tags?.includes(label);
+                                        return (
+                                            <Badge
+                                                key={label}
+                                                variant={isSelected ? "default" : "outline"}
+                                                className="cursor-pointer hover:bg-primary/90 transition-colors"
+                                                onClick={() => handleToggleTag(label)}
+                                            >
+                                                {label} ({count})
+                                            </Badge>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </CardContent>

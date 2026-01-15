@@ -66,9 +66,10 @@ export async function fetchEventsStream(params?: {
 }): Promise<NexusEventStreamResponse[]> {
   try {
     // Convert tags array to comma-separated string for API (same pattern as posts)
-    const apiParams = params?.tags
+    // Only include tags if array is not empty
+    const apiParams = params?.tags && params.tags.length > 0
       ? { ...params, tags: params.tags.join(',') }
-      : params;
+      : { ...params, tags: undefined };
 
     const response = await nexusClient.get<NexusEventStreamResponse[]>(
       "/v0/stream/events",
