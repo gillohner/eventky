@@ -3,11 +3,20 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarClock, Calendar, Clock } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserSearch } from "@/components/ui/user-search";
+import { useUsersByIds, type SelectedUser } from "@/hooks/use-user-search";
+import { X, CalendarClock, Calendar, Clock, User } from "lucide-react";
 import { DateRangeFilter } from "@/components/event/stream/filters/date-range-filter";
-import { AdvancedFilters } from "@/components/event/stream/filters/advanced-filters";
 import { TagsFilter } from "@/components/event/stream/filters/tags-filter";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { getValidEventStatuses } from "pubky-app-specs";
+
+const EVENT_STATUSES = getValidEventStatuses().map((status) => ({
+    value: status,
+    label: status.charAt(0) + status.slice(1).toLowerCase(),
+}));
 
 export interface EventStreamFilterValues {
     preset?: "upcoming" | "this-week" | "this-month" | "past" | "all" | "custom";
@@ -26,6 +35,16 @@ interface EventStreamFiltersProps {
 
 export function EventStreamFilters({ filters, onFiltersChange, popularTags = [] }: EventStreamFiltersProps) {
     const currentPreset = filters.preset || "upcoming";
+
+    // Lookup author user data
+    const authorIds = filters.author ? [filters.author] : [];
+    const { data: authorUsers } = useUsersByIds(authorIds);
+
+    const selectedAuthors: SelectedUser[] = authorUsers?.map((user) => ({
+        id: user.id,
+        name: user.name,
+        image: user.image,
+    })) || [];
 
     // Check if filters are at default state (upcoming with no other filters)
     const isDefaultState =
@@ -153,137 +172,171 @@ export function EventStreamFilters({ filters, onFiltersChange, popularTags = [] 
     return (
         <Card>
             <CardContent className="p-4 space-y-4">
-                {/* Preset Buttons */}
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        variant={currentPreset === "upcoming" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetChange("upcoming")}
-                        className="gap-1.5"
-                    >
-                        <Clock className="h-3.5 w-3.5" />
-                        Upcoming
-                    </Button>
-                    <Button
-                        variant={currentPreset === "this-week" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetChange("this-week")}
-                        className="gap-1.5"
-                    >
-                        <Calendar className="h-3.5 w-3.5" />
-                        This Week
-                    </Button>
-                    <Button
-                        variant={currentPreset === "this-month" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetChange("this-month")}
-                        className="gap-1.5"
-                    >
-                        <Calendar className="h-3.5 w-3.5" />
-                        This Month
-                    </Button>
-                    <Button
-                        variant={currentPreset === "past" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetChange("past")}
-                        className="gap-1.5"
-                    >
-                        Past
-                    </Button>
-                    <Button
-                        variant={currentPreset === "all" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetChange("all")}
-                        className="gap-1.5"
-                    >
-                        All
-                    </Button>
-                    <Button
-                        variant={currentPreset === "custom" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetChange("custom")}
-                        className="gap-1.5"
-                    >
-                        <CalendarClock className="h-3.5 w-3.5" />
-                        Custom...
-                    </Button>
-                </div>
+                {/* Top Row: Preset Buttons on left, Author/Status on right */}
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+                    {/* Left side: Preset Buttons and Badge */}
+                    <div className="flex-1 space-y-4">
+                        {/* Preset Buttons */}
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant={currentPreset === "upcoming" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePresetChange("upcoming")}
+                                className="gap-1.5"
+                            >
+                                <Clock className="h-3.5 w-3.5" />
+                                Upcoming
+                            </Button>
+                            <Button
+                                variant={currentPreset === "this-week" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePresetChange("this-week")}
+                                className="gap-1.5"
+                            >
+                                <Calendar className="h-3.5 w-3.5" />
+                                This Week
+                            </Button>
+                            <Button
+                                variant={currentPreset === "this-month" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePresetChange("this-month")}
+                                className="gap-1.5"
+                            >
+                                <Calendar className="h-3.5 w-3.5" />
+                                This Month
+                            </Button>
+                            <Button
+                                variant={currentPreset === "past" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePresetChange("past")}
+                                className="gap-1.5"
+                            >
+                                Past
+                            </Button>
+                            <Button
+                                variant={currentPreset === "all" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePresetChange("all")}
+                                className="gap-1.5"
+                            >
+                                All
+                            </Button>
+                            <Button
+                                variant={currentPreset === "custom" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePresetChange("custom")}
+                                className="gap-1.5"
+                            >
+                                <CalendarClock className="h-3.5 w-3.5" />
+                                Custom...
+                            </Button>
+                        </div>
 
-                {/* Active Filter Badge and Actions */}
-                <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="secondary" className="gap-1.5">
-                        <CalendarClock className="h-3 w-3" />
-                        {getFilterLabel()}
-                    </Badge>
+                        {/* Active Filter Badge and Actions */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className="gap-1.5">
+                                <CalendarClock className="h-3 w-3" />
+                                {getFilterLabel()}
+                            </Badge>
 
-                    {!isDefaultState && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleResetToUpcoming}
-                            className="gap-2 h-7 text-xs"
-                        >
-                            <X className="h-3.5 w-3.5" />
-                            Reset to Upcoming
-                        </Button>
-                    )}
-                </div>
+                            {!isDefaultState && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleResetToUpcoming}
+                                    className="gap-2 h-7 text-xs"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                    Reset to Upcoming
+                                </Button>
+                            )}
+                        </div>
 
-                {/* Custom Date Range (only shown when custom preset selected) */}
-                {currentPreset === "custom" && (
-                    <div className="flex items-center gap-2">
-                        <DateRangeFilter
-                            startDate={filters.start_date}
-                            endDate={filters.end_date}
-                            onChange={(start_date, end_date) =>
-                                onFiltersChange({ ...filters, start_date, end_date, preset: "custom" })
-                            }
-                        />
-                    </div>
-                )}
-
-                {/* Advanced Filters and Tags */}
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-                    {/* Advanced Filters */}
-                    <div className="flex items-center gap-2 lg:shrink-0">
-                        <AdvancedFilters
-                            author={filters.author}
-                            status={filters.status}
-                            onChange={({ author, status }) =>
-                                onFiltersChange({ ...filters, author, status })
-                            }
-                        />
-                    </div>
-
-                    {/* Tags Filter */}
-                    <div className="flex-1">
-                        <TagsFilter
-                            tags={filters.tags}
-                            onChange={(tags) => onFiltersChange({ ...filters, tags: tags.length > 0 ? tags : undefined })}
-                        />
-
-                        {/* Popular Tags */}
-                        {popularTags.length > 0 && (
-                            <div className="mt-3 space-y-2">
-                                <p className="text-xs text-muted-foreground">Popular tags:</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {popularTags.slice(0, 15).map(({ label, count }) => {
-                                        const isSelected = filters.tags?.includes(label);
-                                        return (
-                                            <Badge
-                                                key={label}
-                                                variant={isSelected ? "default" : "outline"}
-                                                className="cursor-pointer hover:bg-primary/90 transition-colors"
-                                                onClick={() => handleToggleTag(label)}
-                                            >
-                                                {label} ({count})
-                                            </Badge>
-                                        );
-                                    })}
-                                </div>
+                        {/* Custom Date Range (only shown when custom preset selected) */}
+                        {currentPreset === "custom" && (
+                            <div>
+                                <DateRangeFilter
+                                    startDate={filters.start_date}
+                                    endDate={filters.end_date}
+                                    onChange={(start_date, end_date) =>
+                                        onFiltersChange({ ...filters, start_date, end_date, preset: "custom" })
+                                    }
+                                />
                             </div>
                         )}
                     </div>
+
+                    {/* Right side: Author and Status Filters - Stacked */}
+                    <div className="flex flex-col gap-3 lg:w-80">
+                        {/* Author Filter */}
+                        <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                <User className="h-3 w-3" />
+                                Event Author
+                            </Label>
+                            <UserSearch
+                                selectedUsers={selectedAuthors}
+                                onSelectionChange={(users) => onFiltersChange({ ...filters, author: users.length > 0 ? users[0].id : undefined })}
+                                maxSelections={1}
+                                label=""
+                                placeholder="Search by name or user ID..."
+                                description=""
+                            />
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">Event Status</Label>
+                            <Select
+                                value={filters.status || "__all__"}
+                                onValueChange={(value) =>
+                                    onFiltersChange({ ...filters, status: value === "__all__" ? undefined : value })
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__all__">All statuses</SelectItem>
+                                    {EVENT_STATUSES.map((s) => (
+                                        <SelectItem key={s.value} value={s.value}>
+                                            {s.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tags Filter */}
+                <div className="space-y-3">
+                    <TagsFilter
+                        tags={filters.tags}
+                        onChange={(tags) => onFiltersChange({ ...filters, tags: tags.length > 0 ? tags : undefined })}
+                    />
+
+                    {/* Popular Tags */}
+                    {popularTags.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                            <p className="text-xs text-muted-foreground">Popular tags:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {popularTags.slice(0, 15).map(({ label, count }) => {
+                                    const isSelected = filters.tags?.includes(label);
+                                    return (
+                                        <Badge
+                                            key={label}
+                                            variant={isSelected ? "default" : "outline"}
+                                            className="cursor-pointer hover:bg-primary/90 transition-colors"
+                                            onClick={() => handleToggleTag(label)}
+                                        >
+                                            {label} ({count})
+                                        </Badge>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

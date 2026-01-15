@@ -45,8 +45,6 @@ export function LocationDisplay({
             google: `https://www.google.com/maps/search/?api=1&query=${query}`,
             apple: `https://maps.apple.com/?q=${query}&ll=${lat},${lng}`,
             osm: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15`,
-            // Static map preview (using OSM tiles via a public service)
-            preview: `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=14&size=400x200&markers=${lat},${lng},red`,
         };
     }, [coordinates, location]);
 
@@ -90,20 +88,6 @@ export function LocationDisplay({
                         <span>
                             {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
                         </span>
-                    </div>
-                )}
-
-                {/* Map Preview */}
-                {showMapPreview && mapUrls && (
-                    <div className="relative rounded-lg overflow-hidden border">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                            src={mapUrls.preview}
-                            alt={`Map showing ${location || "event location"}`}
-                            className="w-full h-40 object-cover"
-                            loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                     </div>
                 )}
 
