@@ -21,6 +21,8 @@ interface CalendarEventsSectionProps {
     maxOccurrencesPerEvent?: number;
     /** Maximum total occurrences to show */
     maxTotalOccurrences?: number;
+    /** Whether to show past events (default: false, only upcoming) */
+    showPastEvents?: boolean;
     /** Additional CSS classes */
     className?: string;
 }
@@ -46,6 +48,7 @@ export function CalendarEventsSection({
     isLoading,
     maxOccurrencesPerEvent = 5,
     maxTotalOccurrences = 20,
+    showPastEvents = false,
     className,
 }: CalendarEventsSectionProps) {
     // Generate all occurrences and sort chronologically
@@ -70,8 +73,8 @@ export function CalendarEventsSection({
 
                 for (const date of occurrenceDates) {
                     const occurrenceDate = new Date(date);
-                    // Skip past occurrences
-                    if (occurrenceDate < now) continue;
+                    // Skip past occurrences unless showPastEvents is true
+                    if (!showPastEvents && occurrenceDate < now) continue;
 
                     allOccurrences.push({
                         eventId: details.id,
@@ -87,8 +90,8 @@ export function CalendarEventsSection({
             } else {
                 // Single occurrence event
                 const eventDate = new Date(details.dtstart);
-                // Skip past events
-                if (eventDate < now) continue;
+                // Skip past events unless showPastEvents is true
+                if (!showPastEvents && eventDate < now) continue;
 
                 allOccurrences.push({
                     eventId: details.id,
@@ -111,7 +114,7 @@ export function CalendarEventsSection({
 
         // Limit total occurrences
         return allOccurrences.slice(0, maxTotalOccurrences);
-    }, [events, maxOccurrencesPerEvent, maxTotalOccurrences]);
+    }, [events, maxOccurrencesPerEvent, maxTotalOccurrences, showPastEvents]);
 
     if (isLoading) {
         return (
@@ -185,7 +188,7 @@ export function CalendarEventsSection({
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-                    Upcoming Events ({occurrences.length})
+                    {showPastEvents ? "Events" : "Upcoming Events"} ({occurrences.length})
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -241,13 +244,15 @@ function EventOccurrenceCard({
         : `/event/${occurrence.eventAuthorId}/${occurrence.eventId}`;
 
     const statusColor = getStatusColor(occurrence.status);
+    const isPastEvent = new Date(occurrence.date) < new Date();
 
     return (
         <Link
             href={eventUrl}
             className={cn(
                 "block p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isPastEvent && "opacity-60"
             )}
         >
             <div className="flex items-start gap-3">
@@ -271,6 +276,11 @@ function EventOccurrenceCard({
                             {occurrence.summary}
                         </h3>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {isPastEvent && (
+                                <Badge variant="outline" className="text-xs">
+                                    Past
+                                </Badge>
+                            )}
                             {occurrence.isRecurring && (
                                 <Badge variant="secondary" className="gap-1">
                                     <Repeat className="h-3 w-3" />

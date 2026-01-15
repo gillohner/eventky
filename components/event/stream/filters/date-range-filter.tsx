@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { CalendarClock } from "lucide-react";
 import { format } from "date-fns";
@@ -32,7 +31,7 @@ export function DateRangeFilter({ startDate, endDate, onChange }: DateRangeFilte
             const end = new Date(endDate / 1000);
             return `${format(start, "MMM d")} - ${format(end, "MMM d")}`;
         }
-        return "Upcoming";
+        return "Date Range";
     })();
 
     const hasActiveFilter = startDate || endDate;
@@ -40,16 +39,6 @@ export function DateRangeFilter({ startDate, endDate, onChange }: DateRangeFilte
     // Convert from microseconds to milliseconds for Date objects
     const startDateValue = startDate ? new Date(startDate / 1000) : undefined;
     const endDateValue = endDate ? new Date(endDate / 1000) : undefined;
-
-    const handleClear = () => {
-        onChange(undefined, undefined);
-    };
-
-    const handleShowUpcoming = () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        onChange(today.getTime() * 1000, undefined);
-    };
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -72,7 +61,7 @@ export function DateRangeFilter({ startDate, endDate, onChange }: DateRangeFilte
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={handleClear}
+                                onClick={() => onChange(undefined, undefined)}
                                 className="h-auto py-1 px-2 text-xs"
                             >
                                 Clear
@@ -112,27 +101,6 @@ export function DateRangeFilter({ startDate, endDate, onChange }: DateRangeFilte
                                 min={startDateValue}
                             />
                         </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleShowUpcoming}
-                            className="flex-1"
-                        >
-                            Upcoming Only
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleClear}
-                            className="flex-1"
-                        >
-                            All Events
-                        </Button>
                     </div>
                 </div>
             </PopoverContent>

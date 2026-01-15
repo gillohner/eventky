@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -76,9 +77,15 @@ export function CalendarAgendaView({
                                     const eventUrl = `/event/${event.authorId}/${event.eventId}${instanceParam}`;
                                     const imageUrl = event.image ? getPubkyImageUrl(event.image, "main") : null;
 
+                                    // Check if event is in the past
+                                    const isPastEvent = new Date(event.dtstart) < new Date();
+
                                     return (
                                         <Link key={event.id} href={eventUrl}>
-                                            <Card className="group hover:shadow-lg hover:border-primary/50 transition-all overflow-hidden py-0">
+                                            <Card className={cn(
+                                                "group hover:shadow-lg hover:border-primary/50 transition-all overflow-hidden py-0",
+                                                isPastEvent && "opacity-60"
+                                            )}>
                                                 <CardContent className="p-0">
                                                     <div className="flex flex-col sm:flex-row gap-0">
                                                         {/* Event Image - Top on mobile, Left on desktop */}
@@ -114,9 +121,16 @@ export function CalendarAgendaView({
                                                         {/* Event Content */}
                                                         <div className="flex-1 p-3 min-w-0">
                                                             {/* Title */}
-                                                            <h4 className="font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-2">
-                                                                {event.summary}
-                                                            </h4>
+                                                            <div className="flex items-start gap-2 mb-2">
+                                                                <h4 className="font-semibold group-hover:text-primary transition-colors line-clamp-2 flex-1">
+                                                                    {event.summary}
+                                                                </h4>
+                                                                {isPastEvent && (
+                                                                    <Badge variant="outline" className="text-xs shrink-0">
+                                                                        Past
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
 
                                                             {/* Meta Info Row */}
                                                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">

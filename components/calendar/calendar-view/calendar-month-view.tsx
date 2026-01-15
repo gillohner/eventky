@@ -78,7 +78,10 @@ export function CalendarMonthView({
                             {/* Events */}
                             <div className="space-y-1">
                                 {dayEvents.slice(0, 3).map((event) => {
-                                    const eventUrl = `/event/${event.authorId}/${event.eventId}`;
+                                    const instanceParam = event.occurrenceDate
+                                        ? `?instance=${encodeURIComponent(event.occurrenceDate)}`
+                                        : "";
+                                    const eventUrl = `/event/${event.authorId}/${event.eventId}${instanceParam}`;
                                     const borderStyle =
                                         event.calendars.length > 1
                                             ? {

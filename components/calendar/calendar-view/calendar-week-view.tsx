@@ -57,7 +57,10 @@ export function CalendarWeekView({
                         >
                             <div className="space-y-2">
                                 {dayEvents.map((event) => {
-                                    const eventUrl = `/event/${event.authorId}/${event.eventId}`;
+                                    const instanceParam = event.occurrenceDate
+                                        ? `?instance=${encodeURIComponent(event.occurrenceDate)}`
+                                        : "";
+                                    const eventUrl = `/event/${event.authorId}/${event.eventId}${instanceParam}`;
                                     const borderStyle =
                                         event.calendars.length > 1
                                             ? {

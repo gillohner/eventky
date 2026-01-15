@@ -162,10 +162,8 @@ export function useCalendarView(
                 end = endOfWeek(currentDate);
                 break;
             case "agenda":
-                // Agenda always shows from today onwards (never past events)
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                start = currentDate > today ? currentDate : today;
+                // For agenda view, show events based on current date navigation
+                start = currentDate;
                 end = addDays(start, 365 * agendaYearsToShow); // Show N years ahead from start
                 break;
             default:

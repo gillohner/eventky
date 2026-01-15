@@ -26,23 +26,26 @@ export default function EventsPage() {
         const author = searchParams.get("author");
         const start_date = searchParams.get("start_date");
         const end_date = searchParams.get("end_date");
-        const view = searchParams.get("view");
+        const preset = searchParams.get("preset") as EventStreamFilterValues["preset"];
 
-        // For agenda view without explicit filters, show upcoming events only
+        // Default to "upcoming" preset if no filters specified
+        let defaultPreset: EventStreamFilterValues["preset"] = "upcoming";
         let defaultStartDate: number | undefined = undefined;
         let defaultEndDate: number | undefined = undefined;
 
-        if (view === "agenda" && !start_date && !end_date) {
+        if (!start_date && !end_date && !preset) {
+            // Default: upcoming events (today to 1 year ahead)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            defaultStartDate = today.getTime() * 1000; // Today in microseconds
+            defaultStartDate = today.getTime() * 1000;
 
             const oneYearAhead = new Date(today);
-            oneYearAhead.setDate(oneYearAhead.getDate() + 365);
-            defaultEndDate = oneYearAhead.getTime() * 1000; // 365 days (1 year) ahead in microseconds
+            oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
+            defaultEndDate = oneYearAhead.getTime() * 1000;
         }
 
         return {
+            preset: preset || defaultPreset,
             tags: tags ? tags.split(",") : undefined,
             status: status || undefined,
             author: author || undefined,
@@ -132,6 +135,9 @@ export default function EventsPage() {
     useEffect(() => {
         const params = new URLSearchParams();
 
+        if (filters.preset && filters.preset !== "upcoming") {
+            params.set("preset", filters.preset);
+        }
         if (filters.tags && filters.tags.length > 0) {
             params.set("tags", filters.tags.join(","));
         }
@@ -234,9 +240,19 @@ export default function EventsPage() {
                     <CalendarView
                         events={filteredEvents || []}
                         calendars={calendars}
-                        externalDateRange={filters.start_date && filters.end_date ? {
-                            start: new Date(filters.start_date / 1000),
-                            end: new Date(filters.end_date / 1000)
+                        externalDateRange={filters.start_date || filters.end_date ? {
+                            start: filters.start_date ? new Date(filters.start_date / 1000) : (() => {
+                                // For past events filter (no start_date), use a far past date
+                                const farPast = new Date();
+                                farPast.setFullYear(farPast.getFullYear() - 10);
+                                return farPast;
+                            })(),
+                            end: filters.end_date ? new Date(filters.end_date / 1000) : (() => {
+                                // Default to 1 year ahead if no end date
+                                const oneYear = filters.start_date ? new Date(filters.start_date / 1000) : new Date();
+                                oneYear.setFullYear(oneYear.getFullYear() + 1);
+                                return oneYear;
+                            })()
                         } : undefined}
                     />
                 )
