@@ -3,6 +3,8 @@
  * All environment-specific settings are managed here
  */
 
+import packageJson from "../package.json";
+
 export type PubkyEnvironment = "testnet" | "staging" | "production";
 
 interface PubkyConfig {
@@ -126,7 +128,7 @@ function buildConfig(): PubkyConfig {
 
         app: {
             name: process.env.NEXT_PUBLIC_APP_NAME || "Eventky",
-            version: process.env.NEXT_PUBLIC_APP_VERSION || "0.1.0",
+            version: packageJson.version,
             githubRepo: process.env.NEXT_PUBLIC_GITHUB_REPO,
         },
 
