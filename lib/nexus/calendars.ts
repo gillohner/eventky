@@ -9,10 +9,8 @@ import type {
     NexusCalendarStreamItem,
 } from "@/types/nexus";
 
-// Re-export types for backwards compatibility
+// Re-export types for convenience
 export type { NexusCalendarResponse, NexusCalendarStreamItem };
-/** @deprecated Use NexusCalendarStreamItem instead */
-export type NexusCalendarStreamResponse = NexusCalendarStreamItem;
 
 /**
  * Fetch a single calendar from Nexus API by author and calendar ID

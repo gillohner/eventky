@@ -9,10 +9,8 @@ import type {
   NexusEventStreamItem,
 } from "@/types/nexus";
 
-// Re-export types for backwards compatibility
+// Re-export types for convenience
 export type { NexusEventResponse, NexusEventStreamItem };
-/** @deprecated Use NexusEventStreamItem instead */
-export type NexusEventStreamResponse = NexusEventStreamItem;
 
 /**
  * Fetch a single event from Nexus API by author and event ID
