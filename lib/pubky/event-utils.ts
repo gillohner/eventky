@@ -54,8 +54,6 @@ export function formDataToEventData(
         dtend_tzid: data.dtend_tzid || null,
         description: data.description || null,
         status: data.status || null,
-        location: data.location || null,
-        geo: data.geo || null,
         image_uri: data.image_uri || null,
         url: data.url || null,
         sequence: newSequence,
@@ -66,6 +64,8 @@ export function formDataToEventData(
         exdate: data.exdate || null,
         recurrence_id: null,
         styled_description: data.styled_description || null,
+        // RFC 9073 structured locations
+        locations: data.locations && data.locations.length > 0 ? data.locations : null,
         x_pubky_calendar_uris: data.x_pubky_calendar_uris || null,
         x_pubky_rsvp_access: data.x_pubky_rsvp_access || null,
     };
@@ -99,6 +99,22 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
         }
     }
 
+    // Parse locations from serialized JSON string (Nexus format) or array (WASM format)
+    let locations: EventFormData['locations'] = undefined;
+    if ('locations' in eventDetails && eventDetails.locations) {
+        if (typeof eventDetails.locations === 'string') {
+            // Nexus API returns serialized JSON string
+            try {
+                locations = JSON.parse(eventDetails.locations);
+            } catch {
+                // Invalid JSON, ignore
+            }
+        } else if (Array.isArray(eventDetails.locations)) {
+            // WASM returns array directly
+            locations = eventDetails.locations;
+        }
+    }
+
     return {
         summary: eventDetails.summary,
         dtstart: eventDetails.dtstart, // Keep as ISO string
@@ -108,14 +124,13 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
         dtend_tzid: eventDetails.dtend_tzid || undefined,
         description: eventDetails.description || undefined,
         status: eventDetails.status || undefined,
-        location: 'location' in eventDetails ? eventDetails.location : undefined,
-        geo: 'geo' in eventDetails ? eventDetails.geo : undefined,
         image_uri: eventDetails.image_uri || undefined,
         url: eventDetails.url || undefined,
         rrule: eventDetails.rrule || undefined,
         rdate: eventDetails.rdate || undefined,
         exdate: eventDetails.exdate || undefined,
         styled_description: styledDescription,
+        locations,
         x_pubky_calendar_uris: eventDetails.x_pubky_calendar_uris || undefined,
         x_pubky_rsvp_access: eventDetails.x_pubky_rsvp_access || undefined,
     };

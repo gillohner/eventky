@@ -92,12 +92,7 @@ export function CalendarWeekView({
                                                     {event.summary}
                                                 </div>
 
-                                                {/* Location */}
-                                                {event.location && (
-                                                    <div className="text-muted-foreground truncate">
-                                                        📍 {event.location}
-                                                    </div>
-                                                )}
+                                                {/* TODO: Location will be added here when implementing Location component */}
                                             </div>
                                         </Link>
                                     );

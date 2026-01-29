@@ -1,7 +1,7 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { Calendar, MapPin, Users, Repeat, Plus } from "lucide-react";
+import { Calendar, Users, Repeat, Plus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
@@ -134,15 +134,7 @@ export function CalendarAgendaView({
 
                                                             {/* Meta Info Row */}
                                                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                                                                {/* Location */}
-                                                                {event.location && (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                                                                        <span className="truncate max-w-[150px]">
-                                                                            {event.location}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
+                                                                {/* TODO: Location will be added here when implementing Location component */}
 
                                                                 {/* Attendee count */}
                                                                 {event.attendeeCount !== undefined && event.attendeeCount > 0 && (

@@ -305,7 +305,6 @@ describe('Cache Utils', () => {
             expect(result.details.dtend).toBeUndefined();
             expect(result.details.duration).toBeUndefined();
             expect(result.details.rrule).toBeUndefined();
-            expect(result.details.location).toBeUndefined();
         });
 
         it('should convert PubkyAppCalendar to NexusCalendarResponse', () => {

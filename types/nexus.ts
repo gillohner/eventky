@@ -35,6 +35,21 @@ export interface NexusAttendee {
 }
 
 /**
+ * Structured location data (RFC 9073)
+ * Matches pubky-app-specs Location model
+ */
+export interface NexusLocation {
+    /** Human-readable location name (required) */
+    name: string;
+    /** Additional details or instructions */
+    description?: string;
+    /** PHYSICAL or ONLINE */
+    location_type: 'PHYSICAL' | 'ONLINE';
+    /** URI reference - OSM URL for physical, meeting URL for online */
+    structured_data?: string;
+}
+
+/**
  * Event details from Nexus API
  */
 export interface NexusEventDetails {
@@ -55,8 +70,6 @@ export interface NexusEventDetails {
     exdate?: string[];
     description?: string;
     status?: string;
-    location?: string;
-    geo?: string;
     url?: string;
     sequence?: number;
     last_modified?: number;
@@ -64,6 +77,8 @@ export interface NexusEventDetails {
     recurrence_id?: number;
     image_uri?: string;
     styled_description?: string | { fmttype: string; value: string };
+    /** RFC 9073 structured locations (serialized JSON array) */
+    locations?: string;
     x_pubky_calendar_uris?: string[];
     x_pubky_rsvp_access?: string;
 }
@@ -98,8 +113,6 @@ export interface NexusEventStreamItem {
     exdate?: string[];
     description?: string;
     status?: string;
-    location?: string;
-    geo?: string;
     url?: string;
     sequence?: number;
     last_modified?: number;
@@ -107,6 +120,8 @@ export interface NexusEventStreamItem {
     recurrence_id?: number;
     image_uri?: string;
     styled_description?: string | { fmttype: string; value: string };
+    /** RFC 9073 structured locations (serialized JSON array) */
+    locations?: string;
     x_pubky_calendar_uris?: string[];
     x_pubky_rsvp_access?: string;
 }

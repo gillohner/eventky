@@ -96,11 +96,7 @@ export function UpcomingEventsWidget({ daysAhead = 7, maxItems = 5 }: UpcomingEv
                                     <h4 className="font-medium text-sm line-clamp-1">
                                         {event.summary}
                                     </h4>
-                                    {event.location && (
-                                        <p className="text-xs text-muted-foreground truncate">
-                                            {event.location}
-                                        </p>
-                                    )}
+                                    {/* TODO: Location will be added here when implementing Location component */}
                                 </div>
                             </div>
                         </Link>

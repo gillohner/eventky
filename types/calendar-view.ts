@@ -27,7 +27,6 @@ export interface CalendarEvent {
     dtstart: string;
     dtend?: string;
     duration?: string;
-    location?: string;
     description?: string;
     image?: string;
     color: string;

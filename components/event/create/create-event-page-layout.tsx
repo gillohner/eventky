@@ -380,12 +380,10 @@ export function CreateEventPageLayout({
           />
         </section>
 
-        {/* Location */}
+        {/* Locations */}
         <section>
           <LocationFields
             control={form.control}
-            locationError={form.formState.errors.location}
-            geoError={form.formState.errors.geo}
           />
         </section>
 

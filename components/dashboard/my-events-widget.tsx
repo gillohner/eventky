@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { format, parseISO, isPast, isToday } from "date-fns";
 import Link from "next/link";
-import { Calendar, MapPin, Clock } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { useEventsStream } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -110,14 +110,7 @@ export function MyEventsWidget({ userId, maxItems = 5 }: MyEventsWidgetProps) {
                                             <Clock className="h-3 w-3" />
                                             <span>{format(startDate, "h:mm a")}</span>
                                         </div>
-                                        {event.location && (
-                                            <div className="flex items-center gap-1">
-                                                <MapPin className="h-3 w-3" />
-                                                <span className="truncate max-w-[150px]">
-                                                    {event.location}
-                                                </span>
-                                            </div>
-                                        )}
+                                        {/* TODO: Location will be added here when implementing Location component */}
                                     </div>
                                 </div>
                             </div>

@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { useAuthorProfile } from "@/hooks";
 import { EventHeader } from "@/components/event/detail/event-header";
 import { DateTimeRecurrence } from "@/components/event/detail/datetime-recurrence";
-import { LocationDisplay } from "@/components/event/detail/location-display";
 import { EventDescription } from "@/components/event/detail/event-description";
 import { EventMetadata } from "@/components/event/detail/event-metadata";
 import { AttendanceSection } from "@/components/event/detail/attendance-section";
@@ -157,12 +156,6 @@ export function EventDetailLayout({
                     <EventDescription
                         description={details.description}
                         styledDescription={details.styled_description}
-                    />
-
-                    {/* Location */}
-                    <LocationDisplay
-                        location={details.location}
-                        geo={details.geo}
                     />
                 </div>
 

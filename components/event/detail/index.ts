@@ -5,7 +5,6 @@
 
 export { EventHeader } from "./event-header";
 export { DateTimeRecurrence } from "./datetime-recurrence";
-export { LocationDisplay } from "./location-display";
 export { UpcomingOccurrences } from "./upcoming-occurrences";
 export { EventDescription } from "./event-description";
 export { EventMetadata } from "./event-metadata";
