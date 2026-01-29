@@ -3,7 +3,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchCalendarsStream, type NexusCalendarStreamResponse } from "@/lib/nexus/calendars";
+import { fetchCalendarsStream, type NexusCalendarStreamItem } from "@/lib/nexus/calendars";
 import { useAuth } from "@/components/providers/auth-provider";
 
 export interface UserCalendar {
@@ -39,7 +39,7 @@ export function useUserCalendars(options?: {
                 limit: options?.limit ?? 50,
             });
 
-            return calendars.map((cal: NexusCalendarStreamResponse) => ({
+            return calendars.map((cal: NexusCalendarStreamItem) => ({
                 id: cal.id,
                 uri: cal.uri,
                 name: cal.name,

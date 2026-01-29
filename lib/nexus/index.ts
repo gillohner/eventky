@@ -14,11 +14,11 @@ export {
 } from "./users";
 export type {
     NexusEventResponse,
-    NexusEventStreamResponse
+    NexusEventStreamItem
 } from "./events";
 export type {
     NexusCalendarResponse,
-    NexusCalendarStreamResponse
+    NexusCalendarStreamItem
 } from "./calendars";
 export type {
     UserSearchResponse,

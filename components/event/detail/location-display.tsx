@@ -319,22 +319,19 @@ function LocationItem({
                         </span>
                         <div className="flex items-center gap-1.5">
                             {paymentMethods.onchain && (
-                                <Bitcoin
-                                    className="h-4 w-4 text-amber-600 dark:text-amber-400"
-                                    title="On-chain"
-                                />
+                                <span title="On-chain">
+                                    <Bitcoin className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                </span>
                             )}
                             {paymentMethods.lightning && (
-                                <Zap
-                                    className="h-4 w-4 text-amber-600 dark:text-amber-400"
-                                    title="Lightning"
-                                />
+                                <span title="Lightning">
+                                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                </span>
                             )}
                             {paymentMethods.lightningContactless && (
-                                <NfcIcon
-                                    className="h-4 w-4 text-amber-600 dark:text-amber-400"
-                                    title="Lightning NFC / Contactless"
-                                />
+                                <span title="Lightning NFC / Contactless">
+                                    <NfcIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                </span>
                             )}
                         </div>
                         <ExternalLink className="h-3 w-3 text-amber-600 dark:text-amber-400" />

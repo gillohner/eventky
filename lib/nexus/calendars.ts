@@ -54,9 +54,9 @@ export async function fetchCalendarsStream(params?: {
     limit?: number;
     skip?: number;
     admin?: string;
-}): Promise<NexusCalendarStreamResponse[]> {
+}): Promise<NexusCalendarStreamItem[]> {
     try {
-        const response = await nexusClient.get<NexusCalendarStreamResponse[]>(
+        const response = await nexusClient.get<NexusCalendarStreamItem[]>(
             "/v0/stream/calendars",
             { params }
         );
