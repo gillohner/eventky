@@ -68,6 +68,16 @@ const parsed = parse_uri("pubky://pk1abc.../pub/eventky.app/events/0034B3SX1FQC0
 | `rrule`                 |          | RFC 5545 RRULE                       |
 | `x_pubky_calendar_uris` |          | Max 10 calendar URIs                 |
 | `x_pubky_rsvp_access`   |          | "PUBLIC" only                        |
+| `locations`             |          | Max 5 Location objects               |
+
+### Location (RFC 9073)
+
+| Field             | Required | Validation                           |
+| ----------------- | -------- | ------------------------------------ |
+| `name`            | ✓        | 1-500 characters                     |
+| `location_type`   | ✓        | PHYSICAL, ONLINE                     |
+| `description`     |          | Max 2,000 characters                 |
+| `structured_data` |          | Max 2,048 characters (URL)           |
 
 ### PubkyAppCalendar
 

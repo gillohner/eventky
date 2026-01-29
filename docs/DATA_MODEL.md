@@ -49,7 +49,8 @@ graph TB
 - **Path**: `/pub/eventky.app/events/:event_id` (timestamp-based ID)
 - **Storage**: Creator's homeserver
 - **Required**: `uid`, `summary`, `dtstart`, `dtstamp`
-- **Optional**: `dtend`, `duration`, `location`, `description`, `rrule` (recurrence), `x_pubky_calendar_uris`
+- **Optional**: `dtend`, `duration`, `description`, `rrule` (recurrence), `x_pubky_calendar_uris`, `locations`
+- **Locations**: Array of structured locations (max 5). See [LOCATIONS.md](LOCATIONS.md)
 
 ### Attendee (RSVP)
 - **Path**: `/pub/eventky.app/attendees/:attendee_id` (hash of event URI + recurrence_id)
