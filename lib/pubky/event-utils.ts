@@ -110,8 +110,14 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
                 // Invalid JSON, ignore
             }
         } else if (Array.isArray(eventDetails.locations)) {
-            // WASM returns array directly
-            locations = eventDetails.locations;
+            // WASM returns array directly - map to our types
+            // (WASM Location.location_type is string, we need "PHYSICAL" | "ONLINE")
+            locations = eventDetails.locations.map(loc => ({
+                name: loc.name,
+                location_type: loc.location_type as "PHYSICAL" | "ONLINE",
+                description: loc.description,
+                structured_data: loc.structured_data,
+            }));
         }
     }
 

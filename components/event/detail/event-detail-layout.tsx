@@ -5,6 +5,7 @@ import { useAuthorProfile } from "@/hooks";
 import { EventHeader } from "@/components/event/detail/event-header";
 import { DateTimeRecurrence } from "@/components/event/detail/datetime-recurrence";
 import { EventDescription } from "@/components/event/detail/event-description";
+import { LocationDisplay } from "@/components/event/detail/location-display";
 import { EventMetadata } from "@/components/event/detail/event-metadata";
 import { AttendanceSection } from "@/components/event/detail/attendance-section";
 import { TagsSection } from "@/components/event/detail/tags-section";
@@ -157,6 +158,9 @@ export function EventDetailLayout({
                         description={details.description}
                         styledDescription={details.styled_description}
                     />
+
+                    {/* Locations */}
+                    <LocationDisplay locations={details.locations} />
                 </div>
 
                 {/* Right Column - Attendance, Tags */}

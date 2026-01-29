@@ -7,6 +7,7 @@ export { EventHeader } from "./event-header";
 export { DateTimeRecurrence } from "./datetime-recurrence";
 export { UpcomingOccurrences } from "./upcoming-occurrences";
 export { EventDescription } from "./event-description";
+export { LocationDisplay } from "./location-display";
 export { EventMetadata } from "./event-metadata";
 export { AttendanceSection } from "./attendance-section";
 export { TagsSection } from "./tags-section";

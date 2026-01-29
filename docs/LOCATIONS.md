@@ -72,6 +72,49 @@ Platform icons are inferred at display time from the URL domain.
 - Map preview for selected physical locations
 - Add/remove locations (max 5)
 
+## Display Component
+
+`LocationDisplay` component (`components/event/detail/location-display.tsx`):
+
+- Renders all locations in a Card below the event description
+- For each physical location with OSM link:
+  - **Map Links**: Google Maps, Apple Maps, OpenStreetMap (all include name + coordinates)
+  - **BTCMap Integration**: Fetches payment data from BTCMap API
+  - **Payment Icons**: On-chain (₿), Lightning (⚡), NFC (📱) when Bitcoin accepted
+  - **Map Preview**: Embedded OSM map with marker
+
+### Map URL Generation
+
+```typescript
+// Google Maps - uses search with coordinates as center
+`https://www.google.com/maps/search/?api=1&query=${name}&center=${lat},${lon}`
+
+// Apple Maps - uses OSM data, coordinates match well
+`https://maps.apple.com/?q=${name}&ll=${lat},${lon}&z=17`
+
+// BTCMap merchant page
+`https://btcmap.org/merchant/${osmType}:${osmId}`
+```
+
+### BTCMap Integration
+
+Fetches from `https://api.btcmap.org/v2/elements/{osm_type}:{osm_id}` to check:
+
+| Tag | Icon | Meaning |
+|-----|------|---------|
+| `currency:XBT=yes` | Required | Bitcoin accepted |
+| `payment:onchain=yes` | ₿ | On-chain payments |
+| `payment:lightning=yes` | ⚡ | Lightning payments |
+| `payment:lightning_contactless=yes` | 📱 | NFC Lightning |
+
+## Unified MapPreview Component
+
+`components/ui/map-preview.tsx` - shared between creation and display:
+
+```tsx
+<MapPreview lat={47.3769} lon={8.5417} className="h-[150px]" />
+```
+
 ## Storage
 
 ```json

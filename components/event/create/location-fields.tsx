@@ -20,6 +20,7 @@ import { getUnicodeLength } from "@/lib/utils/unicode-length";
 import { Plus, Trash2, MapPin, Video, Search, X, ExternalLink } from "lucide-react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { MapPreview } from "@/components/ui/map-preview";
 
 // Validation constants from pubky-app-specs
 const MAX_NAME_LENGTH = 500;
@@ -84,16 +85,6 @@ const createEmptyLocation = (type: LocationType = "PHYSICAL"): EventLocation => 
  */
 function buildOsmUrl(result: NominatimResult): string {
     return `https://www.openstreetmap.org/${result.osm_type}/${result.osm_id}`;
-}
-
-/**
- * Build OpenStreetMap embed URL with bbox and marker
- */
-function buildMapEmbedUrl(lat: number, lon: number): string {
-    // Create a small bbox around the point (approximately 0.01 degree ~= 1km)
-    const delta = 0.005;
-    const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
 }
 
 /**
@@ -498,17 +489,11 @@ function LocationCard({
                 {locationType === "PHYSICAL" && location?.structured_data && selectedCoords && (
                     <div className="space-y-1">
                         <Label>Map Preview</Label>
-                        <div className="h-[150px] max-w-sm rounded-md overflow-hidden border bg-muted">
-                            <iframe
-                                title="Location Map"
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0 }}
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                                src={buildMapEmbedUrl(selectedCoords.lat, selectedCoords.lon)}
-                            />
-                        </div>
+                        <MapPreview
+                            lat={selectedCoords.lat}
+                            lon={selectedCoords.lon}
+                            className="h-[150px] max-w-sm"
+                        />
                     </div>
                 )}
 
