@@ -2,102 +2,144 @@
 
 __⚠️ This project is under active development. Breaking changes may occur.__
 
-A calendar and event management platform built with Next.js and Pubky Core.
+A decentralized calendar and event management platform built on [Pubky](https://pubky.org) using existing RFC standards.
 
-## Getting Started
+## Local Development Setup
+
+This guide sets up a complete local testnet environment for development.
 
 ### Prerequisites
 
-- Node.js 20+
-- NPM (workspace setup for monorepo)
+- **Node.js 20+** - for the Next.js frontend
+- **Rust & wasm-pack** - for building pubky-app-specs WASM
+- **Docker & Docker Compose** - for Neo4j, Redis, PostgreSQL databases
+- **tmux** - for running multiple services (testnet, nexus, frontend) in one terminal
 
-### Setup
+### Clone Repositories
 
-This project uses an NPM workspace setup to link the local updated `pubky-app-specs` package.
-
-1. **Clone both projects to same Root**:
 ```bash
-# From ~/Repositories
+# Clone all 4 repos to the same directory
+cd ~/Repositories
+
 git clone https://github.com/gillohner/eventky
 git clone https://github.com/gillohner/pubky-app-specs
-
-cd pubky-app-specs
-git checkout feat/eventky
+git clone https://github.com/gillohner/pubky-nexus
+git clone https://github.com/pubky/pubky-core
 ```
 
-2. **Install dependencies**:
+### Build pubky-app-specs (WASM)
+
 ```bash
-cd eventky
-npm i
+cd ~/Repositories/pubky-app-specs
+
+# Install wasm-pack if needed
+cargo install wasm-pack
+
+# Build for bundler target (Next.js)
+wasm-pack build --target bundler
 ```
 
-ℹ️ During development `../pubky-app-specs/pkg` is needed.
+### Install Eventky Dependencies
 
-3. **Configure environment**:
 ```bash
-cd eventky
+cd ~/Repositories/eventky
+npm install
+```
+
+### Configure Environment
+
+```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` to configure your environment:
-- `NEXT_PUBLIC_PUBKY_ENV`: Choose `testnet`, `staging`, or `production`
-- Optionally override specific URLs for homeserver, relay, or gateway
-- See `.env.example` for detailed documentation of all settings
-
-3. **Run the development server**:
+Edit `.env.local`:
 ```bash
-cd eventky
-npm run dev
+NEXT_PUBLIC_PUBKY_ENV=testnet
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+### Start Development Environment
+
+```bash
+./scripts/start-eventky-testnet-nexus.sh
+```
+
+This starts everything in a tmux session with 4 windows:
+1. **testnet** - Pubky testnet (homeserver + relay)
+2. **nexus** - Pubky Nexus indexer
+3. **eventky** - Next.js dev server
+4. **commands** - Service info and ports
+
+**Tmux controls:**
+- `Ctrl+b` then `1`/`2`/`3`/`4` - switch windows
+- `Ctrl+b` then `d` - detach (services keep running)
+- `tmux attach -t eventky-dev` - reattach
+
+Eventky: [http://localhost:3000](http://localhost:3000)  
+Swagger Nexus API: [http://localhost:8080/swagger-ui/](http://localhost:8080/swagger-ui/)  
+Neo4j Browser: [http://localhost:7474/](http://localhost:7474/)  
+Homeserver: [http://localhost:6286/](http://localhost:6286/)
+
+### Other Scripts
+
+```bash
+# Stop all services
+./scripts/stop-eventky-testnet-nexus.sh
+
+# Full reset (wipes all databases)
+./scripts/reset-eventky-testnet.sh
+```
+
+## Project Structure
+
+```
+eventky/
+├── app/                 # Next.js App Router pages
+├── components/          # React components
+├── hooks/               # React Query hooks
+├── lib/                 # Core utilities
+│   ├── cache/           # Optimistic caching
+│   ├── datetime/        # Date/time utilities
+│   ├── nexus/           # Nexus API client
+│   └── pubky/           # Pubky SDK wrappers
+├── stores/              # Zustand stores
+├── types/               # TypeScript types
+├── docs/                # Documentation
+└── scripts/             # Development scripts
+```
 
 ## Technologies
 
-- **Framework**: Next.js 16 with App Router & Turbopack
-- **Authentication**: @synonymdev/pubky
-- **State Management**: Zustand + TanStack Query
-- **UI**: Shadcn UI + Tailwind CSS v4
-- **Types**: pubky-app-specs (local workspace package)
+- Next.js 16 with App Router & Turbopack
+- Zustand + TanStack Query
+- Shadcn UI + Tailwind CSS v4
+- @synonymdev/pubky
+- pubky-app-specs (WASM)
 
-## Development Notes
+## Documentation
 
-### Configuration
+See the [docs/](docs/) folder:
 
-All Pubky-related configuration is centralized in `/lib/config.ts`, which reads from environment variables. Configuration includes:
+- [AUTH.md](docs/AUTH.md) - Authentication flow
+- [CACHING.md](docs/CACHING.md) - Optimistic caching strategy
+- [DATA_MODEL.md](docs/DATA_MODEL.md) - Data structures
+- [DATETIME.md](docs/DATETIME.md) - Date/time handling
+- [LOCATIONS.md](docs/LOCATIONS.md) - Location & BTCMap integration
+- [RECURRENCE.md](docs/RECURRENCE.md) - Recurring events (RFC 5545)
+- [VPS_SETUP.md](docs/VPS_SETUP.md) - Production deployment
 
-- **Environment Selection**: `testnet`, `staging`, or `production`
-- **Homeserver**: Public key for the Pubky homeserver
-- **HTTP Relay**: URL for QR code authentication relay
-- **Gateway**: URL for resolving `pubky://` URLs to HTTP
-- **Profile Path**: Storage path for user profiles
-
-See `.env.example` for detailed documentation and default values for each environment.
-
-### Turbopack Setup
-
-Next.js is configured to resolve the workspace package with Turbopack:
-
-```typescript
-// next.config.ts
-turbopack: {
-  root: join(__dirname, ".."), // Points to monorepo root
-}
-```
-
-### Rebuilding pubky-app-specs
+## Rebuilding pubky-app-specs
 
 When you make changes to `pubky-app-specs`:
 
 ```bash
 cd ~/Repositories/pubky-app-specs
-cargo run --bin bundle_specs_npm
+wasm-pack build --target bundler
 
-# The workspace link is automatic - just restart dev server
+# Reinstall in eventky to pick up changes
 cd ~/Repositories/eventky
-npm run dev
+npm install
 ```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE)
