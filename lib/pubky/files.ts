@@ -80,22 +80,35 @@ export async function deleteImageFile(
     const userId = fileUrl.hostname; // User ID is the hostname in pubky:// URIs
 
     // Get file metadata to find blob reference
-    const fileResponse = await session.storage.get(filePath);
-    if (fileResponse && fileResponse.ok) {
-        const fileData = await fileResponse.arrayBuffer();
-        const fileJson = JSON.parse(new TextDecoder().decode(fileData));
-        const blobUri = fileJson.src;
+    // Wrap in try-catch to handle cases where file is already deleted
+    try {
+        const fileResponse = await session.storage.get(filePath);
+        if (fileResponse && fileResponse.ok) {
+            const fileData = await fileResponse.arrayBuffer();
+            const fileJson = JSON.parse(new TextDecoder().decode(fileData));
+            const blobUri = fileJson.src;
 
-        // Delete blob if it exists
-        if (blobUri) {
-            const blobUrl = new URL(blobUri);
-            const blobPath = blobUrl.pathname as `/pub/${string}`;
-            await session.storage.delete(blobPath);
+            // Delete blob if it exists
+            if (blobUri) {
+                try {
+                    const blobUrl = new URL(blobUri);
+                    const blobPath = blobUrl.pathname as `/pub/${string}`;
+                    await session.storage.delete(blobPath);
+                } catch (blobError) {
+                    console.warn("Failed to delete blob, it may already be deleted:", blobError);
+                }
+            }
         }
+    } catch (fetchError) {
+        console.warn("Failed to fetch file metadata, file may already be deleted:", fetchError);
     }
 
-    // Delete file metadata
-    await session.storage.delete(filePath);
+    // Delete file metadata (ignore errors if already deleted)
+    try {
+        await session.storage.delete(filePath);
+    } catch (deleteError) {
+        console.warn("Failed to delete file metadata, it may already be deleted:", deleteError);
+    }
 
     // Trigger Nexus ingest to update index after deletion
     if (userId) {

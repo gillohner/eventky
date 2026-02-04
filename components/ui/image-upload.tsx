@@ -48,8 +48,14 @@ export function ImageUpload({
         setIsUploading(true);
 
         try {
+            // Try to delete old image, but don't block upload if it fails
+            // The old file may already be deleted or inaccessible
             if (value) {
-                await deleteImageFile(auth.session, value);
+                try {
+                    await deleteImageFile(auth.session, value);
+                } catch (deleteError) {
+                    console.warn("Failed to delete old image, continuing with upload:", deleteError);
+                }
             }
 
             const imageUri = await uploadImageFile(auth.session, auth.publicKey!, file);
