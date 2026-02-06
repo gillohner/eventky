@@ -20,83 +20,6 @@ export const runtime = "edge";
  *   color    – Accent color hex override (optional, default #f97316)
  */
 
-/**
- * Fetch image with retries and edge caching for reliability.
- * Returns the image as a base64 data URL for reliable embedding, or null if all attempts fail.
- */
-async function getValidImageDataUrl(url: string): Promise<string | null> {
-    const maxRetries = 3;
-    const timeoutMs = 8000; // 8s timeout per attempt
-
-    // Decode URL-encoded image URLs (e.g., %3A → :, %2F → /)
-    let decodedUrl: string;
-    try {
-        decodedUrl = decodeURIComponent(url);
-    } catch {
-        // If already decoded or invalid, use as-is
-        decodedUrl = url;
-    }
-
-    console.log(`[OG] Fetching image: ${decodedUrl}`);
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-            const response = await fetch(decodedUrl, {
-                signal: controller.signal,
-                // Edge cache: reuse cached response for 1 hour
-                cache: "force-cache",
-                next: { revalidate: 3600 },
-                headers: {
-                    "Accept": "image/*",
-                },
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                console.warn(`[OG] Image fetch attempt ${attempt} failed with status ${response.status}: ${decodedUrl}`);
-                if (attempt < maxRetries) continue;
-                return null;
-            }
-
-            const contentType = response.headers.get("content-type");
-            console.log(`[OG] Image content-type: ${contentType}`);
-
-            if (!contentType?.startsWith("image/")) {
-                console.warn(`[OG] Invalid content-type: ${contentType}`);
-                if (attempt < maxRetries) continue;
-                return null;
-            }
-
-            // Check size - limit to 5MB to avoid memory issues
-            const contentLength = response.headers.get("content-length");
-            if (contentLength && parseInt(contentLength) > 5 * 1024 * 1024) {
-                console.warn(`[OG] Image too large: ${contentLength} bytes`);
-                return null; // Too large, don't retry
-            }
-
-            const arrayBuffer = await response.arrayBuffer();
-            const base64 = Buffer.from(arrayBuffer).toString("base64");
-            console.log(`[OG] Successfully fetched image, size: ${arrayBuffer.byteLength} bytes`);
-            return `data:${contentType};base64,${base64}`;
-        } catch (error) {
-            // Only retry on timeout/network errors
-            if (attempt >= maxRetries) {
-                console.error(`[OG] Image fetch failed after ${maxRetries} attempts:`, decodedUrl, error);
-                return null;
-            }
-            console.warn(`[OG] Image fetch attempt ${attempt} error, retrying...`, error);
-            // Brief delay before retry
-            await new Promise(r => setTimeout(r, 500 * attempt));
-        }
-    }
-
-    return null;
-}
-
 export async function GET(request: NextRequest) {
     // Some clients incorrectly HTML-encode ampersands as &amp; in URLs.
     // Normalize the URL by replacing &amp; with & before parsing.
@@ -114,11 +37,29 @@ export async function GET(request: NextRequest) {
     const rawImageUrl = searchParams.get("image");
     const accent = searchParams.get("color") || "#f97316";
 
+    console.log(`[OG] Request URL: ${rawUrl}`);
+    console.log(`[OG] Normalized URL: ${normalizedUrl}`);
+    console.log(`[OG] Parsed image param: ${rawImageUrl}`);
+
     const displayTitle = title.length > 70 ? title.slice(0, 67) + "…" : title;
     const typeLabel = type === "calendar" ? "Calendar" : "Event";
 
-    // Pre-fetch and validate the image to avoid render-time failures
-    const imageUrl = rawImageUrl ? await getValidImageDataUrl(rawImageUrl) : null;
+    // Prepare the image URL - decode if needed
+    let imageUrl: string | null = null;
+    if (rawImageUrl) {
+        // Handle double-encoded URLs
+        if (rawImageUrl.startsWith("http%3A") || rawImageUrl.startsWith("https%3A")) {
+            try {
+                imageUrl = decodeURIComponent(rawImageUrl);
+                console.log(`[OG] Decoded double-encoded URL: ${imageUrl}`);
+            } catch {
+                imageUrl = rawImageUrl;
+            }
+        } else {
+            imageUrl = rawImageUrl;
+        }
+        console.log(`[OG] Final image URL for render: ${imageUrl}`);
+    }
 
     return new ImageResponse(
         (
