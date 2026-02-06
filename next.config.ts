@@ -27,7 +27,12 @@ const nextConfig: NextConfig = {
   },
 
   // Turbopack config
-  turbopack: {},
+  turbopack: {
+    // Resolve the wasm-bindgen placeholder that Turbopack struggles with
+    resolveAlias: {
+      "__wbindgen_placeholder__": "@eventky/pubky-app-specs/pubky_app_specs_bg.js",
+    },
+  },
 
   // Webpack config for production builds (Turbopack only used in dev)
   webpack: (config, { isServer }) => {
