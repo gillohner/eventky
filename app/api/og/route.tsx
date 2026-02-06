@@ -19,6 +19,42 @@ export const runtime = "edge";
  *   image    – Event image URL from Nexus (optional)
  *   color    – Accent color hex override (optional, default #f97316)
  */
+
+/**
+ * Validate that an image URL is fetchable and returns a valid image.
+ * Returns the image as a base64 data URL for reliable embedding, or null if invalid.
+ */
+async function getValidImageDataUrl(url: string): Promise<string | null> {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                "Accept": "image/*",
+            },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) return null;
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType?.startsWith("image/")) return null;
+
+        // Check size - limit to 5MB to avoid memory issues
+        const contentLength = response.headers.get("content-length");
+        if (contentLength && parseInt(contentLength) > 5 * 1024 * 1024) return null;
+
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString("base64");
+        return `data:${contentType};base64,${base64}`;
+    } catch {
+        return null;
+    }
+}
+
 export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
 
@@ -26,11 +62,14 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get("type") || "event";
     const date = searchParams.get("date");
     const location = searchParams.get("location");
-    const imageUrl = searchParams.get("image");
+    const rawImageUrl = searchParams.get("image");
     const accent = searchParams.get("color") || "#f97316";
 
     const displayTitle = title.length > 70 ? title.slice(0, 67) + "…" : title;
     const typeLabel = type === "calendar" ? "Calendar" : "Event";
+
+    // Pre-fetch and validate the image to avoid render-time failures
+    const imageUrl = rawImageUrl ? await getValidImageDataUrl(rawImageUrl) : null;
 
     return new ImageResponse(
         (
