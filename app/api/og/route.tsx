@@ -21,38 +21,62 @@ export const runtime = "edge";
  */
 
 /**
- * Validate that an image URL is fetchable and returns a valid image.
- * Returns the image as a base64 data URL for reliable embedding, or null if invalid.
+ * Fetch image with retries and edge caching for reliability.
+ * Returns the image as a base64 data URL for reliable embedding, or null if all attempts fail.
  */
 async function getValidImageDataUrl(url: string): Promise<string | null> {
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+    const maxRetries = 3;
+    const timeoutMs = 8000; // 8s timeout per attempt
 
-        const response = await fetch(url, {
-            signal: controller.signal,
-            headers: {
-                "Accept": "image/*",
-            },
-        });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        clearTimeout(timeoutId);
+            const response = await fetch(url, {
+                signal: controller.signal,
+                // Edge cache: reuse cached response for 1 hour
+                cache: "force-cache",
+                next: { revalidate: 3600 },
+                headers: {
+                    "Accept": "image/*",
+                },
+            });
 
-        if (!response.ok) return null;
+            clearTimeout(timeoutId);
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType?.startsWith("image/")) return null;
+            if (!response.ok) {
+                if (attempt < maxRetries) continue;
+                return null;
+            }
 
-        // Check size - limit to 5MB to avoid memory issues
-        const contentLength = response.headers.get("content-length");
-        if (contentLength && parseInt(contentLength) > 5 * 1024 * 1024) return null;
+            const contentType = response.headers.get("content-type");
+            if (!contentType?.startsWith("image/")) {
+                if (attempt < maxRetries) continue;
+                return null;
+            }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString("base64");
-        return `data:${contentType};base64,${base64}`;
-    } catch {
-        return null;
+            // Check size - limit to 5MB to avoid memory issues
+            const contentLength = response.headers.get("content-length");
+            if (contentLength && parseInt(contentLength) > 5 * 1024 * 1024) {
+                return null; // Too large, don't retry
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            const base64 = Buffer.from(arrayBuffer).toString("base64");
+            return `data:${contentType};base64,${base64}`;
+        } catch (error) {
+            // Only retry on timeout/network errors
+            if (attempt >= maxRetries) {
+                console.error(`[OG] Image fetch failed after ${maxRetries} attempts:`, url, error);
+                return null;
+            }
+            // Brief delay before retry
+            await new Promise(r => setTimeout(r, 500 * attempt));
+        }
     }
+
+    return null;
 }
 
 export async function GET(request: NextRequest) {
