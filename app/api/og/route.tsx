@@ -64,7 +64,7 @@ async function getValidImageDataUrl(url: string): Promise<string | null> {
 
             const contentType = response.headers.get("content-type");
             console.log(`[OG] Image content-type: ${contentType}`);
-            
+
             if (!contentType?.startsWith("image/")) {
                 console.warn(`[OG] Invalid content-type: ${contentType}`);
                 if (attempt < maxRetries) continue;
