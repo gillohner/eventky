@@ -80,7 +80,14 @@ async function getValidImageDataUrl(url: string): Promise<string | null> {
 }
 
 export async function GET(request: NextRequest) {
-    const { searchParams } = request.nextUrl;
+    // Some clients incorrectly HTML-encode ampersands as &amp; in URLs.
+    // Normalize the URL by replacing &amp; with & before parsing.
+    const rawUrl = request.url;
+    const normalizedUrl = rawUrl.includes("&amp;")
+        ? rawUrl.replace(/&amp;/g, "&")
+        : rawUrl;
+    const url = new URL(normalizedUrl);
+    const searchParams = url.searchParams;
 
     const title = searchParams.get("title") || "Eventky";
     const type = searchParams.get("type") || "event";
