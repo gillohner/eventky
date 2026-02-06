@@ -1,170 +1,166 @@
-"use client";
-
-import { use, useEffect, useMemo } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEvent } from "@/hooks/use-event-hooks";
-import { useRsvpMutation } from "@/hooks/use-rsvp-mutation";
-import { useAddTagMutation, useRemoveTagMutation } from "@/hooks/use-tag-mutation";
-import { useDeleteEvent } from "@/hooks/use-event-mutations";
-import { useAuth } from "@/components/providers/auth-provider";
-import { useDebugView } from "@/hooks";
-import { EventDetailLayout } from "@/components/event/detail";
-import { SyncBadge } from "@/components/ui/sync-status-indicator";
-import { DevJsonView } from "@/components/dev-json-view";
-import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
-import { toast } from "sonner";
+import type { Metadata } from "next";
+import { fetchEventFromNexus } from "@/lib/nexus/events";
+import {
+  getAppUrl,
+  getImageUrl,
+  getOgImageUrl,
+  truncateDescription,
+  formatMetaDate,
+  getPrimaryLocation,
+  buildEventJsonLd,
+} from "@/lib/metadata";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
+import EventPageClient from "./_client";
 
 interface EventPageProps {
   params: Promise<{
     authorId: string;
     eventId: string;
   }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default function EventPage({ params }: EventPageProps) {
-  const { authorId, eventId } = use(params);
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const instanceDate = searchParams.get("instance") || undefined;
+export async function generateMetadata({ params, searchParams }: EventPageProps): Promise<Metadata> {
+  const { authorId, eventId } = await params;
+  const resolvedSearchParams = await searchParams;
+  const instanceParam = typeof resolvedSearchParams.instance === "string" ? resolvedSearchParams.instance : undefined;
 
-  const { data: event, isLoading, error, syncStatus, isOptimistic } = useEvent(authorId, eventId, {
-    limitTags: 50,
-    limitAttendees: 100,
-  });
-  const { auth } = useAuth();
-  const { debugEnabled, showRawData, toggleRawData } = useDebugView();
+  const appUrl = getAppUrl();
+  const canonicalUrl = `${appUrl}/event/${authorId}/${eventId}`;
 
-  // For recurring events, default to next occurrence if no instance specified
-  const nextOccurrence = useMemo(() => {
-    if (!event?.details?.rrule || instanceDate) return null;
+  try {
+    const event = await fetchEventFromNexus(authorId, eventId);
 
-    const occurrences = calculateNextOccurrences({
-      rrule: event.details.rrule,
-      dtstart: event.details.dtstart,
-      rdate: event.details.rdate,
-      exdate: event.details.exdate,
-      maxCount: 50,
-    });
-
-    const now = new Date();
-    return occurrences.find(occ => new Date(occ) > now) || null;
-  }, [event, instanceDate]);
-
-  // Auto-redirect to next occurrence for recurring events
-  useEffect(() => {
-    if (nextOccurrence && !instanceDate) {
-      router.replace(`/event/${authorId}/${eventId}?instance=${encodeURIComponent(nextOccurrence)}`);
-    }
-  }, [nextOccurrence, instanceDate, router, authorId, eventId]);
-
-  // RSVP mutation hook
-  const { mutate: rsvp, isPending: isRsvpLoading } = useRsvpMutation();
-
-  // Tag mutation hooks
-  const { mutate: addTag } = useAddTagMutation();
-  const { mutate: removeTag } = useRemoveTagMutation();
-
-  // Delete mutation hook
-  const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent({
-    onSuccess: () => {
-      router.push("/events");
-    },
-  });
-
-  const currentUserId = auth?.publicKey;
-  const isLoggedIn = Boolean(auth?.publicKey);
-
-  // Handle RSVP submission
-  const handleRsvp = (status: string) => {
-    if (!currentUserId) {
-      toast.error("Please sign in to RSVP");
-      return;
+    if (!event) {
+      return {
+        title: "Event Not Found | Eventky",
+        description: "This event could not be found.",
+      };
     }
 
-    rsvp({
-      eventAuthorId: authorId,
-      eventId: eventId,
-      partstat: status,
-      recurrenceId: instanceDate,
-    });
-  };
+    const { details } = event;
+    const title = details.summary;
+    const description = truncateDescription(details.description);
+    const rawImageUrl = getImageUrl(details.image_uri);
+    const location = getPrimaryLocation(details.locations);
 
-  // Tag handlers
-  const handleAddTag = (label: string) => {
-    if (!currentUserId) {
-      toast.error("Please sign in to add tags");
-      return;
+    // Handle recurring events
+    const isRecurring = !!details.rrule;
+    let dateStr: string;
+    let displayDate: string;
+
+    if (instanceParam) {
+      // Specific instance requested - show that date
+      dateStr = formatMetaDate(instanceParam, null, details.dtstart_tzid);
+      displayDate = dateStr;
+    } else if (isRecurring) {
+      // Recurring event without instance - calculate next occurrence
+      const occurrences = calculateNextOccurrences({
+        rrule: details.rrule!,
+        dtstart: details.dtstart,
+        rdate: details.rdate,
+        exdate: details.exdate,
+        maxCount: 10,
+      });
+
+      const now = new Date();
+      const nextOccurrence = occurrences.find(occ => new Date(occ) > now);
+
+      if (nextOccurrence) {
+        const nextDateStr = formatMetaDate(nextOccurrence, null, details.dtstart_tzid);
+        dateStr = `Recurring · Next: ${nextDateStr}`;
+        displayDate = `Next: ${nextDateStr}`;
+      } else {
+        // No future occurrences - show original date
+        dateStr = formatMetaDate(details.dtstart, details.dtend, details.dtstart_tzid);
+        displayDate = `Recurring · ${dateStr}`;
+      }
+    } else {
+      // Single event
+      dateStr = formatMetaDate(details.dtstart, details.dtend, details.dtstart_tzid);
+      displayDate = dateStr;
     }
 
-    addTag({
-      eventAuthorId: authorId,
-      eventId: eventId,
-      label: label,
+    // Build branded OG image
+    const ogImageUrl = getOgImageUrl({
+      title,
+      type: "event",
+      date: displayDate,
+      location: location?.name,
+      imageUrl: rawImageUrl,
     });
-  };
 
-  const handleRemoveTag = (label: string) => {
-    if (!currentUserId) {
-      toast.error("Please sign in to remove tags");
-      return;
+    // Build description with date and location info
+    const metaDescription = [
+      dateStr,
+      location?.name,
+      description,
+    ].filter(Boolean).join(" · ") || "Event on Eventky";
+
+    return {
+      title: `${title} | Eventky`,
+      description: metaDescription,
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      openGraph: {
+        title,
+        description: metaDescription,
+        url: canonicalUrl,
+        siteName: "Eventky",
+        type: "website",
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: title,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description: metaDescription,
+        images: [ogImageUrl],
+      },
+    };
+  } catch (error) {
+    console.error("[generateMetadata] Event metadata fetch failed:", { authorId, eventId, error });
+    return {
+      title: "Event | Eventky",
+      description: "View this event on Eventky",
+    };
+  }
+}
+
+export default async function EventPage({ params }: EventPageProps) {
+  const { authorId, eventId } = await params;
+  const appUrl = getAppUrl();
+  const canonicalUrl = `${appUrl}/event/${authorId}/${eventId}`;
+
+  // Fetch event data server-side for JSON-LD (best-effort)
+  let jsonLdScript: React.ReactNode = null;
+  try {
+    const event = await fetchEventFromNexus(authorId, eventId);
+    if (event) {
+      const imageUrl = getImageUrl(event.details.image_uri);
+      const jsonLd = buildEventJsonLd(event.details, canonicalUrl, imageUrl);
+      jsonLdScript = (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      );
     }
-
-    removeTag({
-      eventAuthorId: authorId,
-      eventId: eventId,
-      label: label,
-    });
-  };
-
-  // Delete handler
-  const handleDelete = () => {
-    if (!currentUserId) {
-      toast.error("Please sign in to delete events");
-      return;
-    }
-
-    deleteEvent({
-      eventId: eventId,
-    });
-  };
+  } catch {
+    // JSON-LD is best-effort; don't block rendering
+  }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      {/* Sync Status & Debug Toggle */}
-      <div className="flex items-center justify-end gap-2 mb-4">
-        {isOptimistic && <SyncBadge status={syncStatus} />}
-        <DebugViewToggle
-          debugEnabled={debugEnabled}
-          showRawData={showRawData}
-          onToggle={toggleRawData}
-        />
-      </div>
-
-      {/* Toggle between UI and Raw Data */}
-      {showRawData ? (
-        <DevJsonView
-          data={event}
-          title={`Event: ${authorId}/${eventId}`}
-          isLoading={isLoading}
-          error={error ? (error as Error) : undefined}
-        />
-      ) : (
-        <EventDetailLayout
-          event={event ?? null}
-          isLoading={isLoading}
-          error={error as Error | null}
-          currentUserId={currentUserId || undefined}
-          isLoggedIn={isLoggedIn}
-          instanceDate={instanceDate}
-          onRsvp={handleRsvp}
-          isRsvpLoading={isRsvpLoading}
-          onAddTag={handleAddTag}
-          onRemoveTag={handleRemoveTag}
-          onDelete={handleDelete}
-          isDeleting={isDeleting}
-        />
-      )}
-    </div>
+    <>
+      {jsonLdScript}
+      <EventPageClient params={params} />
+    </>
   );
 }

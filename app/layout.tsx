@@ -21,6 +21,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Eventky - Calendar & Events",
   description: "Your social calendar and event management platform",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://eventky.app"),
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -28,6 +29,27 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  openGraph: {
+    siteName: "Eventky",
+    type: "website",
+    locale: "en_US",
+    title: "Eventky - Calendar & Events",
+    description: "Your social calendar and event management platform",
+    images: [
+      {
+        url: "/logo/eventky-logo-512.png",
+        width: 512,
+        height: 512,
+        alt: "Eventky",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Eventky - Calendar & Events",
+    description: "Your social calendar and event management platform",
+    images: ["/logo/eventky-logo-512.png"],
   },
 };
 
