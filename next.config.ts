@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@eventky/pubky-app-specs"],
+  // Prevent server-side bundling of WASM packages
+  serverExternalPackages: ["@eventky/pubky-app-specs"],
 
   // Configure allowed image hostnames
   images: {
@@ -25,7 +26,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Empty turbopack config — Next.js 16 uses Turbopack by default
+  // Turbopack config
   turbopack: {},
 
   // Webpack config for production builds (Turbopack only used in dev)
