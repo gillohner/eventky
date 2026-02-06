@@ -160,15 +160,15 @@ export async function GET(request: NextRequest) {
                             style={{
                                 display: "flex",
                                 flexDirection: "column",
-                                gap: "8px",
+                                gap: "14px",
                             }}
                         >
                             {date && (
-                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                                     <div
                                         style={{
-                                            width: "10px",
-                                            height: "10px",
+                                            width: "12px",
+                                            height: "12px",
                                             borderRadius: "50%",
                                             background: accent,
                                             flexShrink: 0,
@@ -176,21 +176,21 @@ export async function GET(request: NextRequest) {
                                     />
                                     <span
                                         style={{
-                                            fontSize: "22px",
-                                            fontWeight: 500,
+                                            fontSize: "28px",
+                                            fontWeight: 600,
                                             color: "#ffffff",
                                         }}
                                     >
-                                        {date.length > 55 ? date.slice(0, 52) + "…" : date}
+                                        {date.length > 45 ? date.slice(0, 42) + "…" : date}
                                     </span>
                                 </div>
                             )}
                             {location && (
-                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                                     <div
                                         style={{
-                                            width: "10px",
-                                            height: "10px",
+                                            width: "12px",
+                                            height: "12px",
                                             borderRadius: "50%",
                                             background: accent,
                                             flexShrink: 0,
@@ -198,12 +198,12 @@ export async function GET(request: NextRequest) {
                                     />
                                     <span
                                         style={{
-                                            fontSize: "22px",
-                                            fontWeight: 500,
+                                            fontSize: "28px",
+                                            fontWeight: 600,
                                             color: "#ffffff",
                                         }}
                                     >
-                                        {location.length > 45 ? location.slice(0, 42) + "…" : location}
+                                        {location.length > 40 ? location.slice(0, 37) + "…" : location}
                                     </span>
                                 </div>
                             )}
