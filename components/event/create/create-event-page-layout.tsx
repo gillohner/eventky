@@ -19,7 +19,7 @@ import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { EventFormData, useEventFormStore } from "@/stores/event-form-store";
-import { PubkyAppEvent } from "pubky-app-specs";
+import { PubkyAppEvent } from "@eventky/pubky-app-specs";
 import {
   formDataToEventData,
   eventToFormData,

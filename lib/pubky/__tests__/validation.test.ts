@@ -12,7 +12,7 @@ import {
     validateTimezone,
     getValidEventStatuses,
     getValidRsvpStatuses,
-} from 'pubky-app-specs';
+} from '@eventky/pubky-app-specs';
 
 describe('pubky-app-specs Validation Integration', () => {
     describe('RRULE Validation', () => {

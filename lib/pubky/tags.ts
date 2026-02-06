@@ -1,5 +1,5 @@
 import { Session } from "@synonymdev/pubky";
-import { PubkySpecsBuilder, eventUriBuilder, calendarUriBuilder } from "pubky-app-specs";
+import { PubkySpecsBuilder, eventUriBuilder, calendarUriBuilder } from "@eventky/pubky-app-specs";
 import { isNotFoundError } from "./session-utils";
 
 /**

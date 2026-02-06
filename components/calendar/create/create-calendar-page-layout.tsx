@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BasicInfoFields } from "@/components/calendar/create/basic-info";
 import { SettingsFields } from "@/components/calendar/create/settings";
-import { PubkySpecsBuilder, PubkyAppCalendar, parse_uri } from "pubky-app-specs";
+import { PubkySpecsBuilder, PubkyAppCalendar, parse_uri } from "@eventky/pubky-app-specs";
 import { useCreateCalendar, useUpdateCalendar } from "@/hooks/use-calendar-mutations";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { NexusCalendarResponse } from "@/lib/nexus/calendars";

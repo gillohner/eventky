@@ -9,7 +9,7 @@
  */
 
 import { EventFormData } from "@/stores/event-form-store";
-import { PubkyAppEvent } from "pubky-app-specs";
+import { PubkyAppEvent } from "@eventky/pubky-app-specs";
 import { NexusEventResponse } from "@/lib/nexus/events";
 
 /**

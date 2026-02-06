@@ -21,7 +21,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PubkyAppEvent } from "pubky-app-specs";
+import { PubkyAppEvent } from "@eventky/pubky-app-specs";
 import { useAuth } from "@/components/providers/auth-provider";
 import { saveEvent, deleteEvent } from "@/lib/pubky/events";
 import {

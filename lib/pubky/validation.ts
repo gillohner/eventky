@@ -11,5 +11,5 @@ export {
     validateDuration,
     getValidEventStatuses,
     getValidRsvpStatuses,
-} from "pubky-app-specs";
+} from "@eventky/pubky-app-specs";
 

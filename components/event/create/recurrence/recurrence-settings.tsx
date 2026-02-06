@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { validateRrule } from "pubky-app-specs";
+import { validateRrule } from "@eventky/pubky-app-specs";
 import type { RecurrencePreset, RecurrenceFrequency, Weekday } from "@/types/recurrence";
 
 const WEEKDAY_OPTIONS: Array<{ value: Weekday; label: string }> = [

@@ -24,7 +24,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/providers/auth-provider";
 import { saveAttendee, type SaveAttendeeResult } from "@/lib/pubky/attendees";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
-import { eventUriBuilder, attendeeUriBuilder } from "pubky-app-specs";
+import { eventUriBuilder, attendeeUriBuilder } from "@eventky/pubky-app-specs";
 import { handleMutationError } from "@/lib/pubky/session-utils";
 import { toast } from "sonner";
 import type { NexusEventResponse } from "@/lib/nexus/events";

@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
-import { join } from "path";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["pubky-app-specs"],
+  transpilePackages: ["@eventky/pubky-app-specs"],
 
   // Configure allowed image hostnames
   images: {
@@ -26,10 +25,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  turbopack: {
-    // Tell Turbopack the monorepo root is one level up
-    root: join(__dirname, ".."),
-  },
+  // Empty turbopack config — Next.js 16 uses Turbopack by default
+  turbopack: {},
 
   // Webpack config for production builds (Turbopack only used in dev)
   webpack: (config, { isServer }) => {

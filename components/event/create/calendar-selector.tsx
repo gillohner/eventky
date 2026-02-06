@@ -5,7 +5,7 @@ import type { EventFormData } from "@/types/event";
 import { useUserCalendars, type UserCalendar } from "@/hooks/use-user-calendars";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { useAuth } from "@/components/providers/auth-provider";
-import { parse_uri } from "pubky-app-specs";
+import { parse_uri } from "@eventky/pubky-app-specs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { X, Calendar, Plus, Loader2 } from "lucide-react";

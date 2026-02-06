@@ -22,7 +22,7 @@ import {
     pubkyCalendarToNexusFormat,
 } from '../utils';
 import type { NexusEventResponse } from '@/lib/nexus/events';
-import type { PubkyAppEvent, PubkyAppCalendar } from 'pubky-app-specs';
+import type { PubkyAppEvent, PubkyAppCalendar } from '@eventky/pubky-app-specs';
 
 describe('Cache Utils', () => {
     describe('Query Key Factories', () => {

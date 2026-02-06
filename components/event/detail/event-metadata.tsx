@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { parse_uri } from "pubky-app-specs";
+import { parse_uri } from "@eventky/pubky-app-specs";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

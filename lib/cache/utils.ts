@@ -10,8 +10,8 @@
  * - Stale-while-revalidate patterns
  */
 
-import type { PubkyAppEvent, PubkyAppCalendar, StyledDescription } from "pubky-app-specs";
-import { eventUriBuilder, calendarUriBuilder } from "pubky-app-specs";
+import type { PubkyAppEvent, PubkyAppCalendar, StyledDescription } from "@eventky/pubky-app-specs";
+import { eventUriBuilder, calendarUriBuilder } from "@eventky/pubky-app-specs";
 import type { NexusEventResponse } from "@/lib/nexus/events";
 import type { NexusCalendarResponse } from "@/lib/nexus/calendars";
 

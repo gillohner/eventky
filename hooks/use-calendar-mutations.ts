@@ -9,7 +9,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PubkyAppCalendar } from "pubky-app-specs";
+import { PubkyAppCalendar } from "@eventky/pubky-app-specs";
 import { useAuth } from "@/components/providers/auth-provider";
 import { saveCalendar, deleteCalendar } from "@/lib/pubky/calendars";
 import {

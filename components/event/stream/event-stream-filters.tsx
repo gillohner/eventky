@@ -11,7 +11,7 @@ import { X, CalendarClock, Calendar, Clock, User } from "lucide-react";
 import { DateRangeFilter } from "@/components/event/stream/filters/date-range-filter";
 import { TagsFilter } from "@/components/event/stream/filters/tags-filter";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
-import { getValidEventStatuses } from "pubky-app-specs";
+import { getValidEventStatuses } from "@eventky/pubky-app-specs";
 
 const EVENT_STATUSES = getValidEventStatuses().map((status) => ({
     value: status,

@@ -3,7 +3,7 @@
  */
 
 import { Session } from "@synonymdev/pubky";
-import { PubkySpecsBuilder } from "pubky-app-specs";
+import { PubkySpecsBuilder } from "@eventky/pubky-app-specs";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
 
 /**
