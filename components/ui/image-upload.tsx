@@ -5,17 +5,19 @@ import { toast } from "sonner";
 import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageCropper } from "@/components/ui/image-cropper";
 import { Upload, X, RefreshCw, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { uploadImageFile, deleteImageFile, validateImageFile } from "@/lib/pubky/files";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
+import { HEADER_BANNER } from "@/lib/constants";
+import { matchesBannerAspectRatio, getImageDimensions, getCroppedImageFile } from "@/lib/utils/image-crop";
 
 interface ImageUploadProps {
     value?: string | null;
     onChange: (imageUri: string | undefined) => void;
     title?: string;
     description?: string;
-    aspectRatio?: "video" | "square" | "wide";
 }
 
 export function ImageUpload({
@@ -23,7 +25,6 @@ export function ImageUpload({
     onChange,
     title = "Image",
     description = "Upload an image (max 5MB)",
-    aspectRatio = "video"
 }: ImageUploadProps) {
     const { auth } = useAuth();
     const [isUploading, setIsUploading] = useState(false);
@@ -31,8 +32,17 @@ export function ImageUpload({
     const [dragActive, setDragActive] = useState(false);
     const [imageKey, setImageKey] = useState(0);
     const [imageLoadError, setImageLoadError] = useState(false);
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Hardcoded so Tailwind can detect the class at build time
+    const aspectClass = "aspect-[1200/500]";
+
+    /**
+     * Handle a selected file: validate, check aspect ratio, then either
+     * skip cropping (if ratio matches) or open the cropper dialog.
+     */
     const handleFileSelect = async (file: File) => {
         const validationError = validateImageFile(file, 5);
         if (validationError) {
@@ -45,11 +55,41 @@ export function ImageUpload({
             return;
         }
 
+        // Read the file as a data URL to check dimensions and for the cropper
+        const dataUrl = await readFileAsDataUrl(file);
+
+        try {
+            const { width, height } = await getImageDimensions(dataUrl);
+
+            if (matchesBannerAspectRatio(width, height)) {
+                // Aspect ratio matches — resize directly and upload, skip cropper
+                const resizedFile = await getCroppedImageFile(
+                    dataUrl,
+                    { x: 0, y: 0, width, height },
+                    file.name
+                );
+                await uploadFile(resizedFile);
+            } else {
+                // Aspect ratio doesn't match — open cropper
+                setPendingImageSrc(dataUrl);
+                setCropperOpen(true);
+            }
+        } catch (error) {
+            console.error("Error processing image:", error);
+            toast.error("Failed to process image");
+        }
+    };
+
+    /**
+     * Upload a file (already cropped/resized) to the homeserver.
+     */
+    const uploadFile = async (file: File) => {
+        if (!auth.session) return;
+
         setIsUploading(true);
 
         try {
             // Try to delete old image, but don't block upload if it fails
-            // The old file may already be deleted or inaccessible
             if (value) {
                 try {
                     await deleteImageFile(auth.session, value);
@@ -61,7 +101,6 @@ export function ImageUpload({
             const imageUri = await uploadImageFile(auth.session, auth.publicKey!, file);
             onChange(imageUri);
             setImageKey(prev => prev + 1);
-            // Reset error states when new image is uploaded
             setImageLoadError(false);
 
             toast.success("Image uploaded successfully");
@@ -71,6 +110,17 @@ export function ImageUpload({
         } finally {
             setIsUploading(false);
         }
+    };
+
+    const handleCropComplete = async (croppedFile: File) => {
+        setCropperOpen(false);
+        setPendingImageSrc(null);
+        await uploadFile(croppedFile);
+    };
+
+    const handleCropCancel = () => {
+        setCropperOpen(false);
+        setPendingImageSrc(null);
     };
 
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,12 +179,6 @@ export function ImageUpload({
         fileInputRef.current?.click();
     };
 
-    const aspectClass = {
-        video: "aspect-video sm:aspect-[21/9]",
-        square: "aspect-square",
-        wide: "aspect-[16/9]"
-    }[aspectRatio];
-
     return (
         <FormSection
             title={title}
@@ -151,10 +195,12 @@ export function ImageUpload({
             {value ? (
                 <div className="relative group rounded-lg overflow-hidden border bg-muted -mx-6 sm:mx-0">
                     {isUploading || isDeleting ? (
-                        <Skeleton className={`${aspectClass} w-full`} />
+                        <Skeleton className={`${aspectClass} w-full`} style={{ aspectRatio: HEADER_BANNER.aspectRatio }} />
                     ) : imageLoadError ? (
-                        // Show error state with actions when image fails to load
-                        <div className={`${aspectClass} w-full flex flex-col items-center justify-center bg-destructive/10 text-destructive p-4`}>
+                        <div
+                            className={`${aspectClass} w-full flex flex-col items-center justify-center bg-destructive/10 text-destructive p-4`}
+                            style={{ aspectRatio: HEADER_BANNER.aspectRatio }}
+                        >
                             <AlertTriangle className="h-8 w-8 mb-2" />
                             <p className="text-sm font-medium text-center mb-1">Image not available</p>
                             <p className="text-xs text-muted-foreground text-center mb-3">
@@ -191,22 +237,20 @@ export function ImageUpload({
                                 src={getPubkyImageUrl(value, "main")}
                                 alt="Uploaded image"
                                 className={`${aspectClass} w-full object-cover`}
+                                style={{ aspectRatio: HEADER_BANNER.aspectRatio }}
                                 onLoad={() => {
-                                    // Reset error state on successful load
                                     setImageLoadError(false);
                                 }}
                                 onError={(e) => {
                                     const img = e.currentTarget;
                                     const retryCount = parseInt(img.dataset.retryCount || "0");
 
-                                    // Try up to 3 times with delay, then show error
                                     if (retryCount < 3) {
                                         img.dataset.retryCount = String(retryCount + 1);
                                         setTimeout(() => {
                                             img.src = getPubkyImageUrl(value, "main") + `?retry=${retryCount + 1}`;
                                         }, 1000 * (retryCount + 1));
                                     } else {
-                                        // All retries failed, show error state
                                         setImageLoadError(true);
                                     }
                                 }}
@@ -239,13 +283,13 @@ export function ImageUpload({
             ) : (
                 <div
                     className={`
-            border-2 border-dashed rounded-lg p-6 sm:p-8 cursor-pointer
-            transition-colors
-            ${dragActive
+                        border-2 border-dashed rounded-lg p-6 sm:p-8 cursor-pointer
+                        transition-colors
+                        ${dragActive
                             ? "border-primary bg-primary/5"
                             : "border-border hover:border-primary/50 hover:bg-accent/50"
                         }
-          `}
+                    `}
                     onClick={handleUploadClick}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -267,13 +311,35 @@ export function ImageUpload({
                                     Click to upload or drag and drop
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    PNG, JPG, GIF up to 5MB
+                                    PNG, JPG, GIF up to 5MB • Cropped to {HEADER_BANNER.width}×{HEADER_BANNER.height}
                                 </p>
                             </div>
                         </div>
                     )}
                 </div>
             )}
+
+            {/* Image Cropper Dialog */}
+            {pendingImageSrc && (
+                <ImageCropper
+                    imageSrc={pendingImageSrc}
+                    open={cropperOpen}
+                    onOpenChange={(open) => {
+                        if (!open) handleCropCancel();
+                    }}
+                    onCropComplete={handleCropComplete}
+                    onCancel={handleCropCancel}
+                />
+            )}
         </FormSection>
     );
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+    });
 }

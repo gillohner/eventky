@@ -92,7 +92,6 @@ export function SettingsFields({
                 onChange={onImageChange}
                 title="Calendar Image"
                 description="Upload an image for your calendar (max 5MB)"
-                aspectRatio="square"
             />
 
             {/* Author Selector */}

@@ -357,7 +357,6 @@ export function CreateEventPageLayout({
                 onChange={(uri) => form.setValue("image_uri", uri)}
                 title="Event Image"
                 description="Upload a banner image for your event (max 5MB)"
-                aspectRatio="video"
               />
               <BasicInfoFields
                 control={form.control}
