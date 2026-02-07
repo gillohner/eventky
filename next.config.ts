@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Prevent server-side bundling of WASM packages
-  serverExternalPackages: ["@eventky/pubky-app-specs"],
+  serverExternalPackages: ["@eventky/pubky-app-specs", "@synonymdev/pubky"],
 
   // Configure allowed image hostnames
   images: {
@@ -31,6 +31,7 @@ const nextConfig: NextConfig = {
     // Resolve the wasm-bindgen placeholder that Turbopack struggles with
     resolveAlias: {
       "__wbindgen_placeholder__": "@eventky/pubky-app-specs/pubky_app_specs_bg.js",
+      "@synonymdev/pubky": "@synonymdev/pubky/index.js",
     },
   },
 

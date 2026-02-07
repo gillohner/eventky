@@ -702,15 +702,3 @@ const TimeItem = ({
         </Button>
     );
 };
-
-interface BuildTimeOptions {
-    value: Date;
-    hour: number;
-    minute: number;
-    second: number;
-}
-
-function buildTime(options: BuildTimeOptions) {
-    const { value, hour, minute, second } = options;
-    return setHours(setMinutes(setSeconds(value, second), minute), hour);
-}

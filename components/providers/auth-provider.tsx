@@ -2,52 +2,84 @@
 
 import { createContext, useContext, useEffect, useMemo, ReactNode } from "react";
 import { useAuthStore } from "@/stores/auth-store";
-import { AuthContextType } from "@/types/auth";
+import { AuthController } from "@/lib/pubky/auth-controller";
+import type { Session } from "@synonymdev/pubky";
+
+// ============================================================================
+// Context type — backwards-compatible with existing consumers
+// ============================================================================
+
+/** Auth data shape used by mutation hooks (auth.session, auth.publicKey) */
+interface AuthData {
+  isAuthenticated: boolean;
+  publicKey: string | null;
+  session: Session | null;
+}
+
+interface AuthContextType {
+  /** Auth data bag (backwards-compatible with existing hook consumers) */
+  auth: AuthData;
+  /** The user's public key (z32-encoded), or null */
+  publicKey: string | null;
+  /** The live SDK Session object, or null */
+  session: Session | null;
+  /** Whether the user is authenticated (has a live session) */
+  isAuthenticated: boolean;
+  /** Whether auth state is still loading (hydration or restoration) */
+  isLoading: boolean;
+  /** Log out the current user */
+  logout: () => Promise<void>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ============================================================================
+// Provider — mirrors pubky-app's RouteGuardProvider session restoration logic
+// ============================================================================
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const authStore = useAuthStore();
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const session = useAuthStore((state) => state.session);
   const sessionExport = useAuthStore((state) => state.sessionExport);
-  const seed = useAuthStore((state) => state.seed);
+  const publicKey = useAuthStore((state) => state.publicKey);
   const isRestoringSession = useAuthStore((state) => state.isRestoringSession);
-  const restorationFailed = useAuthStore((state) => state.restorationFailed);
 
-  // Reactive session restoration watcher.
-  // Modeled on pubky-app's RouteGuardProvider pattern:
-  // Whenever hasHydrated is true but we have persisted credentials (sessionExport or seed)
-  // without a live session, attempt to restore the session.
-  // This handles:
-  // - Initial page load (Zustand persist rehydrates → credentials exist → restore)
-  // - Session loss mid-use (session becomes null → re-attempt)
-  // - Page resume on mobile (tab was killed, session object lost → retry)
-  //
-  // Does NOT retry after a failed restoration — the user can reload or log in again.
+  // Session restoration watcher — identical to pubky-app's RouteGuardProvider useEffect.
+  // Dependencies: [hasHydrated, session, sessionExport] — exactly like pubky-app.
+  // No seed, no restorationFailed, no isRestoringSession in deps.
   useEffect(() => {
-    if (!hasHydrated) return;
-    if (session) return; // Already have a live session
-    if (!sessionExport && !seed) return; // No credentials to restore
-    if (restorationFailed) return; // Previous attempt failed — don't loop
-    if (isRestoringSession) return; // Already in progress
+    if (!hasHydrated) return;        // Wait for Zustand rehydration
+    if (session) return;             // Already have a live session
+    if (!sessionExport) return;      // Nothing to restore
 
-    authStore.restoreSession().catch((error) => {
-      console.error("[AuthProvider] Failed to restore session:", error);
+    AuthController.restorePersistedSession().catch((error) => {
+      console.error("[AuthProvider] Failed to restore persisted session", error);
     });
-  }, [hasHydrated, session, sessionExport, seed, restorationFailed, isRestoringSession, authStore]);
+  }, [hasHydrated, session, sessionExport]);
 
-  // Compute whether we're in a "loading" state:
-  // 1. Zustand persist hasn't rehydrated yet
-  // 2. Active session restoration in progress
-  // 3. Credentials exist but live session hasn't been restored yet AND restoration hasn't failed
-  //    (isSessionRestorePending — matches pubky-app's useAuthStatus pattern)
+  // Loading state — identical to pubky-app's useAuthStatus isLoading formula.
+  // isSessionRestorePending: sessionExport exists but live session hasn't been reconstructed yet.
   const isSessionRestorePending = useMemo(
-    () => hasHydrated && !session && !restorationFailed && (!!sessionExport || !!seed),
-    [hasHydrated, session, restorationFailed, sessionExport, seed]
+    () => sessionExport !== null && session === null,
+    [sessionExport, session]
   );
 
   const isLoading = !hasHydrated || isRestoringSession || isSessionRestorePending;
+
+  const isAuthenticated = session !== null;
+
+  const contextValue = useMemo((): AuthContextType => ({
+    auth: {
+      isAuthenticated,
+      publicKey,
+      session,
+    },
+    publicKey,
+    session,
+    isAuthenticated,
+    isLoading,
+    logout: AuthController.logout,
+  }), [publicKey, session, isLoading, isAuthenticated]);
 
   // Show loading state during hydration or session restoration
   if (isLoading) {
@@ -63,27 +95,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const isAuthenticated = session !== null;
-
-  const contextValue: AuthContextType = {
-    auth: {
-      isAuthenticated,
-      publicKey: authStore.publicKey,
-      keypair: authStore.keypair,
-      session: authStore.session,
-    },
-    signin: authStore.signin,
-    signinWithSession: authStore.signinWithSession,
-    logout: authStore.logout,
-    isAuthenticated,
-  };
-
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 }
+
+// ============================================================================
+// Hook
+// ============================================================================
 
 export function useAuth() {
   const context = useContext(AuthContext);

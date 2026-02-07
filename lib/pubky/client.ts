@@ -1,73 +1,62 @@
-import { Pubky, Keypair, Session, Address, PublicKey } from "@synonymdev/pubky";
+import { Keypair, Session, Address, PublicKey } from "@synonymdev/pubky";
 import { PubkyAppUser, userUriBuilder } from "@eventky/pubky-app-specs";
 import { config, isTestnet } from "@/lib/config";
+import { PubkyService } from "@/lib/pubky/service";
 
 export class PubkyClient {
-  /**
-   * Create Pubky instance with correct configuration (testnet or mainnet)
-   */
-  private static createPubky(): Pubky {
-    return config.env === "testnet" ? Pubky.testnet() : new Pubky();
-  }
-
-  /**
-   * Restore keypair from recovery file (for login only)
-   */
-  static restoreFromRecoveryFile(
-    recoveryFile: Uint8Array,
-    passphrase: string
-  ): Keypair {
-    return Keypair.fromRecoveryFile(recoveryFile, passphrase);
-  }
-
-  /**
-   * Sign in with restored keypair
-   * 
-   * For testnet: Uses signup() with the configured homeserver since PKARR
-   * records aren't published in local testnet environments.
-   * 
-   * For mainnet: Uses signin() which resolves the homeserver via PKARR/PKDNS.
-   */
-  async signin(keypair: Keypair): Promise<Session> {
-    const pubky = PubkyClient.createPubky();
-    const signer = pubky.signer(keypair);
-
-    if (isTestnet) {
-      // In testnet, PKARR records aren't published to a resolvable DHT,
-      // so we use signup() with the configured homeserver instead.
-      // signup() works for both new and existing users.
-      const homeserverKey = PublicKey.from(config.homeserver.publicKey);
-      return signer.signup(homeserverKey);
+    /**
+     * Restore keypair from recovery file (for login only)
+     */
+    static restoreFromRecoveryFile(
+        recoveryFile: Uint8Array,
+        passphrase: string
+    ): Keypair {
+        return Keypair.fromRecoveryFile(recoveryFile, passphrase);
     }
 
-    return signer.signin();
-  }
+    /**
+     * Sign in with restored keypair.
+     * Uses the singleton PubkyService instance.
+     *
+     * For testnet: Uses signup() with the configured homeserver since PKARR
+     * records aren't published in local testnet environments.
+     *
+     * For mainnet: Uses signin() which resolves the homeserver via PKARR/PKDNS.
+     */
+    async signin(keypair: Keypair): Promise<Session> {
+        const pubky = PubkyService.getInstance();
+        const signer = pubky.signer(keypair);
 
-  /**
-   * Retrieve user profile from Pubky storage (read-only)
-   * Profiles are managed in pubky.app, we only read them here
-   * 
-   * SDK's cookie-based session management handles authenticated requests automatically
-   */
-  async getProfile(publicKey: string): Promise<ReturnType<PubkyAppUser["toJson"]> | null> {
-    try {
-      const pubky = PubkyClient.createPubky();
-      const url = userUriBuilder(publicKey);
-      // Type cast needed: SDK expects Address type but userUriBuilder returns string
-      const profileData = await pubky.publicStorage.getJson(url as Address);
+        if (isTestnet) {
+            // In testnet, PKARR records aren't published to a resolvable DHT,
+            // so we use signup() with the configured homeserver instead.
+            const homeserverKey = PublicKey.from(config.homeserver.publicKey);
+            return signer.signup(homeserverKey);
+        }
 
-      if (profileData && typeof profileData === "object") {
-        // Convert to PubkyAppUser class to validate and sanitize
-        const userClass = PubkyAppUser.fromJson(profileData);
-        // Return the JSON representation
-        return userClass.toJson();
-      }
-      return null;
-    } catch (error) {
-      console.error("Error retrieving profile from storage:", error);
-      return null;
+        return signer.signin();
     }
-  }
+
+    /**
+     * Retrieve user profile from Pubky storage (read-only)
+     * Uses the singleton PubkyService instance.
+     */
+    async getProfile(publicKey: string): Promise<ReturnType<PubkyAppUser["toJson"]> | null> {
+        try {
+            const pubky = PubkyService.getInstance();
+            const url = userUriBuilder(publicKey);
+            const profileData = await pubky.publicStorage.getJson(url as Address);
+
+            if (profileData && typeof profileData === "object") {
+                const userClass = PubkyAppUser.fromJson(profileData);
+                return userClass.toJson();
+            }
+            return null;
+        } catch (error) {
+            console.error("Error retrieving profile from storage:", error);
+            return null;
+        }
+    }
 }
 
 // Export singleton instance

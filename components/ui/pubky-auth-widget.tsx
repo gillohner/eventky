@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import QRCode from "qrcode";
 import * as pubky from "@synonymdev/pubky";
 import { config } from "@/lib/config";
+import { PubkyService } from "@/lib/pubky/service";
 import { Button } from "@/components/ui/button";
 import { Copy, ExternalLink, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -118,9 +119,9 @@ export function PubkyAuthWidget({
     }
   }, [relay, caps, onSuccess, onError, updateQr]);
 
-  // Initialize SDK
+  // Initialize SDK — use singleton PubkyService (same instance used for session restore)
   useEffect(() => {
-    sdkRef.current = config.env === "testnet" ? pubky.Pubky.testnet() : new pubky.Pubky();
+    sdkRef.current = PubkyService.getInstance();
   }, []);
 
   // Auto-generate flow if open prop is true

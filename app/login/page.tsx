@@ -4,11 +4,13 @@ import { useState, useRef, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { PubkyClient } from "@/lib/pubky/client";
+import { AuthController } from "@/lib/pubky/auth-controller";
+import { PubkyService } from "@/lib/pubky/service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-import { Pubky, Session, AuthToken, Keypair, PublicKey } from "@synonymdev/pubky";
+import { Session, AuthToken, Keypair, PublicKey } from "@synonymdev/pubky";
 import { PubkyAuthWidget } from "@/components/ui/pubky-auth-widget";
 import { config } from "@/lib/config";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
@@ -23,7 +25,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
     const router = useRouter();
     const params = use(searchParams);
     const returnPath = params?.returnPath || "/";
-    const { signin, signinWithSession, isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isLoading, setIsLoading] = useState(false);
@@ -55,13 +57,9 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         try {
             // If we have a session, use it directly
             if (session) {
-                // Ingest user into Nexus
-                await ingestUserIntoNexus(publicKey);
-
-                // QR auth: Session persists in memory during browser session
-                // Cannot be stored in localStorage (not serializable)
-                // User will need to re-scan QR after page refresh
-                signinWithSession(publicKey, session);
+                // Initialize authenticated session via AuthController
+                // (mirrors pubky-app's initializeAuthenticatedSession)
+                await AuthController.initializeAuthenticatedSession(session);
                 toast.success("Successfully logged in!");
                 router.push(returnPath);
                 return;
@@ -116,8 +114,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             const publicKey = keypair.publicKey.z32();
             console.log("Generated keypair for user:", publicKey);
 
-            // Initialize Pubky SDK for testnet
-            const pubky = Pubky.testnet();
+            // Initialize Pubky SDK (uses singleton PubkyService)
+            const pubky = PubkyService.getInstance();
             const signer = pubky.signer(keypair);
 
             // Sign up on the testnet homeserver
@@ -164,8 +162,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             // Ingest user into Nexus to start monitoring this homeserver
             await ingestUserIntoNexus(publicKey);
 
-            // Sign in with the new account
-            signin(publicKey, keypair, session);
+            // Sign in with the new account via AuthController
+            await AuthController.initializeAuthenticatedSession(session);
 
             toast.success(`Account created! Recovery file downloaded (passphrase: ${testPassphrase})`);
             router.push(returnPath);
@@ -194,21 +192,9 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
 
             // Restore keypair from recovery file
             const keypair = PubkyClient.restoreFromRecoveryFile(recoveryData, passphrase);
-            const publicKey = keypair.publicKey.z32();
 
-            // Create a session with the restored keypair
-            // Use testnet configuration if in testnet mode
-            const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
-            const signer = pubky.signer(keypair);
-
-            const session = await signer.signin();
-
-            // Ingest user into Nexus to start monitoring this homeserver
-            await ingestUserIntoNexus(publicKey);
-
-            // Sign in with the restored credentials
-            // The useProfile hook will automatically fetch the profile after signin
-            signin(publicKey, keypair, session);
+            // Sign in via AuthController (uses PubkyService singleton)
+            await AuthController.signinWithKeypair(keypair);
 
             toast.success("Successfully logged in!");
             router.push(returnPath);
