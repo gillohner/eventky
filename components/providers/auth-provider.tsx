@@ -13,6 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sessionExport = useAuthStore((state) => state.sessionExport);
   const seed = useAuthStore((state) => state.seed);
   const isRestoringSession = useAuthStore((state) => state.isRestoringSession);
+  const restorationFailed = useAuthStore((state) => state.restorationFailed);
 
   // Reactive session restoration watcher.
   // Modeled on pubky-app's RouteGuardProvider pattern:
@@ -22,24 +23,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // - Initial page load (Zustand persist rehydrates → credentials exist → restore)
   // - Session loss mid-use (session becomes null → re-attempt)
   // - Page resume on mobile (tab was killed, session object lost → retry)
+  //
+  // Does NOT retry after a failed restoration — the user can reload or log in again.
   useEffect(() => {
     if (!hasHydrated) return;
     if (session) return; // Already have a live session
     if (!sessionExport && !seed) return; // No credentials to restore
+    if (restorationFailed) return; // Previous attempt failed — don't loop
+    if (isRestoringSession) return; // Already in progress
 
     authStore.restoreSession().catch((error) => {
       console.error("[AuthProvider] Failed to restore session:", error);
     });
-  }, [hasHydrated, session, sessionExport, seed, authStore]);
+  }, [hasHydrated, session, sessionExport, seed, restorationFailed, isRestoringSession, authStore]);
 
   // Compute whether we're in a "loading" state:
   // 1. Zustand persist hasn't rehydrated yet
   // 2. Active session restoration in progress
-  // 3. Credentials exist but live session hasn't been restored yet
+  // 3. Credentials exist but live session hasn't been restored yet AND restoration hasn't failed
   //    (isSessionRestorePending — matches pubky-app's useAuthStatus pattern)
   const isSessionRestorePending = useMemo(
-    () => hasHydrated && !session && (!!sessionExport || !!seed),
-    [hasHydrated, session, sessionExport, seed]
+    () => hasHydrated && !session && !restorationFailed && (!!sessionExport || !!seed),
+    [hasHydrated, session, restorationFailed, sessionExport, seed]
   );
 
   const isLoading = !hasHydrated || isRestoringSession || isSessionRestorePending;

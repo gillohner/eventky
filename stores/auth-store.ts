@@ -25,6 +25,8 @@ interface AuthState {
     hasHydrated: boolean;
     /** Whether an async session restoration is currently in progress */
     isRestoringSession: boolean;
+    /** Whether session restoration was attempted and failed */
+    restorationFailed: boolean;
 }
 
 interface AuthActions {
@@ -40,6 +42,8 @@ interface AuthActions {
     setHasHydrated: (value: boolean) => void;
     /** Set isRestoringSession flag */
     setIsRestoringSession: (value: boolean) => void;
+    /** Set restorationFailed flag */
+    setRestorationFailed: (value: boolean) => void;
 }
 
 export type AuthStore = AuthState & AuthActions;
@@ -93,6 +97,7 @@ const authInitialState: AuthState = {
     authMethod: null,
     hasHydrated: false,
     isRestoringSession: false,
+    restorationFailed: false,
 };
 
 // ============================================================================
@@ -125,6 +130,10 @@ export const useAuthStore = create<AuthStore>()(
                 set({ isRestoringSession: value });
             },
 
+            setRestorationFailed: (value: boolean) => {
+                set({ restorationFailed: value });
+            },
+
             signin: (publicKey, keypair, session) => {
                 const secretKeyBytes = keypair.secretKey();
                 const seed = btoa(String.fromCharCode(...secretKeyBytes));
@@ -137,6 +146,7 @@ export const useAuthStore = create<AuthStore>()(
                     seed,
                     authMethod: "recovery",
                     isRestoringSession: false,
+                    restorationFailed: false,
                 });
 
                 // Ingest user into Nexus for indexing
@@ -154,6 +164,7 @@ export const useAuthStore = create<AuthStore>()(
                     seed: null,
                     authMethod: "qr",
                     isRestoringSession: false,
+                    restorationFailed: false,
                 });
 
                 // Ingest user into Nexus for indexing
@@ -169,6 +180,7 @@ export const useAuthStore = create<AuthStore>()(
                 set({
                     ...authInitialState,
                     hasHydrated: true, // Preserve hydration state to avoid loading flash
+                    restorationFailed: false,
                 });
 
                 // Zustand persist will auto-save the reset state (all nulls)
@@ -201,7 +213,7 @@ export const useAuthStore = create<AuthStore>()(
                 }
 
                 restoreSessionPromise = (async () => {
-                    set({ isRestoringSession: true });
+                    set({ isRestoringSession: true, restorationFailed: false });
 
                     try {
                         const { Keypair, Pubky } = await import("@synonymdev/pubky");
@@ -258,12 +270,13 @@ export const useAuthStore = create<AuthStore>()(
                         console.error("Could not restore session:", error);
                         // IMPORTANT: Do NOT delete persisted credentials on error.
                         // The next page load can retry. Only reset runtime state.
-                        // This matches pubky-app's behavior where sessionExport
-                        // stays in the persisted store on failure.
+                        // Set restorationFailed so the provider breaks out of the
+                        // loading state instead of retrying infinitely.
                         set({
                             session: null,
                             keypair: null,
                             isRestoringSession: false,
+                            restorationFailed: true,
                         });
                     } finally {
                         restoreSessionPromise = null;
