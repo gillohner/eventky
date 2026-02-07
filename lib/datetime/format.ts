@@ -58,10 +58,9 @@ export function formatDateTime(
         includeYear?: boolean;
         includeWeekday?: boolean;
         compact?: boolean;
-        timeFormat?: "12h" | "24h";
     }
 ): FormattedDateTime {
-    const { includeYear = true, includeWeekday = true, compact = false, timeFormat = "12h" } = options || {};
+    const { includeYear = true, includeWeekday = true, compact = false } = options || {};
 
     try {
         const date = parseIsoDateTime(isoString);
@@ -76,9 +75,9 @@ export function formatDateTime(
 
         const timeFormatter = new Intl.DateTimeFormat("en-US", {
             timeZone: displayTimezone,
-            hour: "numeric",
+            hour: "2-digit",
             minute: "2-digit",
-            hour12: timeFormat === "12h",
+            hour12: false,
         });
 
         return {
@@ -113,9 +112,9 @@ export function formatOccurrenceDate(
         };
 
         if (includeTime) {
-            formatOptions.hour = "numeric";
+            formatOptions.hour = "2-digit";
             formatOptions.minute = "2-digit";
-            formatOptions.hour12 = true;
+            formatOptions.hour12 = false;
         }
 
         return new Intl.DateTimeFormat("en-US", formatOptions).format(date);
@@ -126,7 +125,7 @@ export function formatOccurrenceDate(
 
 /**
  * Format a full datetime string for display in a specific timezone
- * Returns a string like "Dec 1, 2025, 10:00:00 AM MST"
+ * Returns a string like "Dec 1, 2025, 22:00:00 MST"
  */
 export function formatDateInTimezone(
     isoDate: string,

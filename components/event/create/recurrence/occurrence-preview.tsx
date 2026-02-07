@@ -121,7 +121,6 @@ export function OccurrencePreview({
                         <DateTimePicker
                             value={selectedDate}
                             onChange={setSelectedDate}
-                            use12HourFormat={false}
                             timePicker={{ hour: true, minute: true, second: false }}
                             classNames={{ trigger: "w-full" }}
                         />

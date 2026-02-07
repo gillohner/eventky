@@ -31,7 +31,7 @@ import {
     isIndefiniteRecurrence,
 } from "@/lib/datetime";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
-import { usePreferencesStore } from "@/stores/preferences-store";
+
 
 interface Attendee {
     author: string;
@@ -97,7 +97,7 @@ export function DateTimeRecurrence({
 }: DateTimeRecurrenceProps) {
     const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("event");
     const [loadedOccurrences, setLoadedOccurrences] = useState(maxOccurrences);
-    const { timeFormat } = usePreferencesStore();
+
 
     const isRecurring = Boolean(rrule);
     const isInfinite = rrule ? isIndefiniteRecurrence(rrule) : false;
@@ -175,13 +175,13 @@ export function DateTimeRecurrence({
 
     // Format times using the display start date (selected instance or dtstart)
     const formattedStart = useMemo(() => {
-        return formatDateTime(displayDtstart, displayTimezone, dtstartTzid, { timeFormat });
-    }, [displayDtstart, displayTimezone, dtstartTzid, timeFormat]);
+        return formatDateTime(displayDtstart, displayTimezone, dtstartTzid);
+    }, [displayDtstart, displayTimezone, dtstartTzid]);
 
     const formattedEnd = useMemo(() => {
         if (!calculatedDtend) return null;
-        return formatDateTime(calculatedDtend, displayTimezone, dtendTzid || dtstartTzid, { timeFormat });
-    }, [calculatedDtend, displayTimezone, dtendTzid, dtstartTzid, timeFormat]);
+        return formatDateTime(calculatedDtend, displayTimezone, dtendTzid || dtstartTzid);
+    }, [calculatedDtend, displayTimezone, dtendTzid, dtstartTzid]);
 
     const isSameDay = useMemo(() => {
         if (!calculatedDtend) return true;

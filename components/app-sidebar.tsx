@@ -12,7 +12,6 @@ import {
     ExternalLink,
     Plus,
     Bug,
-    Clock,
 } from "lucide-react"
 
 import {
@@ -30,7 +29,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/providers/auth-provider"
 import { useProfile } from "@/hooks/use-profile"
 import { useDebugStore } from "@/stores/debug-store"
-import { usePreferencesStore } from "@/stores/preferences-store"
+
 import { getPubkyAvatarUrl, getInitials, truncatePublicKey, getPubkyProfileUrl } from "@/lib/pubky/utils"
 import { config } from "@/lib/config"
 import { toast } from "sonner"
@@ -60,7 +59,6 @@ export function AppSidebar() {
     const { isAuthenticated, auth, logout } = useAuth()
     const { profile } = useProfile()
     const { enabled: debugEnabled, toggle: toggleDebug } = useDebugStore()
-    const { timeFormat, toggleTimeFormat } = usePreferencesStore()
     const [isHydrated, setIsHydrated] = useState(false)
 
     useEffect(() => {
@@ -179,21 +177,6 @@ export function AppSidebar() {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
-                {/* Time Format Toggle */}
-                {isHydrated && (
-                    <div className="px-4">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={toggleTimeFormat}
-                            className="w-full justify-start gap-2"
-                        >
-                            <Clock className="h-4 w-4" />
-                            Time: {timeFormat === "12h" ? "12h (AM/PM)" : "24h"}
-                        </Button>
-                    </div>
-                )}
-
                 {/* Debug Mode Toggle */}
                 {config.debug.available && isHydrated && (
                     <div className="px-4">

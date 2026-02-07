@@ -108,7 +108,7 @@ export function MyEventsWidget({ userId, maxItems = 5 }: MyEventsWidgetProps) {
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
                                         <div className="flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
-                                            <span>{format(startDate, "h:mm a")}</span>
+                                            <span>{format(startDate, "HH:mm")}</span>
                                         </div>
                                         {/* TODO: Location will be added here when implementing Location component */}
                                     </div>

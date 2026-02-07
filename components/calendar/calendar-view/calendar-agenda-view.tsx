@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
-import { usePreferencesStore } from "@/stores/preferences-store";
+
 import type { CalendarAgendaViewProps } from "@/types";
 
 /**
@@ -24,7 +24,7 @@ export function CalendarAgendaView({
     canLoadMore,
     className,
 }: CalendarAgendaViewProps) {
-    const { timeFormat } = usePreferencesStore();
+
 
     // Group events by date
     const eventsByDate = events.reduce((acc, event) => {
@@ -107,7 +107,7 @@ export function CalendarAgendaView({
                                                             {/* Time overlay */}
                                                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-2 py-1">
                                                                 <div className="text-xs font-medium text-white text-center">
-                                                                    {format(parseISO(event.dtstart), timeFormat === "24h" ? "HH:mm" : "h:mm a")}
+                                                                    {format(parseISO(event.dtstart), "HH:mm")}
                                                                 </div>
                                                             </div>
                                                             {/* Recurring indicator */}

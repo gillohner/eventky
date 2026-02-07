@@ -46,7 +46,6 @@ export function EventDateTimePicker({
                         onChange={(date) => field.onChange(date ? dateToISOString(date) : null)}
                         min={minDate ? isoStringToDate(minDate) : undefined}
                         disabled={disabled}
-                        use12HourFormat={false}
                         timePicker={{ hour: true, minute: true, second: false }}
                         classNames={{
                             trigger: error ? "border-destructive focus-visible:ring-destructive" : ""
