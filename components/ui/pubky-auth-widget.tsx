@@ -221,7 +221,7 @@ export function PubkyAuthWidget({
 
   const showSuccess = Boolean(pubkyZ32);
 
-      const instruction = effectiveCaps && effectiveCaps.trim().length
+  const instruction = effectiveCaps && effectiveCaps.trim().length
     ? "Scan or copy Pubky auth URL"
     : "Scan to authenticate (no capabilities requested)";
 
