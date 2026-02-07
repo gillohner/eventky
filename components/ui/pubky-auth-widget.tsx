@@ -146,7 +146,7 @@ export function PubkyAuthWidget({
       await sleep(0); // yield to microtask queue
       let attempts = 0;
 
-      for (;;) {
+      for (; ;) {
         if (canceled || !isMountedRef.current) {
           console.log("[PubkyAuthWidget] Polling canceled");
           return;

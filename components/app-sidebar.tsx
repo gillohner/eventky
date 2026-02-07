@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import Link from "next/link"
 import {
     Calendar,
     CalendarDays,
@@ -165,10 +166,10 @@ export function AppSidebar() {
                             {navItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton asChild className="h-12 text-base">
-                                        <a href={item.url}>
+                                        <Link href={item.url}>
                                             <item.icon className="h-5 w-5" />
                                             <span>{item.title}</span>
-                                        </a>
+                                        </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
