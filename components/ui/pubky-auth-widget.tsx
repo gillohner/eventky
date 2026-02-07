@@ -47,12 +47,14 @@ export function PubkyAuthWidget({
     }
   }, [authUrl]);
 
-  // TODO: How to implement callback to prevent opening pubky.app on authorization?
   const handleOpenInPubkyRing = useCallback(() => {
     if (!authUrl) return;
 
-    const pubkyRingUrl = `pubkyring://auth?url=${encodeURIComponent(authUrl)}`;
-    window.location.href = pubkyRingUrl;
+    // Try window.open first; fall back to location.href if blocked
+    const opened = window.open(authUrl, "_blank");
+    if (!opened) {
+      window.location.href = authUrl;
+    }
   }, [authUrl]);
 
   // Generate QR code
