@@ -1,10 +1,11 @@
 import { AuthData } from "@/types/auth";
 import type { Keypair, Session } from "@synonymdev/pubky";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { config } from "@/lib/config";
 
 const STORAGE_KEY = "auth-store";
+const LEGACY_STORAGE_KEY = "pubky_auth";
 
 const defaultAuthData: AuthData & {
     sessionExport: string | null;
@@ -30,6 +31,7 @@ interface AuthStore extends AuthData {
     logout: () => void;
     setIsHydrated: (isHydrated: boolean) => void;
     setIsRestoringSession: (isRestoring: boolean) => void;
+    migrateLegacyStorage?: () => void;
 }
 
 const safeSessionExport = (session: Session | null): string | null => {
@@ -44,7 +46,36 @@ const safeSessionExport = (session: Session | null): string | null => {
 
 export const useAuthStore = create<AuthStore>()(
     persist(
-        (set, get) => ({
+        (set, get) => {
+            const migrateLegacyStorage = () => {
+                try {
+                    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+                    if (!legacy) return;
+
+                    const parsed = JSON.parse(legacy);
+                    // Legacy payloads were either { state: {...} } or plain
+                    const legacyState = parsed?.state ?? parsed;
+                    const publicKey = legacyState?.publicKey ?? null;
+                    const sessionExport = legacyState?.sessionExport ?? legacyState?.sessionSnapshot ?? null;
+
+                    set({
+                        isAuthenticated: false,
+                        publicKey,
+                        keypair: null,
+                        session: null,
+                        sessionExport,
+                        isRestoringSession: Boolean(sessionExport),
+                        isHydrated: true,
+                    });
+
+                    localStorage.removeItem(LEGACY_STORAGE_KEY);
+                    sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+                } catch (error) {
+                    console.warn("Failed to migrate legacy auth storage", error);
+                }
+            };
+
+            return {
             ...defaultAuthData,
 
             signin: (publicKey, keypair, session) => {
@@ -78,8 +109,9 @@ export const useAuthStore = create<AuthStore>()(
             },
 
             restoreSessionFromExport: async () => {
-                const { sessionExport, session, isRestoringSession, publicKey } = get();
-                if (!sessionExport || session || isRestoringSession) return;
+                const { sessionExport, session, publicKey } = get();
+                // Only skip when we have nothing to restore or already have a live session
+                if (!sessionExport || session) return;
 
                 set({ isRestoringSession: true });
 
@@ -124,9 +156,13 @@ export const useAuthStore = create<AuthStore>()(
 
             setIsHydrated: (isHydrated: boolean) => set({ isHydrated }),
             setIsRestoringSession: (isRestoring: boolean) => set({ isRestoringSession: isRestoring }),
-        }),
+            migrateLegacyStorage,
+        };
+        },
         {
             name: STORAGE_KEY,
+            version: 1,
+            storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
                 publicKey: state.publicKey,
                 sessionExport: state.sessionExport,
@@ -137,6 +173,8 @@ export const useAuthStore = create<AuthStore>()(
                     if (state.sessionExport) {
                         state.setIsRestoringSession(true);
                     }
+                    // One-time migration from legacy storage key
+                    state.migrateLegacyStorage?.();
                 }
             },
         },
