@@ -13,6 +13,110 @@ import { PubkyAppEvent } from "@eventky/pubky-app-specs";
 import { NexusEventResponse } from "@/lib/nexus/events";
 
 /**
+ * Normalize format strings between WASM spec values and MIME types.
+ * WASM specs use: "plain", "html", "markdown"
+ * Form/display uses: "text/plain", "text/html", "text/markdown"
+ */
+function toMimeFormat(format: string): string {
+    switch (format) {
+        case "plain": return "text/plain";
+        case "html": return "text/html";
+        case "markdown": return "text/markdown";
+        default: return format; // Already a MIME type or unknown
+    }
+}
+
+function toWasmFormat(format: string): string {
+    switch (format) {
+        case "text/plain": return "plain";
+        case "text/html": return "html";
+        case "text/markdown": return "markdown";
+        default: return format; // Already WASM format or unknown
+    }
+}
+
+/**
+ * Recursively parse styled_description that may be double/triple JSON encoded.
+ * Handles data from various sources: Nexus (JSON string), WASM (object), 
+ * optimistic cache, or localStorage persistence.
+ * Returns { content, format } with format as MIME type, or undefined if no valid data.
+ */
+function parseStyledDescriptionForForm(
+    input: unknown
+): { content: string; format: string } | undefined {
+    if (input === null || input === undefined) {
+        return undefined;
+    }
+
+    // If it's a string, try JSON parse first
+    if (typeof input === "string") {
+        const trimmed = input.trim();
+        if (!trimmed) return undefined;
+
+        // Try to parse as JSON (Nexus returns styled_description as a JSON string)
+        if (trimmed.startsWith("{")) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                return parseStyledDescriptionForForm(parsed);
+            } catch {
+                // Not valid JSON — treat as plain text content
+            }
+        }
+
+        // Raw string content — could be HTML or plain text
+        const isHtml = trimmed.includes("<") && trimmed.includes(">");
+        return {
+            content: trimmed,
+            format: isHtml ? "text/html" : "text/plain",
+        };
+    }
+
+    // If it's an object, extract content
+    if (typeof input === "object") {
+        const obj = input as Record<string, unknown>;
+
+        // Format: { content, format, ... } (WASM StyledDescription or form data)
+        if ("content" in obj && obj.content !== undefined) {
+            const format = toMimeFormat(String(obj.format || "text/plain"));
+            const content = obj.content;
+
+            // If content is a string that might be further JSON-encoded, recurse
+            if (typeof content === "string") {
+                const trimmed = content.trim();
+
+                // Check if content itself is a JSON-encoded styled_description
+                if (trimmed.startsWith("{")) {
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        if (parsed && typeof parsed === "object" && "content" in parsed) {
+                            // It's a double-wrapped styled_description — unwrap it
+                            return parseStyledDescriptionForForm(parsed);
+                        }
+                    } catch {
+                        // Not JSON, use the content as-is
+                    }
+                }
+
+                return { content: trimmed, format };
+            }
+
+            // Content is not a string, recurse
+            return parseStyledDescriptionForForm(content);
+        }
+
+        // Format: { value, fmttype } (alternative Nexus format)
+        if ("value" in obj && "fmttype" in obj) {
+            return {
+                content: String(obj.value || ""),
+                format: toMimeFormat(String(obj.fmttype || "text/plain")),
+            };
+        }
+    }
+
+    return undefined;
+}
+
+/**
  * Convert EventFormData (UI layer) to PubkyAppEvent data object (WASM layer)
  * Returns null if validation fails (caller should handle error messaging)
  */
@@ -63,7 +167,14 @@ export function formDataToEventData(
         rdate: data.rdate || null,
         exdate: data.exdate || null,
         recurrence_id: null,
-        styled_description: data.styled_description || null,
+        // Normalize styled_description format for WASM (text/html → html)
+        styled_description: data.styled_description
+            ? {
+                content: data.styled_description.content,
+                format: toWasmFormat(data.styled_description.format),
+                attachments: null,
+            }
+            : null,
         // RFC 9073 structured locations
         locations: data.locations && data.locations.length > 0 ? data.locations : null,
         x_pubky_calendar_uris: data.x_pubky_calendar_uris || null,
@@ -78,26 +189,12 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
     // Extract event details if NexusEventResponse
     const eventDetails = 'details' in event ? event.details : event;
 
-    // Convert styled_description to the form format
-    let styledDescription: EventFormData['styled_description'] = undefined;
-    if (eventDetails.styled_description) {
-        if (typeof eventDetails.styled_description === 'string') {
-            // Plain string format
-            styledDescription = {
-                content: eventDetails.styled_description,
-                format: 'plain',
-            };
-        } else if ('content' in eventDetails.styled_description) {
-            // Already in the correct format (PubkyAppEvent)
-            styledDescription = eventDetails.styled_description;
-        } else if ('value' in eventDetails.styled_description && 'fmttype' in eventDetails.styled_description) {
-            // Nexus API format { fmttype, value }
-            styledDescription = {
-                content: eventDetails.styled_description.value,
-                format: eventDetails.styled_description.fmttype,
-            };
-        }
-    }
+    // Convert styled_description using robust recursive parser
+    // Handles: JSON strings (Nexus), WASM objects, double-encoded data, 
+    // localStorage-persisted data, and format string normalization
+    const styledDescription = parseStyledDescriptionForForm(
+        eventDetails.styled_description
+    );
 
     // Parse locations from serialized JSON string (Nexus format) or array (WASM format)
     let locations: EventFormData['locations'] = undefined;

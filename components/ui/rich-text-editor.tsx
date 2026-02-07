@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -31,6 +32,11 @@ export function RichTextEditor({
     minHeight = "200px",
     className,
 }: RichTextEditorProps) {
+    // Track whether changes are coming from the editor itself
+    const isInternalChange = useRef(false);
+    // Track the last value we received from the parent to detect real external changes
+    const lastExternalValue = useRef(value);
+
     const editor = useEditor({
         immediatelyRender: false,
         extensions: [
@@ -46,12 +52,41 @@ export function RichTextEditor({
                 style: `min-height: ${minHeight}`,
             },
         },
-        onUpdate: ({ editor }) => {
-            const html = editor.getHTML();
-            const isEmpty = editor.isEmpty;
-            onChange?.(isEmpty ? "" : html);
+        onUpdate: ({ editor: e }) => {
+            isInternalChange.current = true;
+            const html = e.getHTML();
+            const isEmpty = e.isEmpty;
+            const newValue = isEmpty ? "" : html;
+            lastExternalValue.current = newValue;
+            onChange?.(newValue);
         },
     });
+
+    // Sync external value changes into the editor (e.g. when form.reset() fires in edit mode)
+    useEffect(() => {
+        if (!editor) return;
+
+        // Skip if this change originated from the editor itself
+        if (isInternalChange.current) {
+            isInternalChange.current = false;
+            return;
+        }
+
+        // Skip if the value hasn't actually changed from what we last received/sent
+        if (value === lastExternalValue.current) return;
+
+        // Update our tracking ref
+        lastExternalValue.current = value;
+
+        const currentContent = editor.getHTML();
+        const isEmpty = editor.isEmpty;
+
+        // Only update if the external value differs from current editor content
+        if (value === "" && isEmpty) return;
+        if (value === currentContent) return;
+
+        editor.commands.setContent(value || "", { emitUpdate: false });
+    }, [value, editor]);
 
     if (!editor) {
         return null;

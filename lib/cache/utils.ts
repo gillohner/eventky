@@ -17,20 +17,27 @@ import type { NexusCalendarResponse } from "@/lib/nexus/calendars";
 
 /**
  * Convert StyledDescription from WASM to Nexus format
+ * 
+ * WASM StyledDescription has: content, format, attachments
+ * Nexus stores it as a serialized JSON string with those same fields
  */
 function convertStyledDescription(
     sd: StyledDescription
-): string | { fmttype: string; value: string } | undefined {
-    // StyledDescription from WASM has fmttype and value properties
+): string | undefined {
     if (typeof sd === "string") {
         return sd;
     }
     if (sd && typeof sd === "object") {
-        // Access WASM object properties
-        const fmttype = (sd as { fmttype?: string }).fmttype;
-        const value = (sd as { value?: string }).value;
-        if (fmttype && value) {
-            return { fmttype, value };
+        // Access WASM object properties (content, format, attachments)
+        const content = sd.content;
+        const format = sd.format;
+        if (content && format) {
+            // Serialize to JSON string to match Nexus storage format
+            return JSON.stringify({
+                content,
+                format,
+                attachments: sd.attachments ?? null,
+            });
         }
     }
     return undefined;
