@@ -495,7 +495,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                 {/* Note */}
                 <div className="w-full max-w-md mx-auto text-center">
                     <p className="text-sm text-muted-foreground">
-                        Don&apos;t have a Pubky account? Check out <a href="http://homegate.live/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">homegate.live</a>
+                        Don&apos;t have a Pubky account? Check out <a href="http://pubky.app/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">pubky.app</a>
                     </p>
                 </div>
             </div>

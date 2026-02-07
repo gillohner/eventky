@@ -164,7 +164,7 @@ export function PubkyAuthWidget({
         caps?.length ? (
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-2">Successfully authorized:</p>
-            <p className="text-sm font-mono mb-2">{pubkyZ32}</p>
+            <p className="text-xs sm:text-sm font-mono mb-2 break-all max-w-full text-center">{pubkyZ32}</p>
             <p className="text-sm text-muted-foreground mb-2">With capabilities</p>
             {caps.split(",").map((cap, index) => (
               <p key={index} className="text-sm text-muted-foreground">{cap}</p>
@@ -173,7 +173,7 @@ export function PubkyAuthWidget({
         ) : (
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-2">Successfully authenticated:</p>
-            <p className="text-sm font-mono">{pubkyZ32}</p>
+            <p className="text-xs sm:text-sm font-mono break-all max-w-full text-center">{pubkyZ32}</p>
           </div>
         )
       ) : (
