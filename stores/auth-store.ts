@@ -93,6 +93,30 @@ const authInitialState: AuthState = {
 };
 
 // ============================================================================
+// Manual persistence helper
+// Zustand persist's subscribe-based writes can fail silently when the state
+// contains non-serializable WASM objects (like Session). We write explicitly
+// to guarantee sessionExport/publicKey reach localStorage.
+// ============================================================================
+
+function persistToStorage(state: AuthState): void {
+    try {
+        const data = {
+            state: {
+                publicKey: state.publicKey,
+                sessionExport: state.sessionExport,
+                hasHydrated: false,
+            },
+            version: 0,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        console.log("[auth-store] persistToStorage: wrote", JSON.stringify(data).length, "chars");
+    } catch (e) {
+        console.error("[auth-store] persistToStorage: failed", e);
+    }
+}
+
+// ============================================================================
 // Store — mirrors pubky-app's auth.store.ts + auth.actions.ts
 // ============================================================================
 
@@ -106,12 +130,18 @@ export const useAuthStore = create<AuthStore>()(
             // ----------------------------------------------------------------
 
             init: ({ session, publicKey }: AuthInitParams) => {
-                set((state) => ({
-                    ...state,
+                const sessionExport = safeSessionExport(session);
+                console.log("[auth-store] init: publicKey=", publicKey?.substring(0, 8), "sessionExport=", sessionExport ? `${sessionExport.length}ch` : null);
+
+                set({
                     session,
-                    sessionExport: safeSessionExport(session),
+                    sessionExport,
                     publicKey,
-                }));
+                });
+
+                // Explicit write to localStorage as safety net
+                const state = useAuthStore.getState();
+                persistToStorage(state);
             },
 
             reset: () => {
@@ -119,6 +149,9 @@ export const useAuthStore = create<AuthStore>()(
                     ...authInitialState,
                     hasHydrated: state.hasHydrated, // Preserve hydration state
                 }));
+
+                // Explicit write to localStorage
+                persistToStorage({ ...authInitialState, hasHydrated: true, isRestoringSession: false });
             },
 
             setHasHydrated: (value: boolean) => {

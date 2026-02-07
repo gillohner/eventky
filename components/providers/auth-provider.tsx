@@ -64,17 +64,17 @@ function AuthDebugOverlay() {
     setLogs((prev: string[]) => [entry, ...prev].slice(0, 20));
   }, [hasHydrated, session, sessionExport, publicKey, isRestoringSession]);
 
-  // Also check localStorage directly
+  // Also check localStorage directly — re-check on every state change
   useEffect(() => {
     try {
       const stored = localStorage.getItem("auth-store");
       const parsed = stored ? JSON.parse(stored) : null;
-      const entry = `[localStorage] ${stored ? `${stored.length}ch, sessionExport:${parsed?.state?.sessionExport ? parsed.state.sessionExport.length + "ch" : "null"}, pk:${parsed?.state?.publicKey?.substring(0, 8) || "null"}` : "EMPTY"}`;
+      const entry = `[ls] ${stored ? `${stored.length}ch, exp:${parsed?.state?.sessionExport ? parsed.state.sessionExport.length + "ch" : "null"}, pk:${parsed?.state?.publicKey?.substring(0, 8) || "null"}` : "EMPTY"}`;
       setLogs((prev: string[]) => [entry, ...prev].slice(0, 20));
     } catch (e) {
-      setLogs((prev: string[]) => [`[localStorage] ERROR: ${e}`, ...prev].slice(0, 20));
+      setLogs((prev: string[]) => [`[ls] ERROR: ${e}`, ...prev].slice(0, 20));
     }
-  }, []);
+  }, [hasHydrated, session, sessionExport, publicKey, isRestoringSession]);
 
   if (!visible) {
     return (
