@@ -26,21 +26,34 @@ const NEXUS_GATEWAY_URL = "https://nexus.eventky.app";
 
 export async function GET(request: NextRequest) {
     // Some clients incorrectly HTML-encode ampersands as &amp; in URLs.
-    // Normalize the URL by replacing &amp; with & before parsing.
-    const rawUrl = request.url;
+    // This causes URL parsers to see parameters like "amp;type" instead of "type".
+    // We handle this by:
+    // 1. Trying to normalize the raw URL string if it contains &amp;
+    // 2. Falling back to checking for amp;-prefixed parameter names
+    
+    let rawUrl = request.url;
+    
+    // Normalize &amp; to & if present in the raw URL
     const normalizedUrl = rawUrl.includes("&amp;")
         ? rawUrl.replace(/&amp;/g, "&")
         : rawUrl;
+    
     const url = new URL(normalizedUrl);
     const searchParams = url.searchParams;
 
-    const title = searchParams.get("title") || "Eventky";
-    const type = searchParams.get("type") || "event";
-    const date = searchParams.get("date");
-    const location = searchParams.get("location");
-    const userId = searchParams.get("uid");
-    const fileId = searchParams.get("fid");
-    const accent = searchParams.get("color") || "#f97316";
+    // Helper to get param with amp; prefix fallback
+    // When browsers/proxies parse &amp; URLs, they create params like "amp;type" instead of "type"
+    const getParam = (name: string): string | null => {
+        return searchParams.get(name) ?? searchParams.get(`amp;${name}`);
+    };
+
+    const title = getParam("title") || "Eventky";
+    const type = getParam("type") || "event";
+    const date = getParam("date");
+    const location = getParam("location");
+    const userId = getParam("uid");
+    const fileId = getParam("fid");
+    const accent = getParam("color") || "#f97316";
 
     const displayTitle = title.length > 70 ? title.slice(0, 67) + "…" : title;
     const typeLabel = type === "calendar" ? "Calendar" : "Event";
