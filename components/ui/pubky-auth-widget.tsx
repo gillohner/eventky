@@ -52,6 +52,11 @@ export function PubkyAuthWidget({
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
+  // Resolve capabilities; default to Eventky app folder
+  const effectiveCaps = caps && caps.trim().length > 0
+    ? caps
+    : "/pub/eventky.app/:rw";
+
   // Cancel state for the polling loop
   const cancelRef = useRef<(() => void) | null>(null);
 
@@ -122,12 +127,11 @@ export function PubkyAuthWidget({
 
     try {
       const relayUrl = relay || config.relay.url;
+      const capabilities = effectiveCaps as pubky.Capabilities;
 
       // Start the flow with the SDK's client
-      const flowKind = caps && caps.trim().length > 0
-        ? pubky.AuthFlowKind.signin()
-        : pubky.AuthFlowKind.signin();
-      flow = sdkRef.current.startAuthFlow(caps as pubky.Capabilities, flowKind, relayUrl);
+      const flowKind = pubky.AuthFlowKind.signin();
+      flow = sdkRef.current.startAuthFlow(capabilities, flowKind, relayUrl);
 
       // Capture the deep link before polling
       const url = flow.authorizationUrl;
@@ -187,7 +191,7 @@ export function PubkyAuthWidget({
         try { flow.free(); } catch { /* ignore */ }
       }
     }
-  }, [relay, caps, updateQr]);
+  }, [relay, effectiveCaps, updateQr]);
 
   // Initialize SDK and manage lifecycle
   useEffect(() => {
@@ -217,7 +221,7 @@ export function PubkyAuthWidget({
 
   const showSuccess = Boolean(pubkyZ32);
 
-  const instruction = caps && caps.trim().length
+      const instruction = effectiveCaps && effectiveCaps.trim().length
     ? "Scan or copy Pubky auth URL"
     : "Scan to authenticate (no capabilities requested)";
 

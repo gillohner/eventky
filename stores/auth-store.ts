@@ -29,6 +29,8 @@ interface AuthState {
 interface AuthActions {
     /** Initialize auth state (sets session + publicKey + sessionExport atomically) */
     init: (params: AuthInitParams) => void;
+    /** Update session + sessionExport (used when session rotates) */
+    setSession: (session: Session | null) => void;
     /** Reset all auth state (logout) */
     reset: () => void;
     /** Set hasHydrated flag (called by onRehydrateStorage) */
@@ -140,6 +142,20 @@ export const useAuthStore = create<AuthStore>()(
                 });
 
                 // Explicit write to localStorage as safety net
+                const state = useAuthStore.getState();
+                persistToStorage(state);
+            },
+
+            // Mirrors pubky-app's setSession, used when the SDK rotates sessions
+            setSession: (session: Session | null) => {
+                const sessionExport = safeSessionExport(session);
+                set((state) => ({
+                    ...state,
+                    session,
+                    sessionExport,
+                }));
+
+                // Explicit write to localStorage
                 const state = useAuthStore.getState();
                 persistToStorage(state);
             },
