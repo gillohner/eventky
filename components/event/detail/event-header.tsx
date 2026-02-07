@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { HEADER_BANNER, HEADER_GRADIENT } from "@/lib/constants";
 import { getPubkyImageUrl, getPubkyProfileUrl } from "@/lib/pubky/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,8 @@ interface EventHeaderProps {
 
 /**
  * Event header component with hero image/color, title, and metadata
- * Shows recurrence badge and instance indicator for recurring events
+ * Uses OG image aspect ratio (1200x630) with overlay content on desktop,
+ * stacked layout on mobile. Shows recurrence badge and instance indicator.
  */
 export function EventHeader({
     summary,
@@ -74,6 +76,7 @@ export function EventHeader({
     className,
 }: EventHeaderProps) {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
     // Generate a fallback gradient based on calendar color or author ID
     const fallbackGradient = calendarColor
         ? `linear-gradient(135deg, ${calendarColor}40, ${calendarColor}80)`
@@ -90,93 +93,172 @@ export function EventHeader({
 
     return (
         <div className={cn("rounded-xl overflow-hidden border bg-card", className)}>
-            {/* Hero Image/Color Banner */}
+            {/* Mobile Layout: Stacked image above content */}
+            <div className="md:hidden">
+                {/* Image Banner */}
+                <div
+                    className="aspect-video w-full bg-cover bg-center relative"
+                    style={{
+                        backgroundImage: heroImageUrl ? `url(${heroImageUrl})` : fallbackGradient,
+                        backgroundColor: !heroImageUrl && calendarColor ? calendarColor : undefined,
+                    }}
+                >
+                    {/* Top Row: Status, Recurrence, Actions */}
+                    <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap gap-2">
+                            {status && (
+                                <Badge variant={statusVariant} className="text-xs">
+                                    {formatStatus(status)}
+                                </Badge>
+                            )}
+                            {isRecurring && (
+                                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                    <Repeat className="h-3 w-3" />
+                                    {recurrenceLabel || "Recurring"}
+                                </Badge>
+                            )}
+                        </div>
+                        {isOwner && eventId && (
+                            <div className="flex gap-2 shrink-0">
+                                <Button asChild size="sm" variant="secondary">
+                                    <Link href={`/event/${authorId}/${eventId}/edit`}>
+                                        <Edit className="h-4 w-4" />
+                                        <span className="sr-only">Edit</span>
+                                    </Link>
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setShowDeleteDialog(true)}
+                                    disabled={isDeleting}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">{isDeleting ? "Deleting..." : "Delete"}</span>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Content Section (below image on mobile) */}
+                <div className="p-4 space-y-3">
+                    {isRecurring && instanceDate && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Viewing instance: {formatInstanceDate(instanceDate)}</span>
+                        </div>
+                    )}
+                    <h1 className="text-2xl font-bold tracking-tight">{summary}</h1>
+                    <div className="flex items-center gap-3">
+                        <a
+                            href={getPubkyProfileUrl(authorId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 group"
+                        >
+                            <Avatar className="h-10 w-10 border-2 border-background">
+                                {authorAvatar && <AvatarImage src={authorAvatar} alt={authorName || authorId} />}
+                                <AvatarFallback className="text-xs font-medium">
+                                    {authorInitials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium group-hover:underline">
+                                    {authorName || truncateId(authorId)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Organizer</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {/* Desktop Layout: Header banner aspect ratio with overlay content */}
             <div
-                className="h-32 sm:h-48 w-full bg-cover bg-center relative"
+                className={cn(
+                    "hidden md:block relative w-full bg-cover bg-center",
+                    `aspect-[${HEADER_BANNER.aspectRatio}]`
+                )}
                 style={{
+                    aspectRatio: HEADER_BANNER.aspectRatio,
                     backgroundImage: heroImageUrl ? `url(${heroImageUrl})` : fallbackGradient,
                     backgroundColor: !heroImageUrl && calendarColor ? calendarColor : undefined,
                 }}
             >
-                {/* Overlay for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                {/* Bottom gradient overlay for text readability */}
+                <div
+                    className="absolute inset-0"
+                    style={{ background: HEADER_GRADIENT.overlay }}
+                />
 
-                {/* Status Badge */}
-                {status && (
-                    <div className="absolute top-3 left-3">
-                        <Badge variant={statusVariant} className="text-xs">
-                            {formatStatus(status)}
-                        </Badge>
+                {/* Top Row: Status, Recurrence, Actions */}
+                <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                        {status && (
+                            <Badge variant={statusVariant} className="text-xs">
+                                {formatStatus(status)}
+                            </Badge>
+                        )}
+                        {isRecurring && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                <Repeat className="h-3 w-3" />
+                                {recurrenceLabel || "Recurring"}
+                            </Badge>
+                        )}
                     </div>
-                )}
-
-                {/* Recurrence Badge */}
-                {isRecurring && (
-                    <div className="absolute top-3 right-3">
-                        <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                            <Repeat className="h-3 w-3" />
-                            {recurrenceLabel || "Recurring"}
-                        </Badge>
-                    </div>
-                )}
-
-                {/* Edit and Delete Buttons (overlay) */}
-                {isOwner && eventId && (
-                    <div className="absolute bottom-3 right-3 flex gap-2">
-                        <Button asChild size="sm" variant="secondary">
-                            <Link href={`/event/${authorId}/${eventId}/edit`}>
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                            </Link>
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => setShowDeleteDialog(true)}
-                            disabled={isDeleting}
-                        >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            {isDeleting ? "Deleting..." : "Delete"}
-                        </Button>
-                    </div>
-                )}
-            </div>
-
-            {/* Content Section */}
-            <div className="p-4 sm:p-6 space-y-4">
-                {/* Instance Indicator */}
-                {isRecurring && instanceDate && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>Viewing instance: {formatInstanceDate(instanceDate)}</span>
-                    </div>
-                )}
-
-                {/* Title */}
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                    {summary}
-                </h1>
-
-                {/* Author Info */}
-                <div className="flex items-center gap-3">
-                    <a
-                        href={getPubkyProfileUrl(authorId)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 group">
-                        <Avatar className="h-10 w-10 border-2 border-background">
-                            {authorAvatar && <AvatarImage src={authorAvatar} alt={authorName || authorId} />}
-                            <AvatarFallback className="text-xs font-medium">
-                                {authorInitials}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="font-medium group-hover:underline">
-                                {authorName || truncateId(authorId)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">Organizer</p>
+                    {isOwner && eventId && (
+                        <div className="flex gap-2 shrink-0">
+                            <Button asChild size="sm" variant="secondary">
+                                <Link href={`/event/${authorId}/${eventId}/edit`}>
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                </Link>
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setShowDeleteDialog(true)}
+                                disabled={isDeleting}
+                            >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </Button>
                         </div>
-                    </a>
+                    )}
+                </div>
+
+                {/* Bottom Content Overlay */}
+                <div className="absolute bottom-0 inset-x-0 p-6 space-y-3">
+                    {isRecurring && instanceDate && (
+                        <div className="flex items-center gap-2 text-sm text-white/80">
+                            <Calendar className="h-4 w-4" />
+                            <span>Viewing instance: {formatInstanceDate(instanceDate)}</span>
+                        </div>
+                    )}
+                    <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
+                        {summary}
+                    </h1>
+                    <div className="flex items-center gap-3">
+                        <a
+                            href={getPubkyProfileUrl(authorId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 group"
+                        >
+                            <Avatar className="h-10 w-10 border-2 border-white/50">
+                                {authorAvatar && <AvatarImage src={authorAvatar} alt={authorName || authorId} />}
+                                <AvatarFallback className="text-xs font-medium">
+                                    {authorInitials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium text-white group-hover:underline">
+                                    {authorName || truncateId(authorId)}
+                                </p>
+                                <p className="text-xs text-white/70">Organizer</p>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
 

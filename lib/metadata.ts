@@ -102,31 +102,31 @@ export function formatMetaDate(
     try {
         // The datetime string represents wall-clock time in the given timezone.
         // We need to format it as that time, not convert it.
-        
+
         // Parse the datetime string (it's already in the target timezone's local time)
         // We'll use a simple approach: parse as a "fake UTC" date then format with the timezone
         // This works because we want to display the literal time values, not convert them.
-        
+
         const timezone = tzid || "UTC";
-        
+
         // Parse the ISO string - treat it as if it's UTC for parsing purposes
         // Then use date-fns-tz to format it "in" the target timezone
         // Since the string already represents the local time, we need to create
         // a Date that represents that wall-clock time in the target timezone.
-        
+
         // Parse components from the ISO string
         const dateMatch = dtstart.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
         if (!dateMatch) {
             return dtstart; // Fallback to raw string
         }
-        
+
         const [, year, month, day, hour, minute] = dateMatch;
-        
+
         // Format using Intl.DateTimeFormat with the timezone for display
         // Create a date object treating the input as UTC, then format it "as if" in that timezone
         // This is a workaround since the datetime IS the local time already
         const fakeUtcDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:00Z`);
-        
+
         // Format the date components
         const dateFormatter = new Intl.DateTimeFormat("en-US", {
             weekday: "short",
@@ -135,16 +135,16 @@ export function formatMetaDate(
             day: "numeric",
             timeZone: "UTC", // Use UTC since our fakeUtcDate is already in "local" time
         });
-        
+
         const timeFormatter = new Intl.DateTimeFormat("en-US", {
             hour: "numeric",
             minute: "2-digit",
             timeZone: "UTC", // Use UTC since our fakeUtcDate is already in "local" time
         });
-        
+
         const datePart = dateFormatter.format(fakeUtcDate);
         const timePart = timeFormatter.format(fakeUtcDate);
-        
+
         let formatted = `${datePart}, ${timePart}`;
 
         if (dtend) {

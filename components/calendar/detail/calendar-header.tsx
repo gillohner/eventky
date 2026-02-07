@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { HEADER_BANNER, HEADER_GRADIENT } from "@/lib/constants";
 import { getPubkyImageUrl, getPubkyProfileUrl } from "@/lib/pubky/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,8 @@ interface CalendarHeaderProps {
 
 /**
  * Calendar header component with hero image/color, title, and metadata
- * Shows event count and author badges
+ * Uses OG image aspect ratio (1200x630) with overlay content on desktop,
+ * stacked layout on mobile. Shows event count and author badges.
  */
 export function CalendarHeader({
     name,
@@ -84,102 +86,184 @@ export function CalendarHeader({
 
     return (
         <div className={cn("rounded-xl overflow-hidden border bg-card", className)}>
-            {/* Hero Image/Color Banner */}
+            {/* Mobile Layout: Stacked image above content */}
+            <div className="md:hidden">
+                {/* Image Banner */}
+                <div
+                    className="aspect-video w-full bg-cover bg-center relative"
+                    style={{
+                        backgroundImage: heroImageUrl ? `url(${heroImageUrl})` : fallbackGradient,
+                        backgroundColor: !heroImageUrl && color ? color : undefined,
+                    }}
+                >
+                    {/* Top Row: Color indicator and Actions */}
+                    <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+                        <div
+                            className="h-8 w-8 rounded-full border-2 border-white shadow-lg shrink-0"
+                            style={{ backgroundColor: color }}
+                            title={`Calendar color: ${color}`}
+                        />
+                        {isOwner && calendarId && (
+                            <div className="flex gap-2 shrink-0">
+                                <Button asChild size="sm" variant="secondary">
+                                    <Link href={`/calendar/${authorId}/${calendarId}/edit`}>
+                                        <Edit className="h-4 w-4" />
+                                        <span className="sr-only">Edit</span>
+                                    </Link>
+                                </Button>
+                                {onDelete && (
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => setShowDeleteDialog(true)}
+                                        disabled={isDeleting}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">{isDeleting ? "Deleting..." : "Delete"}</span>
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Content Section (below image on mobile) */}
+                <div className="p-4 space-y-3">
+                    <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
+                    <div className="flex items-center gap-3">
+                        <a
+                            href={getPubkyProfileUrl(authorId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 group"
+                        >
+                            <Avatar className="h-10 w-10 border-2 border-background">
+                                <AvatarImage src={authorAvatar} alt={authorName || authorId} />
+                                <AvatarFallback className="text-xs font-medium">
+                                    {authorInitials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium group-hover:underline">
+                                    {authorName || truncateId(authorId)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Calendar Owner</p>
+                            </div>
+                        </a>
+                    </div>
+                    {/* Metadata Badges */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="gap-1.5">
+                            <CalendarIcon className="h-3.5 w-3.5" />
+                            {eventCount} {eventCount === 1 ? "event" : "events"}
+                        </Badge>
+                        {authorCount > 0 && (
+                            <Badge variant="secondary" className="gap-1.5">
+                                <Users className="h-3.5 w-3.5" />
+                                {authorCount} {authorCount === 1 ? "author" : "authors"}
+                            </Badge>
+                        )}
+                        {timezone && (
+                            <Badge variant="outline" className="gap-1.5">
+                                {timezone}
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Desktop Layout: Header banner aspect ratio with overlay content */}
             <div
-                className="h-32 sm:h-48 w-full bg-cover bg-center relative"
+                className={cn(
+                    "hidden md:block relative w-full bg-cover bg-center",
+                    `aspect-[${HEADER_BANNER.aspectRatio}]`
+                )}
                 style={{
+                    aspectRatio: HEADER_BANNER.aspectRatio,
                     backgroundImage: heroImageUrl ? `url(${heroImageUrl})` : fallbackGradient,
                     backgroundColor: !heroImageUrl && color ? color : undefined,
                 }}
             >
-                {/* Overlay for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                {/* Bottom gradient overlay for text readability */}
+                <div
+                    className="absolute inset-0"
+                    style={{ background: HEADER_GRADIENT.overlay }}
+                />
 
-                {/* Color indicator in top-right */}
-                <div className="absolute top-3 right-3">
+                {/* Top Row: Color indicator and Actions */}
+                <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-2">
                     <div
                         className="h-8 w-8 rounded-full border-2 border-white shadow-lg"
                         style={{ backgroundColor: color }}
                         title={`Calendar color: ${color}`}
                     />
+                    {isOwner && calendarId && (
+                        <div className="flex gap-2 shrink-0">
+                            <Button asChild size="sm" variant="secondary">
+                                <Link href={`/calendar/${authorId}/${calendarId}/edit`}>
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                </Link>
+                            </Button>
+                            {onDelete && (
+                                <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setShowDeleteDialog(true)}
+                                    disabled={isDeleting}
+                                >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    {isDeleting ? "Deleting..." : "Delete"}
+                                </Button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {/* Edit and Delete Buttons (overlay) */}
-                {isOwner && calendarId && (
-                    <div className="absolute bottom-3 right-3 flex gap-2">
-                        <Button asChild size="sm" variant="secondary">
-                            <Link href={`/calendar/${authorId}/${calendarId}/edit`}>
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                            </Link>
-                        </Button>
-                        {onDelete && (
-                            <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => setShowDeleteDialog(true)}
-                                disabled={isDeleting}
-                            >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                {isDeleting ? "Deleting..." : "Delete"}
-                            </Button>
+                {/* Bottom Content Overlay */}
+                <div className="absolute bottom-0 inset-x-0 p-6 space-y-3">
+                    <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
+                        {name}
+                    </h1>
+                    <div className="flex items-center gap-3">
+                        <a
+                            href={getPubkyProfileUrl(authorId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 group"
+                        >
+                            <Avatar className="h-10 w-10 border-2 border-white/50">
+                                <AvatarImage src={authorAvatar} alt={authorName || authorId} />
+                                <AvatarFallback className="text-xs font-medium">
+                                    {authorInitials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium text-white group-hover:underline">
+                                    {authorName || truncateId(authorId)}
+                                </p>
+                                <p className="text-xs text-white/70">Calendar Owner</p>
+                            </div>
+                        </a>
+                    </div>
+                    {/* Metadata Badges */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="gap-1.5">
+                            <CalendarIcon className="h-3.5 w-3.5" />
+                            {eventCount} {eventCount === 1 ? "event" : "events"}
+                        </Badge>
+                        {authorCount > 0 && (
+                            <Badge variant="secondary" className="gap-1.5">
+                                <Users className="h-3.5 w-3.5" />
+                                {authorCount} {authorCount === 1 ? "author" : "authors"}
+                            </Badge>
+                        )}
+                        {timezone && (
+                            <Badge variant="outline" className="gap-1.5 bg-white/10 text-white border-white/30">
+                                {timezone}
+                            </Badge>
                         )}
                     </div>
-                )}
-            </div>
-
-            {/* Content Section */}
-            <div className="p-4 sm:p-6 space-y-4">
-                {/* Title */}
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                    {name}
-                </h1>
-
-                {/* Author Info */}
-                <div className="flex items-center gap-3">
-                    <a
-                        href={getPubkyProfileUrl(authorId)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 group"
-                    >
-                        <Avatar className="h-10 w-10 border-2 border-background">
-                            <AvatarImage src={authorAvatar} alt={authorName || authorId} />
-                            <AvatarFallback className="text-xs font-medium">
-                                {authorInitials}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="font-medium group-hover:underline">
-                                {authorName || truncateId(authorId)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">Calendar Owner</p>
-                        </div>
-                    </a>
-                </div>
-
-                {/* Metadata Badges */}
-                <div className="flex flex-wrap items-center gap-2">
-                    {/* Event Count */}
-                    <Badge variant="secondary" className="gap-1.5">
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        {eventCount} {eventCount === 1 ? "event" : "events"}
-                    </Badge>
-
-                    {/* Author Count */}
-                    {authorCount > 0 && (
-                        <Badge variant="secondary" className="gap-1.5">
-                            <Users className="h-3.5 w-3.5" />
-                            {authorCount} {authorCount === 1 ? "author" : "authors"}
-                        </Badge>
-                    )}
-
-                    {/* Timezone */}
-                    {timezone && (
-                        <Badge variant="outline" className="gap-1.5">
-                            {timezone}
-                        </Badge>
-                    )}
                 </div>
             </div>
 
