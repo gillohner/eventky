@@ -86,7 +86,13 @@ export const useAuthStore = create<AuthStore>()(
                 try {
                     const { Pubky } = await import("@synonymdev/pubky");
                     const sdk = config.env === "testnet" ? Pubky.testnet() : new Pubky();
-                    const restoredSession = await sdk.restoreSession(sessionExport);
+                    // Add a timeout to avoid hanging forever on mobile browsers if cookies/network block the request
+                    const restoredSession = await Promise.race([
+                        sdk.restoreSession(sessionExport),
+                        new Promise<Session>((_, reject) =>
+                            setTimeout(() => reject(new Error("restoreSession timeout")), 8000),
+                        ),
+                    ]);
 
                     set({
                         isAuthenticated: true,
