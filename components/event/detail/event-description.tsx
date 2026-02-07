@@ -62,7 +62,12 @@ function parseStyledDescription(input: unknown): { content: string; format: stri
         // Format: { content, format, attachments }
         if ("content" in obj) {
             const content = obj.content;
-            const format = (obj.format as string) || "text/plain";
+            const rawFormat = (obj.format as string) || "text/plain";
+            // Normalize WASM format values ("html","plain","markdown") to MIME types
+            const format = rawFormat === "html" ? "text/html"
+                : rawFormat === "plain" ? "text/plain"
+                    : rawFormat === "markdown" ? "text/markdown"
+                        : rawFormat;
             const attachments = (obj.attachments as string[]) || [];
 
             // If content is a string that might be further encoded, recurse
@@ -167,7 +172,7 @@ function DescriptionContent({
         // Sanitize and render HTML
         return (
             <div
-                className="prose prose-sm prose-invert max-w-none"
+                className="styled-description max-w-none"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
             />
         );
@@ -177,7 +182,7 @@ function DescriptionContent({
         // For now, render as HTML (could add markdown parser later)
         return (
             <div
-                className="prose prose-sm prose-invert max-w-none"
+                className="styled-description max-w-none"
                 dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
             />
         );
