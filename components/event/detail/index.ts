@@ -10,5 +10,5 @@ export { EventDescription } from "./event-description";
 export { LocationDisplay } from "./location-display";
 export { EventMetadata } from "./event-metadata";
 export { AttendanceSection } from "./attendance-section";
-export { TagsSection } from "./tags-section";
+export { EventTagsSection } from "./event-tags-section";
 export { EventDetailLayout } from "./event-detail-layout";

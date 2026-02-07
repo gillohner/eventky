@@ -8,7 +8,7 @@ import { EventDescription } from "@/components/event/detail/event-description";
 import { LocationDisplay } from "@/components/event/detail/location-display";
 import { EventMetadata } from "@/components/event/detail/event-metadata";
 import { AttendanceSection } from "@/components/event/detail/attendance-section";
-import { TagsSection } from "@/components/event/detail/tags-section";
+import { EventTagsSection } from "@/components/event/detail/event-tags-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -179,7 +179,7 @@ export function EventDetailLayout({
                     />
 
                     {/* Tags */}
-                    <TagsSection
+                    <EventTagsSection
                         tags={tags}
                         isLoggedIn={isLoggedIn}
                         currentUserId={currentUserId}

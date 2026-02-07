@@ -1,6 +1,6 @@
 "use client";
 
-import { TagsSection as BaseTagsSection } from "@/components/event/detail/tags-section";
+import { EventTagsSection as BaseTagsSection } from "@/components/event/detail/event-tags-section";
 import { getPendingCalendarTags } from "@/hooks/use-calendar-tag-mutation";
 import { useMemo } from "react";
 
