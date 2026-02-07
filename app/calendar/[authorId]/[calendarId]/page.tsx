@@ -4,6 +4,7 @@ import {
     getAppUrl,
     getImageUrl,
     getOgImageUrl,
+    parseImageUri,
     truncateDescription,
     buildCalendarJsonLd,
 } from "@/lib/metadata";
@@ -36,11 +37,13 @@ export async function generateMetadata({ params }: CalendarPageProps): Promise<M
         const description = truncateDescription(details.description);
         const rawImageUrl = getImageUrl(details.image_uri);
 
-        // Build branded OG image (always use default orange for brand consistency)
+        // Build branded OG image - use userId/fileId to avoid URL encoding issues
+        const imageInfo = parseImageUri(details.image_uri);
         const ogImageUrl = getOgImageUrl({
             title,
             type: "calendar",
-            imageUrl: rawImageUrl,
+            imageUserId: imageInfo?.userId,
+            imageFileId: imageInfo?.fileId,
         });
 
         // Build description with timezone info

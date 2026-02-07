@@ -3,6 +3,9 @@ import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+// Hardcoded gateway URL - avoids any config import issues in edge runtime
+const NEXUS_GATEWAY_URL = "https://nexus.eventky.app";
+
 /**
  * OG image generator for Eventky
  *
@@ -16,7 +19,8 @@ export const runtime = "edge";
  *   type     – "event" | "calendar"
  *   date     – Formatted date string (optional)
  *   location – Location name (optional)
- *   image    – Event image URL from Nexus (optional)
+ *   uid      – Pubky user ID for image (optional)
+ *   fid      – Pubky file ID for image (optional)
  *   color    – Accent color hex override (optional, default #f97316)
  */
 
@@ -34,32 +38,17 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get("type") || "event";
     const date = searchParams.get("date");
     const location = searchParams.get("location");
-    const rawImageUrl = searchParams.get("image");
+    const userId = searchParams.get("uid");
+    const fileId = searchParams.get("fid");
     const accent = searchParams.get("color") || "#f97316";
-
-    console.log(`[OG] Request URL: ${rawUrl}`);
-    console.log(`[OG] Normalized URL: ${normalizedUrl}`);
-    console.log(`[OG] Parsed image param: ${rawImageUrl}`);
 
     const displayTitle = title.length > 70 ? title.slice(0, 67) + "…" : title;
     const typeLabel = type === "calendar" ? "Calendar" : "Event";
 
-    // Prepare the image URL - decode if needed
-    let imageUrl: string | null = null;
-    if (rawImageUrl) {
-        // Handle double-encoded URLs
-        if (rawImageUrl.startsWith("http%3A") || rawImageUrl.startsWith("https%3A")) {
-            try {
-                imageUrl = decodeURIComponent(rawImageUrl);
-                console.log(`[OG] Decoded double-encoded URL: ${imageUrl}`);
-            } catch {
-                imageUrl = rawImageUrl;
-            }
-        } else {
-            imageUrl = rawImageUrl;
-        }
-        console.log(`[OG] Final image URL for render: ${imageUrl}`);
-    }
+    // Build the image URL from userId and fileId - simple alphanumeric params, no encoding issues
+    const imageUrl = userId && fileId
+        ? `${NEXUS_GATEWAY_URL}/static/files/${userId}/${fileId}/main`
+        : null;
 
     return new ImageResponse(
         (

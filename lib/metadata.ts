@@ -35,14 +35,34 @@ export function getImageUrl(pubkyUrl: string | undefined | null): string | null 
 }
 
 /**
+ * Extract userId and fileId from a pubky:// URI
+ */
+export function parseImageUri(pubkyUri: string | undefined | null): { userId: string; fileId: string } | null {
+    if (!pubkyUri) return null;
+
+    const withoutProtocol = pubkyUri.replace("pubky://", "");
+    const parts = withoutProtocol.split("/");
+    if (parts.length < 2) return null;
+
+    const userId = parts[0];
+    const fileId = parts[parts.length - 1];
+
+    return { userId, fileId };
+}
+
+/**
  * Build the OG image API URL for a branded preview card
+ * Uses userId and fileId instead of full URL to avoid encoding issues
  */
 export function getOgImageUrl(params: {
     title: string;
     type: "event" | "calendar";
     date?: string;
     location?: string;
-    imageUrl?: string | null;
+    /** Pubky user ID for the image */
+    imageUserId?: string | null;
+    /** Pubky file ID for the image */
+    imageFileId?: string | null;
     color?: string;
 }): string {
     const appUrl = getAppUrl();
@@ -51,7 +71,8 @@ export function getOgImageUrl(params: {
     searchParams.set("type", params.type);
     if (params.date) searchParams.set("date", params.date);
     if (params.location) searchParams.set("location", params.location);
-    if (params.imageUrl) searchParams.set("image", params.imageUrl);
+    if (params.imageUserId) searchParams.set("uid", params.imageUserId);
+    if (params.imageFileId) searchParams.set("fid", params.imageFileId);
     if (params.color) searchParams.set("color", params.color);
 
     return `${appUrl}/api/og?${searchParams.toString()}`;

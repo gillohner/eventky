@@ -4,6 +4,7 @@ import {
   getAppUrl,
   getImageUrl,
   getOgImageUrl,
+  parseImageUri,
   truncateDescription,
   formatMetaDate,
   getPrimaryLocation,
@@ -81,13 +82,15 @@ export async function generateMetadata({ params, searchParams }: EventPageProps)
       displayDate = dateStr;
     }
 
-    // Build branded OG image
+    // Build branded OG image - use userId/fileId to avoid URL encoding issues
+    const imageInfo = parseImageUri(details.image_uri);
     const ogImageUrl = getOgImageUrl({
       title,
       type: "event",
       date: displayDate,
       location: location?.name,
-      imageUrl: rawImageUrl,
+      imageUserId: imageInfo?.userId,
+      imageFileId: imageInfo?.fileId,
     });
 
     // Build description with date and location info
