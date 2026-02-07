@@ -21,6 +21,8 @@ import { AddToCalendar } from "@/components/ui/add-to-calendar";
 import { useState } from "react";
 
 interface CalendarMetadataProps {
+    /** Calendar display name */
+    name?: string;
     /** Calendar URL */
     url?: string;
     /** Calendar description */
@@ -49,6 +51,7 @@ interface CalendarMetadataProps {
  * Display calendar metadata including URL, description, timezone, and authors
  */
 export function CalendarMetadata({
+    name,
     url,
     description,
     timezone,
@@ -184,6 +187,7 @@ export function CalendarMetadata({
                             type="calendar"
                             authorId={authorId}
                             resourceId={calendarId}
+                            title={name}
                             className="w-full"
                         />
                     </div>

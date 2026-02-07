@@ -158,6 +158,7 @@ export function CalendarDetailLayout({
 
                     {/* Metadata */}
                     <CalendarMetadata
+                        name={details.name}
                         url={details.url}
                         description={details.description}
                         timezone={details.timezone}
