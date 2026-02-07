@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
     // We handle this by:
     // 1. Trying to normalize the raw URL string if it contains &amp;
     // 2. Falling back to checking for amp;-prefixed parameter names
-    
+
     let rawUrl = request.url;
-    
+
     // Normalize &amp; to & if present in the raw URL
     const normalizedUrl = rawUrl.includes("&amp;")
         ? rawUrl.replace(/&amp;/g, "&")
         : rawUrl;
-    
+
     const url = new URL(normalizedUrl);
     const searchParams = url.searchParams;
 
