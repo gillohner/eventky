@@ -87,7 +87,7 @@ export function UpcomingEventsWidget({ daysAhead = 7, maxItems = 5 }: UpcomingEv
                                         {format(startDate, "MMM d")}
                                     </div>
                                     <div className="text-sm font-semibold">
-                                        {format(startDate, "h:mm a")}
+                                        {format(startDate, "HH:mm")}
                                     </div>
                                 </div>
 

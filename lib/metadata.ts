@@ -136,8 +136,9 @@ export function formatMetaDate(
         });
 
         const timeFormatter = new Intl.DateTimeFormat("en-US", {
-            hour: "numeric",
+            hour: "2-digit",
             minute: "2-digit",
+            hour12: false,
             timeZone: "UTC", // Use UTC since our fakeUtcDate is already in "local" time
         });
 

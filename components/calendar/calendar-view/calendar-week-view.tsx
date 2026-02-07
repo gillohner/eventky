@@ -84,7 +84,7 @@ export function CalendarWeekView({
                                             >
                                                 {/* Time */}
                                                 <div className="font-medium mb-1">
-                                                    {format(parseISO(event.dtstart), "h:mm a")}
+                                                    {format(parseISO(event.dtstart), "HH:mm")}
                                                 </div>
 
                                                 {/* Title */}

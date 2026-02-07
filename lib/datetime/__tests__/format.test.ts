@@ -165,25 +165,16 @@ describe('Datetime Format Utils', () => {
             expect(compact.date.length).toBeLessThanOrEqual(full.date.length);
         });
 
-        it('should support 12h and 24h time formats', () => {
-            const time12 = formatDateTime(
+        it('should always use 24h time format', () => {
+            const result = formatDateTime(
                 '2024-01-15T14:30:00',
                 'UTC',
-                undefined,
-                { timeFormat: '12h' }
             );
 
-            const time24 = formatDateTime(
-                '2024-01-15T14:30:00',
-                'UTC',
-                undefined,
-                { timeFormat: '24h' }
-            );
-
-            // 12h format should have AM/PM
-            expect(time12.time).toMatch(/PM|AM/i);
-            // 24h format should NOT have AM/PM (or have different format)
-            expect(time24.time).toBeDefined();
+            // 24h format should NOT have AM/PM
+            expect(result.time).not.toMatch(/PM|AM/i);
+            // Should contain a colon-separated time like HH:MM
+            expect(result.time).toMatch(/^\d{2}:\d{2}$/);
         });
 
         it('should optionally exclude year', () => {

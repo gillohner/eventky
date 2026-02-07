@@ -461,9 +461,9 @@ export function formatOccurrence(isoDate: string, timezone?: string): string {
             month: "short",
             day: "numeric",
             year: "numeric",
-            hour: "numeric",
+            hour: "2-digit",
             minute: "2-digit",
-            hour12: true,
+            hour12: false,
             timeZone: timezone,
         }).format(date);
     } catch {

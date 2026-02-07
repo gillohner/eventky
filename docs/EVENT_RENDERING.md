@@ -121,11 +121,10 @@ Events without `COUNT` or `UNTIL` are marked as indefinite:
 - **Event cards**: "Mon, Jan 15, 2025"
 - **Agenda headers**: "Monday, January 15, 2025"
 - **Month view**: Day number only
-- **Occurrence chips**: "Mon, Jan 15, 2025 at 10:00 AM"
+- **Occurrence chips**: "Mon, Jan 15, 2025 at 10:00"
 
 ### Time Format
-- User preference: 12-hour or 24-hour
-- Stored in preferences store
+- All times displayed in 24-hour format
 - Consistent across all views
 
 ### Recurrence Labels
