@@ -76,88 +76,88 @@ export const useAuthStore = create<AuthStore>()(
             };
 
             return {
-            ...defaultAuthData,
+                ...defaultAuthData,
 
-            signin: (publicKey, keypair, session) => {
-                set({
-                    isAuthenticated: true,
-                    publicKey,
-                    keypair,
-                    session,
-                    sessionExport: safeSessionExport(session),
-                });
-
-                // Best-effort background ingestion so Nexus indexes the user
-                import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
-                    ingestUserIntoNexus(publicKey).catch(console.error);
-                });
-            },
-
-            signinWithSession: (publicKey, session) => {
-                set({
-                    isAuthenticated: true,
-                    publicKey,
-                    keypair: null, // Pubky Ring auth does not return the keypair
-                    session,
-                    sessionExport: safeSessionExport(session),
-                });
-
-                // Best-effort background ingestion so Nexus indexes the user
-                import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
-                    ingestUserIntoNexus(publicKey).catch(console.error);
-                });
-            },
-
-            restoreSessionFromExport: async () => {
-                const { sessionExport, session, publicKey } = get();
-                // Only skip when we have nothing to restore or already have a live session
-                if (!sessionExport || session) return;
-
-                set({ isRestoringSession: true });
-
-                try {
-                    const { Pubky } = await import("@synonymdev/pubky");
-                    const sdk = config.env === "testnet" ? Pubky.testnet() : new Pubky();
-                    // Add a timeout to avoid hanging forever on mobile browsers if cookies/network block the request
-                    const restoredSession = await Promise.race([
-                        sdk.restoreSession(sessionExport),
-                        new Promise<Session>((_, reject) =>
-                            setTimeout(() => reject(new Error("restoreSession timeout")), 8000),
-                        ),
-                    ]);
-
+                signin: (publicKey, keypair, session) => {
                     set({
                         isAuthenticated: true,
                         publicKey,
-                        keypair: null,
-                        session: restoredSession,
-                        sessionExport: safeSessionExport(restoredSession),
-                        isRestoringSession: false,
+                        keypair,
+                        session,
+                        sessionExport: safeSessionExport(session),
                     });
-                } catch (error) {
-                    console.warn("Failed to restore session from export; clearing snapshot", error);
+
+                    // Best-effort background ingestion so Nexus indexes the user
+                    import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                        ingestUserIntoNexus(publicKey).catch(console.error);
+                    });
+                },
+
+                signinWithSession: (publicKey, session) => {
                     set({
-                        isAuthenticated: false,
-                        publicKey: null,
-                        keypair: null,
-                        session: null,
-                        sessionExport: null,
-                        isRestoringSession: false,
+                        isAuthenticated: true,
+                        publicKey,
+                        keypair: null, // Pubky Ring auth does not return the keypair
+                        session,
+                        sessionExport: safeSessionExport(session),
                     });
-                }
-            },
 
-            logout: () => {
-                set({
-                    ...defaultAuthData,
-                    isHydrated: true, // avoid loading screen after logout
-                });
-            },
+                    // Best-effort background ingestion so Nexus indexes the user
+                    import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                        ingestUserIntoNexus(publicKey).catch(console.error);
+                    });
+                },
 
-            setIsHydrated: (isHydrated: boolean) => set({ isHydrated }),
-            setIsRestoringSession: (isRestoring: boolean) => set({ isRestoringSession: isRestoring }),
-            migrateLegacyStorage,
-        };
+                restoreSessionFromExport: async () => {
+                    const { sessionExport, session, publicKey } = get();
+                    // Only skip when we have nothing to restore or already have a live session
+                    if (!sessionExport || session) return;
+
+                    set({ isRestoringSession: true });
+
+                    try {
+                        const { Pubky } = await import("@synonymdev/pubky");
+                        const sdk = config.env === "testnet" ? Pubky.testnet() : new Pubky();
+                        // Add a timeout to avoid hanging forever on mobile browsers if cookies/network block the request
+                        const restoredSession = await Promise.race([
+                            sdk.restoreSession(sessionExport),
+                            new Promise<Session>((_, reject) =>
+                                setTimeout(() => reject(new Error("restoreSession timeout")), 8000),
+                            ),
+                        ]);
+
+                        set({
+                            isAuthenticated: true,
+                            publicKey,
+                            keypair: null,
+                            session: restoredSession,
+                            sessionExport: safeSessionExport(restoredSession),
+                            isRestoringSession: false,
+                        });
+                    } catch (error) {
+                        console.warn("Failed to restore session from export; clearing snapshot", error);
+                        set({
+                            isAuthenticated: false,
+                            publicKey: null,
+                            keypair: null,
+                            session: null,
+                            sessionExport: null,
+                            isRestoringSession: false,
+                        });
+                    }
+                },
+
+                logout: () => {
+                    set({
+                        ...defaultAuthData,
+                        isHydrated: true, // avoid loading screen after logout
+                    });
+                },
+
+                setIsHydrated: (isHydrated: boolean) => set({ isHydrated }),
+                setIsRestoringSession: (isRestoring: boolean) => set({ isRestoringSession: isRestoring }),
+                migrateLegacyStorage,
+            };
         },
         {
             name: STORAGE_KEY,
