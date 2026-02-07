@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, ReactNode } from "react";
+import { createContext, useContext, useEffect, ReactNode } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { AuthContextType } from "@/types/auth";
 
@@ -8,44 +8,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const authStore = useAuthStore();
-  const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const session = useAuthStore((state) => state.session);
-  const sessionExport = useAuthStore((state) => state.sessionExport);
-  const seed = useAuthStore((state) => state.seed);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
   const isRestoringSession = useAuthStore((state) => state.isRestoringSession);
 
-  // Reactive session restoration watcher.
-  // Modeled on pubky-app's RouteGuardProvider pattern:
-  // Whenever hasHydrated is true but we have persisted credentials (sessionExport or seed)
-  // without a live session, attempt to restore the session.
-  // This handles:
-  // - Initial page load (Zustand persist rehydrates → credentials exist → restore)
-  // - Session loss mid-use (session becomes null → re-attempt)
-  // - Page resume on mobile (tab was killed, session object lost → retry)
+  // Hydrate auth state from localStorage on mount (only once)
   useEffect(() => {
-    if (!hasHydrated) return;
-    if (session) return; // Already have a live session
-    if (!sessionExport && !seed) return; // No credentials to restore
-
-    authStore.restoreSession().catch((error) => {
-      console.error("[AuthProvider] Failed to restore session:", error);
-    });
-  }, [hasHydrated, session, sessionExport, seed, authStore]);
-
-  // Compute whether we're in a "loading" state:
-  // 1. Zustand persist hasn't rehydrated yet
-  // 2. Active session restoration in progress
-  // 3. Credentials exist but live session hasn't been restored yet
-  //    (isSessionRestorePending — matches pubky-app's useAuthStatus pattern)
-  const isSessionRestorePending = useMemo(
-    () => hasHydrated && !session && (!!sessionExport || !!seed),
-    [hasHydrated, session, sessionExport, seed]
-  );
-
-  const isLoading = !hasHydrated || isRestoringSession || isSessionRestorePending;
+    authStore.hydrate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
 
   // Show loading state during hydration or session restoration
-  if (isLoading) {
+  if (!isHydrated || isRestoringSession) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -58,11 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const isAuthenticated = session !== null;
-
   const contextValue: AuthContextType = {
     auth: {
-      isAuthenticated,
+      isAuthenticated: authStore.isAuthenticated,
       publicKey: authStore.publicKey,
       keypair: authStore.keypair,
       session: authStore.session,
@@ -70,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signin: authStore.signin,
     signinWithSession: authStore.signinWithSession,
     logout: authStore.logout,
-    isAuthenticated,
+    isAuthenticated: authStore.isAuthenticated,
   };
 
   return (

@@ -30,15 +30,21 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
     const [error, setError] = useState<string | null>(null);
     const [passphrase, setPassphrase] = useState("");
     const [recoveryFile, setRecoveryFile] = useState<File | null>(null);
+    const [isHydrated, setIsHydrated] = useState(false);
     const [authMethod, setAuthMethod] = useState<"recovery" | "qr">("qr");
     const [isSigningUp, setIsSigningUp] = useState(false);
 
+    // Handle hydration
+    useEffect(() => {
+        setIsHydrated(true);
+    }, []);
+
     // Redirect if already authenticated
     useEffect(() => {
-        if (isAuthenticated) {
+        if (isAuthenticated && isHydrated) {
             router.push(returnPath);
         }
-    }, [isAuthenticated, returnPath, router]);
+    }, [isAuthenticated, isHydrated, returnPath, router]);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -219,6 +225,18 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             setIsLoading(false);
         }
     };
+
+    // Show loading state during hydration
+    if (!isHydrated) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Show loading state while redirecting authenticated user
     if (isAuthenticated) {
