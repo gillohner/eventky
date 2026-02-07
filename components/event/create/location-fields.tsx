@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { CharacterCounter } from "@/components/ui/character-counter";
 import { getUnicodeLength } from "@/lib/utils/unicode-length";
-import { Plus, Trash2, MapPin, Video, Search, X, ExternalLink } from "lucide-react";
+import { Trash2, MapPin, Video, Search, X, ExternalLink } from "lucide-react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { MapPreview } from "@/components/ui/map-preview";

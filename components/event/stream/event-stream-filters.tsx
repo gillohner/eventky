@@ -58,7 +58,7 @@ export function EventStreamFilters({ filters, onFiltersChange, popularTags = [] 
         today.setHours(0, 0, 0, 0);
         const todayMicros = today.getTime() * 1000;
 
-        let newFilters: EventStreamFilterValues = {
+        const newFilters: EventStreamFilterValues = {
             preset,
             tags: filters.tags,
             status: filters.status,

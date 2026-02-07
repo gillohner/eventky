@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPreview } from "@/components/ui/map-preview";
@@ -107,8 +107,8 @@ async function fetchBTCMapData(
             lat: data.osm_json?.lat ?? data.osm_json?.center?.lat,
             lon: data.osm_json?.lon ?? data.osm_json?.center?.lon,
         };
-    } catch (error) {
-        // Not an error - just means it's not in BTCMap
+    } catch {
+        // Not in BTCMap
         return null;
     }
 }
@@ -171,29 +171,27 @@ function LocationItem({
 }) {
     const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethods | null>(null);
-    const [isLoadingPayment, setIsLoadingPayment] = useState(false);
-    const [osmInfo, setOsmInfo] = useState<{ osmType: string; osmId: number } | null>(null);
 
     const isPhysical = location.location_type === "PHYSICAL";
     const isOnline = location.location_type === "ONLINE";
 
+    // Derive osmInfo from structured_data (no state needed)
+    const osmInfo = useMemo(() => {
+        if (!isPhysical || !location.structured_data) return null;
+        return parseOsmUrl(location.structured_data);
+    }, [isPhysical, location.structured_data]);
+
     // Fetch coordinates and BTCMap data for physical locations with structured_data
     useEffect(() => {
-        if (!isPhysical || !location.structured_data) return;
-
-        const parsed = parseOsmUrl(location.structured_data);
-        if (!parsed) return;
-
-        setOsmInfo(parsed);
+        if (!osmInfo) return;
 
         // Fetch coordinates
-        fetchCoordsFromOsm(parsed.osmType, parsed.osmId).then((result) => {
+        fetchCoordsFromOsm(osmInfo.osmType, osmInfo.osmId).then((result) => {
             if (result) setCoords(result);
         });
 
         // Fetch BTCMap data
-        setIsLoadingPayment(true);
-        fetchBTCMapData(parsed.osmType, parsed.osmId)
+        fetchBTCMapData(osmInfo.osmType, osmInfo.osmId)
             .then((btcmapData) => {
                 if (btcmapData) {
                     // Use coords from BTCMap if we don't have them yet
@@ -202,13 +200,12 @@ function LocationItem({
                     }
                     const methods = parsePaymentMethods(
                         btcmapData.tags,
-                        `${parsed.osmType}:${parsed.osmId}`
+                        `${osmInfo.osmType}:${osmInfo.osmId}`
                     );
                     setPaymentMethods(methods);
                 }
-            })
-            .finally(() => setIsLoadingPayment(false));
-    }, [isPhysical, location.structured_data]);
+            });
+    }, [osmInfo]);
 
     return (
         <div className={cn("space-y-3", index > 0 && "pt-4 border-t")}>

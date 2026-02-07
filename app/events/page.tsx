@@ -31,7 +31,7 @@ export default function EventsPage() {
         const preset = searchParams.get("preset") as EventStreamFilterValues["preset"];
 
         // Default to "upcoming" preset if no filters specified
-        let defaultPreset: EventStreamFilterValues["preset"] = "upcoming";
+        const defaultPreset: EventStreamFilterValues["preset"] = "upcoming";
         let defaultStartDate: number | undefined = undefined;
         let defaultEndDate: number | undefined = undefined;
 

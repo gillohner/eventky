@@ -9,7 +9,7 @@ import {
   ProfileWidget,
 } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
-import { Calendar, CalendarDays, LogIn, Users, Globe } from "lucide-react";
+import { Calendar, CalendarDays, LogIn, Globe } from "lucide-react";
 
 function LandingPage() {
   return (

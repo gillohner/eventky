@@ -97,7 +97,8 @@ export function truncateDescription(text: string | undefined | null, maxLength =
 export function formatMetaDate(
     dtstart: string,
     dtend?: string | null,
-    tzid?: string | null,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _tzid?: string | null,
 ): string {
     try {
         // The datetime string represents wall-clock time in the given timezone.
@@ -106,8 +107,6 @@ export function formatMetaDate(
         // Parse the datetime string (it's already in the target timezone's local time)
         // We'll use a simple approach: parse as a "fake UTC" date then format with the timezone
         // This works because we want to display the literal time values, not convert them.
-
-        const timezone = tzid || "UTC";
 
         // Parse the ISO string - treat it as if it's UTC for parsing purposes
         // Then use date-fns-tz to format it "in" the target timezone

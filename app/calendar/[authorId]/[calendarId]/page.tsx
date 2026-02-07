@@ -35,7 +35,6 @@ export async function generateMetadata({ params }: CalendarPageProps): Promise<M
         const { details } = calendar;
         const title = details.name;
         const description = truncateDescription(details.description);
-        const rawImageUrl = getImageUrl(details.image_uri);
 
         // Build branded OG image - use userId/fileId to avoid URL encoding issues
         const imageInfo = parseImageUri(details.image_uri);
@@ -96,22 +95,23 @@ export default async function CalendarPage({ params }: CalendarPageProps) {
     const canonicalUrl = `${appUrl}/calendar/${authorId}/${calendarId}`;
 
     // Fetch calendar data server-side for JSON-LD (best-effort)
-    let jsonLdScript: React.ReactNode = null;
+    let jsonLdString: string | null = null;
     try {
         const calendar = await fetchCalendarFromNexus(authorId, calendarId);
         if (calendar) {
             const imageUrl = getImageUrl(calendar.details.image_uri);
             const jsonLd = buildCalendarJsonLd(calendar.details, canonicalUrl, imageUrl);
-            jsonLdScript = (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-                />
-            );
+            jsonLdString = JSON.stringify(jsonLd);
         }
     } catch {
         // JSON-LD is best-effort; don't block rendering
     }
+    const jsonLdScript = jsonLdString ? (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: jsonLdString }}
+        />
+    ) : null;
 
     return (
         <>

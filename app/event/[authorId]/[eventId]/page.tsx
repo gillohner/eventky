@@ -42,7 +42,6 @@ export async function generateMetadata({ params, searchParams }: EventPageProps)
     const { details } = event;
     const title = details.summary;
     const description = truncateDescription(details.description);
-    const rawImageUrl = getImageUrl(details.image_uri);
     const location = getPrimaryLocation(details.locations);
 
     // Handle recurring events
@@ -143,22 +142,23 @@ export default async function EventPage({ params }: EventPageProps) {
   const canonicalUrl = `${appUrl}/event/${authorId}/${eventId}`;
 
   // Fetch event data server-side for JSON-LD (best-effort)
-  let jsonLdScript: React.ReactNode = null;
+  let jsonLdString: string | null = null;
   try {
     const event = await fetchEventFromNexus(authorId, eventId);
     if (event) {
       const imageUrl = getImageUrl(event.details.image_uri);
       const jsonLd = buildEventJsonLd(event.details, canonicalUrl, imageUrl);
-      jsonLdScript = (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      );
+      jsonLdString = JSON.stringify(jsonLd);
     }
   } catch {
     // JSON-LD is best-effort; don't block rendering
   }
+  const jsonLdScript = jsonLdString ? (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: jsonLdString }}
+    />
+  ) : null;
 
   return (
     <>

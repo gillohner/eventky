@@ -121,12 +121,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         try {
             // Check localStorage first (recovery file auth with seed)
             let storedAuth = localStorage.getItem(STORAGE_KEY);
-            let isQrAuth = false;
 
             // If not in localStorage, check sessionStorage (QR auth)
             if (!storedAuth) {
                 storedAuth = sessionStorage.getItem(STORAGE_KEY);
-                isQrAuth = true;
             }
 
             if (storedAuth) {
