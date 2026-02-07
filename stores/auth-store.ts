@@ -1,240 +1,306 @@
-import { AuthData, SerializableAuthData } from "@/types/auth";
 import type { Keypair, Session } from "@synonymdev/pubky";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 const STORAGE_KEY = "pubky_auth";
 
-const defaultAuthData: AuthData = {
-    isAuthenticated: false,
-    publicKey: null,
-    keypair: null,
-    session: null,
-};
+// ============================================================================
+// Types
+// ============================================================================
 
-interface AuthStore extends AuthData {
-    isHydrated: boolean;
+interface AuthState {
+    /** The user's public key (z32-encoded) */
+    publicKey: string | null;
+    /** Live SDK Session object (not serializable, not persisted) */
+    session: Session | null;
+    /** Serialized session snapshot from session.export() — persisted to localStorage */
+    sessionExport: string | null;
+    /** Live SDK Keypair object (not serializable, not persisted) */
+    keypair: Keypair | null;
+    /** Base64-encoded secret key for recovery file auth — persisted to localStorage */
+    seed: string | null;
+    /** Auth method used: "recovery" (has seed) or "qr" (has sessionExport only) */
+    authMethod: "recovery" | "qr" | null;
+    /** Whether Zustand persist has finished rehydrating from localStorage */
+    hasHydrated: boolean;
+    /** Whether an async session restoration is currently in progress */
     isRestoringSession: boolean;
-    signin: (publicKey: string, keypair: Keypair, session: Session) => void;
-    signinWithSession: (publicKey: string, session: Session) => void;
-    logout: () => void;
-    hydrate: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
-    ...defaultAuthData,
-    isHydrated: false,
-    isRestoringSession: false,
+interface AuthActions {
+    /** Sign in with recovery file (has keypair + seed) */
+    signin: (publicKey: string, keypair: Keypair, session: Session) => void;
+    /** Sign in with QR/Pubky Ring (session only, no keypair) */
+    signinWithSession: (publicKey: string, session: Session) => void;
+    /** Log out and clear all auth state + persisted data */
+    logout: () => void;
+    /** Restore session from persisted credentials (called by provider) */
+    restoreSession: () => Promise<void>;
+    /** Set hasHydrated flag (called by onRehydrateStorage) */
+    setHasHydrated: (value: boolean) => void;
+    /** Set isRestoringSession flag */
+    setIsRestoringSession: (value: boolean) => void;
+}
 
-    signin: (publicKey, keypair, session) => {
-        const authData: AuthData = {
-            isAuthenticated: true,
-            publicKey,
-            keypair,
-            session,
-        };
+export type AuthStore = AuthState & AuthActions;
 
-        set(authData);
+// ============================================================================
+// Helpers
+// ============================================================================
 
-        try {
-            // Store base64-encoded secret key for persistence
-            // Session will be recreated on hydration via signin()
-            // SDK's cookie-based session management handles persistence
-            const secretKeyBytes = keypair.secretKey();
-            const seed = btoa(String.fromCharCode(...secretKeyBytes));
-
-            const serializableData: SerializableAuthData = {
-                isAuthenticated: true,
-                publicKey,
-                seed,
-                sessionSnapshot: null, // Not needed for recovery file auth
-                authMethod: "recovery",
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableData));
-
-            // Ingest user into Nexus for indexing
-            import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
-                ingestUserIntoNexus(publicKey).catch(console.error);
-            });
-        } catch (error) {
-            console.error("Error saving auth to localStorage:", error);
+/**
+ * Safely export a session to a string snapshot.
+ * Returns null if session is null or export fails.
+ * Matches pubky-app's safeSessionExport pattern.
+ */
+function safeSessionExport(session: Session | null): string | null {
+    if (!session) return null;
+    try {
+        if (typeof session.export === "function") {
+            return session.export();
         }
-    },
+    } catch {
+        // ignore export errors; session persistence is best-effort
+    }
+    return null;
+}
 
-    signinWithSession: (publicKey, session) => {
-        const authData: AuthData = {
-            isAuthenticated: true,
-            publicKey,
-            keypair: null, // QR auth provides session but not keypair
-            session,
-        };
-
-        set(authData);
-
-        try {
-            // Export session snapshot for persistence
-            // SDK 0.6.0-rc.7+ supports session.export() which returns a string
-            // containing public session metadata (no secrets)
-            // The browser must keep the HTTP-only cookie alive for restore to work
-            const sessionSnapshot = session.export();
-
-            const serializableData: SerializableAuthData = {
-                isAuthenticated: true,
-                publicKey,
-                seed: null, // No seed for QR auth
-                sessionSnapshot, // Store the exported session snapshot
-                authMethod: "qr",
-            };
-
-            // Store in localStorage for persistence across page reloads
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableData));
-
-            // Ingest user into Nexus for indexing
-            import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
-                ingestUserIntoNexus(publicKey).catch(console.error);
-            });
-        } catch (error) {
-            console.error("Error saving auth to localStorage:", error);
-        }
-    },
-
-    logout: () => {
-        set({
-            ...defaultAuthData,
-            isHydrated: true, // Keep hydrated flag to avoid loading state
+/**
+ * Clear all cookies to prevent stale HTTP-only cookies from interfering.
+ * Matches pubky-app's clearCookies pattern on logout.
+ */
+function clearCookies(): void {
+    try {
+        document.cookie.split(";").forEach((c) => {
+            const name = c.split("=")[0].trim();
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
         });
+    } catch {
+        // Cookie clearing is best-effort
+    }
+}
 
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(`${STORAGE_KEY}_session_url`);
-            sessionStorage.removeItem(STORAGE_KEY);
-        } catch (error) {
-            console.error("Error removing auth from storage:", error);
-        }
-    },
+// ============================================================================
+// Initial state
+// ============================================================================
 
-    hydrate: async () => {
-        // Only hydrate once
-        if (get().isHydrated) return;
+const authInitialState: AuthState = {
+    publicKey: null,
+    session: null,
+    sessionExport: null,
+    keypair: null,
+    seed: null,
+    authMethod: null,
+    hasHydrated: false,
+    isRestoringSession: false,
+};
 
-        set({ isRestoringSession: true });
+// ============================================================================
+// Singleton promise for session restoration
+// Prevents concurrent restoreSession() calls (e.g., from React StrictMode
+// double-mount or multiple watchers). Matches pubky-app's
+// AuthApplication.restoreSessionPromise pattern.
+// ============================================================================
 
-        try {
-            // Check localStorage first (recovery file auth with seed)
-            let storedAuth = localStorage.getItem(STORAGE_KEY);
+let restoreSessionPromise: Promise<void> | null = null;
 
-            // If not in localStorage, check sessionStorage (QR auth)
-            if (!storedAuth) {
-                storedAuth = sessionStorage.getItem(STORAGE_KEY);
-            }
+// ============================================================================
+// Store
+// ============================================================================
 
-            if (storedAuth) {
-                const parsed: SerializableAuthData = JSON.parse(storedAuth);
+export const useAuthStore = create<AuthStore>()(
+    persist(
+        (set, get) => ({
+            ...authInitialState,
 
-                // Validate stored data
-                if (!parsed.isAuthenticated || !parsed.publicKey) {
-                    console.warn("Invalid stored auth data, clearing...");
-                    localStorage.removeItem(STORAGE_KEY);
-                    sessionStorage.removeItem(STORAGE_KEY);
-                    set({ isHydrated: true, isRestoringSession: false });
+            // ----------------------------------------------------------------
+            // Actions
+            // ----------------------------------------------------------------
+
+            setHasHydrated: (value: boolean) => {
+                set({ hasHydrated: value });
+            },
+
+            setIsRestoringSession: (value: boolean) => {
+                set({ isRestoringSession: value });
+            },
+
+            signin: (publicKey, keypair, session) => {
+                const secretKeyBytes = keypair.secretKey();
+                const seed = btoa(String.fromCharCode(...secretKeyBytes));
+
+                set({
+                    publicKey,
+                    keypair,
+                    session,
+                    sessionExport: safeSessionExport(session),
+                    seed,
+                    authMethod: "recovery",
+                    isRestoringSession: false,
+                });
+
+                // Ingest user into Nexus for indexing
+                import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                    ingestUserIntoNexus(publicKey).catch(console.error);
+                });
+            },
+
+            signinWithSession: (publicKey, session) => {
+                set({
+                    publicKey,
+                    keypair: null,
+                    session,
+                    sessionExport: safeSessionExport(session),
+                    seed: null,
+                    authMethod: "qr",
+                    isRestoringSession: false,
+                });
+
+                // Ingest user into Nexus for indexing
+                import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                    ingestUserIntoNexus(publicKey).catch(console.error);
+                });
+            },
+
+            logout: () => {
+                // Clear SDK cookies to prevent stale auth state
+                clearCookies();
+
+                set({
+                    ...authInitialState,
+                    hasHydrated: true, // Preserve hydration state to avoid loading flash
+                });
+
+                // Zustand persist will auto-save the reset state (all nulls)
+                // to localStorage, effectively clearing persisted credentials
+            },
+
+            restoreSession: async () => {
+                const state = get();
+
+                // If already restoring, wait for the existing promise
+                if (restoreSessionPromise) {
+                    await restoreSessionPromise;
                     return;
                 }
 
-                try {
-                    const { Keypair, Pubky } = await import("@synonymdev/pubky");
-                    const { config } = await import("@/lib/config");
+                // Nothing to restore
+                if (!state.seed && !state.sessionExport) {
+                    if (state.isRestoringSession) {
+                        set({ isRestoringSession: false });
+                    }
+                    return;
+                }
 
-                    // Use testnet configuration if in testnet mode
-                    const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
+                // Already have a live session
+                if (state.session) {
+                    if (state.isRestoringSession) {
+                        set({ isRestoringSession: false });
+                    }
+                    return;
+                }
 
-                    if (parsed.seed && parsed.authMethod === "recovery") {
-                        // Recovery file auth: Recreate keypair and session from seed
-                        const seedBytes = Uint8Array.from(atob(parsed.seed), c => c.charCodeAt(0));
-                        const keypair = Keypair.fromSecretKey(seedBytes);
+                restoreSessionPromise = (async () => {
+                    set({ isRestoringSession: true });
 
-                        const signer = pubky.signer(keypair);
-                        const session = await signer.signin();
+                    try {
+                        const { Keypair, Pubky } = await import("@synonymdev/pubky");
+                        const { config } = await import("@/lib/config");
 
-                        set({
-                            isAuthenticated: true,
-                            publicKey: parsed.publicKey,
-                            keypair,
-                            session,
-                            isHydrated: true,
-                            isRestoringSession: false,
-                        });
+                        const pubky =
+                            config.env === "testnet" ? Pubky.testnet() : new Pubky();
 
-                        // Ingest user into Nexus for indexing after hydration
-                        if (parsed.publicKey) {
-                            import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
-                                ingestUserIntoNexus(parsed.publicKey!).catch(console.error);
-                            });
-                        }
-                    } else if (parsed.authMethod === "qr" && parsed.sessionSnapshot) {
-                        // QR auth: Restore session from snapshot using SDK's restoreSession()
-                        // This works as long as the browser's HTTP-only cookie is still valid
-                        try {
-                            const session = await pubky.restoreSession(parsed.sessionSnapshot);
-
-                            console.log("QR auth session restored successfully");
+                        if (state.seed && (state.authMethod === "recovery" || !state.authMethod)) {
+                            // Recovery file auth: recreate keypair and session from seed
+                            const seedBytes = Uint8Array.from(atob(state.seed), (c) =>
+                                c.charCodeAt(0)
+                            );
+                            const keypair = Keypair.fromSecretKey(seedBytes);
+                            const signer = pubky.signer(keypair);
+                            const session = await signer.signin();
 
                             set({
-                                isAuthenticated: true,
-                                publicKey: parsed.publicKey,
-                                keypair: null,
-                                session, // Restored Session object
-                                isHydrated: true,
+                                keypair,
+                                session,
+                                sessionExport: safeSessionExport(session),
                                 isRestoringSession: false,
                             });
 
-                            // Ingest user into Nexus for indexing after hydration
-                            import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
-                                ingestUserIntoNexus(parsed.publicKey!).catch(console.error);
+                            // Ingest user into Nexus after restoration
+                            if (state.publicKey) {
+                                import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                                    ingestUserIntoNexus(state.publicKey!).catch(console.error);
+                                });
+                            }
+                        } else if (state.authMethod === "qr" && state.sessionExport) {
+                            // QR auth: restore session from snapshot
+                            const session = await pubky.restoreSession(state.sessionExport);
+                            console.log("QR auth session restored successfully");
+
+                            set({
+                                session,
+                                sessionExport: safeSessionExport(session),
+                                isRestoringSession: false,
                             });
-                        } catch (restoreError) {
-                            // Session restore failed - cookie likely expired
-                            console.warn(
-                                "QR auth session restore failed. Please re-authenticate with Pubky Ring.",
-                                restoreError
-                            );
-                            localStorage.removeItem(STORAGE_KEY);
-                            set({ isHydrated: true, isRestoringSession: false });
+
+                            // Ingest user into Nexus after restoration
+                            if (state.publicKey) {
+                                import("@/lib/nexus/ingest").then(({ ingestUserIntoNexus }) => {
+                                    ingestUserIntoNexus(state.publicKey!).catch(console.error);
+                                });
+                            }
+                        } else {
+                            // No valid credentials to restore
+                            console.warn("No valid credentials to restore session");
+                            set({ isRestoringSession: false });
                         }
-                    } else if (parsed.seed) {
-                        // Legacy: seed exists but no authMethod - treat as recovery
-                        const seedBytes = Uint8Array.from(atob(parsed.seed), c => c.charCodeAt(0));
-                        const keypair = Keypair.fromSecretKey(seedBytes);
-
-                        const signer = pubky.signer(keypair);
-                        const session = await signer.signin();
-
+                    } catch (error) {
+                        console.error("Could not restore session:", error);
+                        // IMPORTANT: Do NOT delete persisted credentials on error.
+                        // The next page load can retry. Only reset runtime state.
+                        // This matches pubky-app's behavior where sessionExport
+                        // stays in the persisted store on failure.
                         set({
-                            isAuthenticated: true,
-                            publicKey: parsed.publicKey,
-                            keypair,
-                            session,
-                            isHydrated: true,
+                            session: null,
+                            keypair: null,
                             isRestoringSession: false,
                         });
-                    } else {
-                        // No seed and no valid QR auth snapshot - invalid state
-                        console.warn("Invalid auth state, clearing...");
-                        localStorage.removeItem(STORAGE_KEY);
-                        set({ isHydrated: true, isRestoringSession: false });
+                    } finally {
+                        restoreSessionPromise = null;
                     }
-                } catch (error) {
-                    console.error("Could not restore session:", error);
-                    localStorage.removeItem(STORAGE_KEY);
-                    sessionStorage.removeItem(STORAGE_KEY);
-                    set({ isHydrated: true, isRestoringSession: false });
+                })();
+
+                await restoreSessionPromise;
+            },
+        }),
+        {
+            name: STORAGE_KEY,
+
+            // Only persist serializable fields needed to restore session
+            partialize: (state) => ({
+                publicKey: state.publicKey,
+                sessionExport: state.sessionExport,
+                seed: state.seed,
+                authMethod: state.authMethod,
+                // Always persist hasHydrated as false — will be set true
+                // by onRehydrateStorage after restore from localStorage
+                hasHydrated: false,
+            }),
+
+            // Synchronous callback after Zustand restores state from localStorage.
+            // This runs BEFORE any React render, so the UI immediately knows
+            // whether persisted credentials exist.
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    state.setHasHydrated(true);
+                    // If we have credentials to restore, flag it immediately
+                    // so the UI shows "Restoring session..." instead of
+                    // briefly flashing the unauthenticated state
+                    if (state.sessionExport || state.seed) {
+                        state.setIsRestoringSession(true);
+                    }
                 }
-            } else {
-                set({ isHydrated: true, isRestoringSession: false });
-            }
-        } catch (error) {
-            console.error("Error loading auth from storage:", error);
-            localStorage.removeItem(STORAGE_KEY);
-            sessionStorage.removeItem(STORAGE_KEY);
-            set({ isHydrated: true, isRestoringSession: false });
+            },
         }
-    },
-}));
+    )
+);
