@@ -17,6 +17,7 @@ import {
     Check,
     Clock,
 } from "lucide-react";
+import { AddToCalendar } from "@/components/ui/add-to-calendar";
 import { useState } from "react";
 
 interface CalendarMetadataProps {
@@ -177,6 +178,17 @@ export function CalendarMetadata({
                 )}
 
                 {/* Share URL */}
+                {authorId && calendarId && (
+                    <div className="pt-3 border-t">
+                        <AddToCalendar
+                            type="calendar"
+                            authorId={authorId}
+                            resourceId={calendarId}
+                            className="w-full"
+                        />
+                    </div>
+                )}
+
                 {calendarUri && (
                     <div className="pt-3 border-t">
                         <Button

@@ -16,6 +16,7 @@ import {
     Copy,
     Check,
 } from "lucide-react";
+import { AddToCalendar } from "@/components/ui/add-to-calendar";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -40,6 +41,12 @@ interface EventMetadataProps {
     authorId?: string;
     /** Event ID */
     eventId?: string;
+    /** Event title (for external calendar links) */
+    summary?: string;
+    /** Event start datetime ISO 8601 (for external calendar links) */
+    dtstart?: string;
+    /** Event end datetime ISO 8601 (for external calendar links) */
+    dtend?: string;
     /** Additional CSS classes */
     className?: string;
 }
@@ -58,6 +65,9 @@ export function EventMetadata({
     eventUri,
     authorId,
     eventId,
+    summary,
+    dtstart,
+    dtend,
     className,
 }: EventMetadataProps) {
     const [copied, setCopied] = useState(false);
@@ -162,6 +172,21 @@ export function EventMetadata({
                                 <p>Updated: {formatTimestamp(lastModified)} (v{sequence})</p>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {/* Add to Calendar */}
+                {authorId && eventId && (
+                    <div className="pt-3 border-t">
+                        <AddToCalendar
+                            type="event"
+                            authorId={authorId}
+                            resourceId={eventId}
+                            title={summary}
+                            dtstart={dtstart}
+                            dtend={dtend}
+                            className="w-full"
+                        />
                     </div>
                 )}
 

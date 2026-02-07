@@ -204,6 +204,9 @@ export function EventDetailLayout({
                         eventUri={details.uri}
                         authorId={details.author}
                         eventId={details.id}
+                        summary={details.summary}
+                        dtstart={details.dtstart}
+                        dtend={details.dtend}
                     />
                 </div>
             </div>
