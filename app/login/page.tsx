@@ -51,6 +51,10 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
     };
 
     const handleQrAuthSuccess = async (publicKey: string, session?: Session, token?: AuthToken) => {
+        console.log("[LoginPage] handleQrAuthSuccess called");
+        console.log("[LoginPage] publicKey:", publicKey);
+        console.log("[LoginPage] session:", session ? "present" : "undefined");
+        console.log("[LoginPage] token:", token ? "present" : "undefined");
         setIsLoading(true);
         setError(null);
 

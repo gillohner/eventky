@@ -35,6 +35,9 @@ export class AuthController {
      */
     static async restorePersistedSession(): Promise<boolean> {
         const authStore = useAuthStore.getState();
+        console.log("[AuthController] restorePersistedSession called");
+        console.log("[AuthController] sessionExport:", authStore.sessionExport ? `string(${authStore.sessionExport.length} chars)` : authStore.sessionExport);
+        console.log("[AuthController] publicKey:", authStore.publicKey);
 
         // If already restoring, return the existing promise
         if (restoreSessionPromise) {
@@ -103,10 +106,37 @@ export class AuthController {
      * Mirrors pubky-app's AuthController.initializeAuthenticatedSession()
      */
     static async initializeAuthenticatedSession(session: Session): Promise<void> {
+        console.log("[AuthController] initializeAuthenticatedSession called");
+        console.log("[AuthController] session object:", session);
+        console.log("[AuthController] session.info:", session.info);
+
         const authStore = useAuthStore.getState();
         const publicKey = session.info.publicKey.z32();
+        console.log("[AuthController] publicKey:", publicKey);
+
+        // Test session.export() explicitly before passing to store
+        try {
+            const exported = typeof session.export === "function" ? session.export() : null;
+            console.log("[AuthController] session.export() result:", exported ? `string(${exported.length} chars)` : exported);
+        } catch (e) {
+            console.error("[AuthController] session.export() threw:", e);
+        }
 
         authStore.init({ session, publicKey });
+
+        // Verify what was persisted
+        const stateAfter = useAuthStore.getState();
+        console.log("[AuthController] After init - sessionExport:", stateAfter.sessionExport ? `string(${stateAfter.sessionExport.length} chars)` : stateAfter.sessionExport);
+        console.log("[AuthController] After init - publicKey:", stateAfter.publicKey);
+        console.log("[AuthController] After init - session:", stateAfter.session ? "present" : "null");
+
+        // Also verify localStorage directly
+        try {
+            const stored = localStorage.getItem("auth-store");
+            console.log("[AuthController] localStorage 'auth-store':", stored ? `string(${stored.length} chars)` : stored);
+        } catch (e) {
+            console.warn("[AuthController] Could not read localStorage:", e);
+        }
 
         // Ingest into Nexus
         ingestUserIntoNexus(publicKey).catch(console.error);

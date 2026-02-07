@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Copy, ExternalLink, Check } from "lucide-react";
 import { toast } from "sonner";
 
+// ============================================================================
+// Polling constants — match pubky-app's homeserver.utils.ts
+// ============================================================================
+const AUTH_POLL_INTERVAL_MS = 2_000;
+const AUTH_POLL_MAX_ATTEMPTS = 150; // 150 × 2s = 5 min
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 interface PubkyAuthWidgetProps {
   relay?: string;
   caps?: string;
@@ -32,6 +42,18 @@ export function PubkyAuthWidget({
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sdkRef = useRef<pubky.Pubky | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Ref-stable callbacks to avoid stale closure issues.
+  // The onSuccess/onError props may change on re-renders (e.g. parent re-renders),
+  // but the polling promise captures the ref, not the prop value.
+  const onSuccessRef = useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
+  // Cancel state for the polling loop
+  const cancelRef = useRef<(() => void) | null>(null);
 
   // Copy auth URL to clipboard
   const handleCopyAuthUrl = useCallback(async () => {
@@ -70,28 +92,47 @@ export function PubkyAuthWidget({
       });
     } catch (e) {
       console.error("QR render error:", e);
-      onError?.(e as Error);
+      onErrorRef.current?.(e as Error);
     }
-  }, [authUrl, onError]);
+  }, [authUrl]);
 
-  // Generate auth flow
+  // Generate auth flow — uses tryPollOnce loop with cancellation
+  // Mirrors pubky-app's createCancelableAuthApproval pattern
   const generateFlow = useCallback(async () => {
     if (!sdkRef.current) return;
 
+    // Cancel any previous flow
+    cancelRef.current?.();
+
     setPubkyZ32("");
     setAuthUrl("");
+
+    let canceled = false;
+    let freed = false;
+    let flow: pubky.AuthFlow | null = null;
+
+    const cancel = () => {
+      canceled = true;
+      if (freed || !flow) return;
+      freed = true;
+      try { flow.free(); } catch { /* ignore double-free */ }
+    };
+
+    cancelRef.current = cancel;
 
     try {
       const relayUrl = relay || config.relay.url;
 
       // Start the flow with the SDK's client
-      // AuthFlowKind.signin() is for apps that need a session with storage access
-      const flowKind = pubky.AuthFlowKind.signin();
-      const flow = sdkRef.current.startAuthFlow(caps as pubky.Capabilities, flowKind, relayUrl);
+      const flowKind = caps && caps.trim().length > 0
+        ? pubky.AuthFlowKind.signin()
+        : pubky.AuthFlowKind.signin();
+      flow = sdkRef.current.startAuthFlow(caps as pubky.Capabilities, flowKind, relayUrl);
 
-      // Capture the deep link before awaiting
+      // Capture the deep link before polling
       const url = flow.authorizationUrl;
       setAuthUrl(url);
+      console.log("[PubkyAuthWidget] Auth flow started, URL:", url.substring(0, 60) + "...");
 
       // Update QR code after URL is set
       setTimeout(() => {
@@ -99,35 +140,69 @@ export function PubkyAuthWidget({
         requestAnimationFrame(() => updateQr());
       }, 50);
 
-      // Wait for approval based on capabilities (this is async and will happen in background)
-      if (caps && caps.trim().length > 0) {
-        // Capabilities requested -> wait for a Session
-        const session = await flow.awaitApproval();
-        const publicKey = session.info.publicKey.z32();
-        setPubkyZ32(publicKey);
-        onSuccess?.(publicKey, session);
-      } else {
-        // No capabilities -> wait for an AuthToken
-        const token = await flow.awaitToken();
-        const publicKey = token.publicKey.z32();
-        setPubkyZ32(publicKey);
-        onSuccess?.(publicKey, undefined, token);
+      // Poll for approval using tryPollOnce — matches pubky-app's pattern.
+      // Unlike awaitApproval() which consumes the WASM handle,
+      // tryPollOnce() keeps flow.free() usable for cancellation.
+      await sleep(0); // yield to microtask queue
+      let attempts = 0;
+
+      for (;;) {
+        if (canceled || !isMountedRef.current) {
+          console.log("[PubkyAuthWidget] Polling canceled");
+          return;
+        }
+
+        if (++attempts > AUTH_POLL_MAX_ATTEMPTS) {
+          throw new Error("Auth flow timed out (5 minutes)");
+        }
+
+        try {
+          const maybeSession = await flow.tryPollOnce();
+          if (maybeSession) {
+            console.log("[PubkyAuthWidget] Session received from polling");
+            const publicKey = maybeSession.info.publicKey.z32();
+            console.log("[PubkyAuthWidget] Public key:", publicKey);
+
+            if (!isMountedRef.current || canceled) return;
+            setPubkyZ32(publicKey);
+            onSuccessRef.current?.(publicKey, maybeSession);
+            return;
+          }
+        } catch (pollError) {
+          if (canceled || !isMountedRef.current) return;
+          // Retry on transient relay errors
+          console.warn("[PubkyAuthWidget] Poll error (retrying):", pollError);
+        }
+
+        await sleep(AUTH_POLL_INTERVAL_MS);
       }
     } catch (error) {
-      console.error("Auth flow failed:", error);
-      onError?.(error as Error);
+      if (canceled || !isMountedRef.current) return;
+      console.error("[PubkyAuthWidget] Auth flow failed:", error);
+      onErrorRef.current?.(error as Error);
+    } finally {
+      // Clean up the flow handle
+      if (!freed && flow) {
+        freed = true;
+        try { flow.free(); } catch { /* ignore */ }
+      }
     }
-  }, [relay, caps, onSuccess, onError, updateQr]);
+  }, [relay, caps, updateQr]);
 
-  // Initialize SDK — use singleton PubkyService (same instance used for session restore)
+  // Initialize SDK and manage lifecycle
   useEffect(() => {
+    isMountedRef.current = true;
     sdkRef.current = PubkyService.getInstance();
+
+    return () => {
+      isMountedRef.current = false;
+      cancelRef.current?.(); // Cancel any active polling on unmount
+    };
   }, []);
 
   // Auto-generate flow if open prop is true
   useEffect(() => {
     if (open && !authUrl && sdkRef.current) {
-      // Use setTimeout to ensure SDK and state are ready
       const timer = setTimeout(() => {
         generateFlow();
       }, 100);

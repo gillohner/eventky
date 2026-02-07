@@ -49,13 +49,19 @@ export type AuthStore = AuthState & AuthActions;
  * Identical to pubky-app's safeSessionExport in auth.actions.ts
  */
 function safeSessionExport(session: Session | null): string | null {
-    if (!session) return null;
+    if (!session) {
+        console.log("[auth-store] safeSessionExport: session is null");
+        return null;
+    }
     try {
         if (typeof session.export === "function") {
-            return session.export();
+            const result = session.export();
+            console.log("[auth-store] safeSessionExport: export() returned", result ? `string(${result.length} chars)` : result);
+            return result;
         }
-    } catch {
-        // ignore export errors; session persistence is best-effort
+        console.warn("[auth-store] safeSessionExport: session.export is not a function, type:", typeof session.export);
+    } catch (e) {
+        console.error("[auth-store] safeSessionExport: export() threw:", e);
     }
     return null;
 }
