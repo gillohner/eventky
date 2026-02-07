@@ -106,12 +106,14 @@ export function RecurrenceFields({
         const rrule = buildRRule();
         if (!rrule) return [];
 
+        // maxCount must account for rdates so they aren't truncated by slice(0, limit)
+        const rdateCount = rdates.filter(Boolean).length;
         return calculateNextOccurrences({
             rrule,
             dtstart,
             rdate: rdates,
             exdate: [], // Don't filter out excluded dates here - we need to show them greyed out
-            maxCount: count || 104
+            maxCount: (count || 104) + rdateCount
         });
     }, [enabled, dtstart, buildRRule, rdates, count]);
 
