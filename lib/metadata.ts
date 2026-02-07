@@ -91,7 +91,8 @@ export function truncateDescription(text: string | undefined | null, maxLength =
 
 /**
  * Format an ISO datetime string for display in metadata
- * Uses the event's location timezone if provided
+ * The dtstart/dtend values are "local time" in the specified timezone.
+ * e.g., dtstart="2026-02-11T18:00:00" with tzid="Europe/Zurich" means 6pm in Zurich.
  */
 export function formatMetaDate(
     dtstart: string,
@@ -99,30 +100,61 @@ export function formatMetaDate(
     tzid?: string | null,
 ): string {
     try {
-        // Parse date - dtstart is in format like "2026-03-15T18:00:00"
-        const startDate = new Date(dtstart);
-
-        const dateOpts: Intl.DateTimeFormatOptions = {
+        // The datetime string represents wall-clock time in the given timezone.
+        // We need to format it as that time, not convert it.
+        
+        // Parse the datetime string (it's already in the target timezone's local time)
+        // We'll use a simple approach: parse as a "fake UTC" date then format with the timezone
+        // This works because we want to display the literal time values, not convert them.
+        
+        const timezone = tzid || "UTC";
+        
+        // Parse the ISO string - treat it as if it's UTC for parsing purposes
+        // Then use date-fns-tz to format it "in" the target timezone
+        // Since the string already represents the local time, we need to create
+        // a Date that represents that wall-clock time in the target timezone.
+        
+        // Parse components from the ISO string
+        const dateMatch = dtstart.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+        if (!dateMatch) {
+            return dtstart; // Fallback to raw string
+        }
+        
+        const [, year, month, day, hour, minute] = dateMatch;
+        
+        // Format using Intl.DateTimeFormat with the timezone for display
+        // Create a date object treating the input as UTC, then format it "as if" in that timezone
+        // This is a workaround since the datetime IS the local time already
+        const fakeUtcDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:00Z`);
+        
+        // Format the date components
+        const dateFormatter = new Intl.DateTimeFormat("en-US", {
             weekday: "short",
             year: "numeric",
             month: "short",
             day: "numeric",
+            timeZone: "UTC", // Use UTC since our fakeUtcDate is already in "local" time
+        });
+        
+        const timeFormatter = new Intl.DateTimeFormat("en-US", {
             hour: "numeric",
             minute: "2-digit",
-            ...(tzid ? { timeZone: tzid } : {}),
-        };
-
-        const formatted = startDate.toLocaleDateString("en-US", dateOpts);
+            timeZone: "UTC", // Use UTC since our fakeUtcDate is already in "local" time
+        });
+        
+        const datePart = dateFormatter.format(fakeUtcDate);
+        const timePart = timeFormatter.format(fakeUtcDate);
+        
+        let formatted = `${datePart}, ${timePart}`;
 
         if (dtend) {
-            const endDate = new Date(dtend);
-            const timeOpts: Intl.DateTimeFormatOptions = {
-                hour: "numeric",
-                minute: "2-digit",
-                ...(tzid ? { timeZone: tzid } : {}),
-            };
-            const endTime = endDate.toLocaleTimeString("en-US", timeOpts);
-            return `${formatted} – ${endTime}`;
+            const endMatch = dtend.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+            if (endMatch) {
+                const [, eYear, eMonth, eDay, eHour, eMinute] = endMatch;
+                const fakeUtcEnd = new Date(`${eYear}-${eMonth}-${eDay}T${eHour}:${eMinute}:00Z`);
+                const endTime = timeFormatter.format(fakeUtcEnd);
+                formatted = `${formatted} – ${endTime}`;
+            }
         }
 
         return formatted;
