@@ -1,4 +1,4 @@
-import { Pubky, Keypair, Session, Address, PublicKey } from "@synonymdev/pubky";
+import { Pubky, Client, Keypair, Session, Address, PublicKey } from "@synonymdev/pubky";
 import { PubkyAppUser, userUriBuilder } from "@eventky/pubky-app-specs";
 import { config, isTestnet } from "@/lib/config";
 
@@ -7,7 +7,13 @@ export class PubkyClient {
    * Create Pubky instance with correct configuration (testnet or mainnet)
    */
   private static createPubky(): Pubky {
-    return config.env === "testnet" ? Pubky.testnet() : new Pubky();
+    if (config.env === "testnet") {
+      return Pubky.testnet();
+    }
+
+    // Use hosted PKARR relays (overridable via env) to improve resolution reliability
+    const client = new Client({ pkarr: { relays: config.pkarr.relays } });
+    return Pubky.withClient(client);
   }
 
   /**

@@ -28,7 +28,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@synonymdev/pubky": "^0.6.0-rc.7",
+    "@synonymdev/pubky": "0.6.0",
     "@tanstack/query-sync-storage-persister": "^5.90.14",
     "@tanstack/react-query": "^5.90.9",
     "@tanstack/react-query-persist-client": "^5.90.14",

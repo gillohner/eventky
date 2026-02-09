@@ -23,6 +23,11 @@ interface PubkyConfig {
         available: boolean;
     };
 
+    // PKARR relay configuration
+    pkarr: {
+        relays: string[];
+    };
+
     // Environment
     env: PubkyEnvironment;
     environment: PubkyEnvironment;
@@ -94,6 +99,14 @@ const DEFAULT_HOMESERVER_URLS: Record<PubkyEnvironment, string> = {
 };
 
 /**
+ * Default PKARR relays (hosted) — same defaults as pubky-app
+ */
+const DEFAULT_PKARR_RELAYS: string[] = [
+    "https://pkarr.pubky.app",
+    "https://pkarr.pubky.org",
+];
+
+/**
  * Default Pubky App URLs for each environment
  * Used for linking to user profiles
  */
@@ -123,6 +136,15 @@ function getEnvironment(): PubkyEnvironment {
 function buildConfig(): PubkyConfig {
     const environment = getEnvironment();
 
+    const parseRelays = (value: string | undefined): string[] => {
+        if (!value) return DEFAULT_PKARR_RELAYS;
+        const relays = value
+            .split(",")
+            .map((r) => r.trim())
+            .filter(Boolean);
+        return relays.length ? relays : DEFAULT_PKARR_RELAYS;
+    };
+
     return {
         isDevelopment: process.env.NODE_ENV === "development",
 
@@ -138,6 +160,10 @@ function buildConfig(): PubkyConfig {
 
         env: environment,
         environment,
+
+        pkarr: {
+            relays: parseRelays(process.env.NEXT_PUBLIC_PKARR_RELAYS),
+        },
 
         homeserver: {
             publicKey: process.env.NEXT_PUBLIC_PUBKY_HOMESERVER || DEFAULT_HOMESERVERS[environment],
