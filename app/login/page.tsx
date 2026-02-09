@@ -307,7 +307,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                                 Recovery File
                             </h3>
                             <p className="text-xs text-muted-foreground">
-                                Upload .pubky file
+                                Upload .pkarr file
                             </p>
                         </div>
                         {authMethod === "recovery" && (
