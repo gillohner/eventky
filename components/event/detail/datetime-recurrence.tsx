@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import {
     parseIsoDateTime,
+    dateToISOString,
     formatDateTime,
     getLocalTimezone,
     getShortTimezone,
@@ -167,7 +168,7 @@ export function DateTimeRecurrence({
         try {
             const startDate = parseIsoDateTime(displayDtstart);
             const durationMs = parseDuration(duration);
-            return new Date(startDate.getTime() + durationMs).toISOString();
+            return dateToISOString(new Date(startDate.getTime() + durationMs));
         } catch {
             return undefined;
         }

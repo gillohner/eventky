@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Repeat, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
-import { formatDateTime } from "@/lib/datetime";
+import { formatDateTime, parseIsoInTimezone } from "@/lib/datetime";
 import type { NexusEventResponse } from "@/lib/nexus/events";
 
 interface CalendarEventsSectionProps {
@@ -225,7 +225,9 @@ function EventOccurrenceCard({
         });
 
         // Parse the formatted date to extract components
-        const dateObj = new Date(occurrence.date);
+        const dateObj = timezone
+            ? parseIsoInTimezone(occurrence.date, timezone)
+            : new Date(occurrence.date);
         const month = dateObj.toLocaleString('en-US', { month: 'short', timeZone: tz });
         const day = dateObj.toLocaleString('en-US', { day: 'numeric', timeZone: tz });
         const weekday = dateObj.toLocaleString('en-US', { weekday: 'short', timeZone: tz });

@@ -28,6 +28,49 @@ export function parseIsoDateTime(isoString: string): Date {
 }
 
 /**
+ * Parse an ISO datetime string (without timezone suffix) as wall-clock time
+ * in a specific IANA timezone, returning a Date with the correct UTC instant.
+ *
+ * Example: parseIsoInTimezone("2024-01-15T18:00:00", "America/New_York")
+ * returns a Date whose UTC instant corresponds to 18:00 EST (= 23:00 UTC).
+ */
+export function parseIsoInTimezone(isoString: string, timezone: string): Date {
+    const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+    if (!match) return new Date(isoString);
+
+    const [, yearStr, monthStr, dayStr, hourStr, minStr, secStr] = match;
+    const y = parseInt(yearStr), mo = parseInt(monthStr) - 1, d = parseInt(dayStr);
+    const h = parseInt(hourStr), mi = parseInt(minStr), s = parseInt(secStr);
+
+    // Treat the components as UTC as a starting guess
+    const utcGuess = Date.UTC(y, mo, d, h, mi, s);
+
+    // Find the wall-clock time the target timezone shows at this UTC instant
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false,
+    });
+    const parts = formatter.formatToParts(new Date(utcGuess));
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+        parseInt(parts.find(p => p.type === type)?.value || '0');
+
+    let wallH = get('hour');
+    if (wallH === 24) wallH = 0;
+    const wallUtc = Date.UTC(get('year'), get('month') - 1, get('day'), wallH, get('minute'), get('second'));
+
+    // offset = how far the timezone's wall clock is from UTC
+    // actualUtc = desired wall clock shifted back by that offset
+    const offset = wallUtc - utcGuess;
+    return new Date(utcGuess - offset);
+}
+
+/**
  * Convert a Date object to ISO string (YYYY-MM-DDTHH:MM:SS)
  * WITHOUT timezone conversion - extracts local components
  */
@@ -63,7 +106,9 @@ export function formatDateTime(
     const { includeYear = true, includeWeekday = true, compact = false } = options || {};
 
     try {
-        const date = parseIsoDateTime(isoString);
+        const date = sourceTimezone
+            ? parseIsoInTimezone(isoString, sourceTimezone)
+            : parseIsoDateTime(isoString);
 
         const dateFormatter = new Intl.DateTimeFormat("en-US", {
             timeZone: displayTimezone,
@@ -103,7 +148,9 @@ export function formatOccurrenceDate(
     const { includeTime = true } = options || {};
 
     try {
-        const date = parseIsoDateTime(isoDate);
+        const date = timezone
+            ? parseIsoInTimezone(isoDate, timezone)
+            : parseIsoDateTime(isoDate);
         const formatOptions: Intl.DateTimeFormatOptions = {
             timeZone: timezone || undefined,
             weekday: "short",
@@ -130,9 +177,12 @@ export function formatOccurrenceDate(
 export function formatDateInTimezone(
     isoDate: string,
     timezone: string,
+    sourceTimezone?: string,
     locale: string = 'en-US'
 ): string {
-    const date = parseIsoDateTime(isoDate);
+    const date = (sourceTimezone || timezone)
+        ? parseIsoInTimezone(isoDate, sourceTimezone || timezone)
+        : parseIsoDateTime(isoDate);
 
     return new Intl.DateTimeFormat(locale, {
         timeZone: timezone,
