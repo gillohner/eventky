@@ -205,8 +205,6 @@ export function EventDetailLayout({
                         authorId={details.author}
                         eventId={details.id}
                         summary={details.summary}
-                        dtstart={details.dtstart}
-                        dtend={details.dtend}
                     />
                 </div>
             </div>

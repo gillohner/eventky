@@ -260,6 +260,11 @@ export function generateEventICS(event: NexusEventResponse): ICSResult {
             prop("METHOD", "PUBLISH"),
         ];
 
+        // Set calendar name to event summary so subscription clients
+        // display the event name instead of the raw webcal:// URL
+        lines.push(prop("X-WR-CALNAME", escapeText(details.summary)));
+        lines.push(prop("NAME", escapeText(details.summary)));
+
         // Add VTIMEZONE reference if timezone is specified
         if (details.dtstart_tzid) {
             lines.push(prop("X-WR-TIMEZONE", details.dtstart_tzid));

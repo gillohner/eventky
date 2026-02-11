@@ -28,12 +28,8 @@ interface AddToCalendarProps {
     authorId: string;
     /** Event or calendar ID */
     resourceId: string;
-    /** Event title or calendar name — used for Google/Outlook links */
+    /** Event title or calendar name — used for subscription links */
     title?: string;
-    /** ISO 8601 dtstart for Google/Outlook deep links (events only) */
-    dtstart?: string;
-    /** ISO 8601 dtend for Google/Outlook deep links (events only) */
-    dtend?: string;
     /** Additional CSS classes for the trigger button */
     className?: string;
     /** Render as an inline link-style button instead of outlined */
@@ -62,37 +58,24 @@ function toWebcalUrl(httpsUrl: string): string {
 }
 
 /**
- * Strip timezone-local ISO datetime to compact form for Google Calendar.
- * "2025-06-15T14:30:00" → "20250615T143000"
+ * Build a Google Calendar URL that subscribes to an ICS feed.
+ * Uses the `cid` parameter which adds the feed as a subscribed calendar.
  */
-function toGoogleDate(iso: string): string {
-    return iso.replace(/[-:]/g, "").replace(/\.\d+$/, "");
+function googleCalendarSubscribeUrl(icsHttpUrl: string): string {
+    // Google Calendar accepts the HTTPS URL directly via `cid`
+    return `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(icsHttpUrl)}`;
 }
 
 /**
- * Build a Google Calendar "quick add" URL for a single event.
+ * Build an Outlook Web URL that subscribes to an ICS feed.
+ * Uses the "addfromweb" action with the feed URL and calendar name.
  */
-function googleCalendarUrl(title: string, dtstart: string, dtend?: string): string {
+function outlookCalendarSubscribeUrl(icsHttpUrl: string, name: string): string {
     const params = new URLSearchParams({
-        action: "TEMPLATE",
-        text: title,
-        dates: `${toGoogleDate(dtstart)}/${dtend ? toGoogleDate(dtend) : toGoogleDate(dtstart)}`,
+        url: icsHttpUrl,
+        name: name,
     });
-    return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-/**
- * Build an Outlook Web "quick add" URL for a single event.
- */
-function outlookCalendarUrl(title: string, dtstart: string, dtend?: string): string {
-    const params = new URLSearchParams({
-        path: "/calendar/action/compose",
-        rru: "addevent",
-        subject: title,
-        startdt: dtstart,
-        ...(dtend ? { enddt: dtend } : {}),
-    });
-    return `https://outlook.live.com/calendar/0/action/compose?${params.toString()}`;
+    return `https://outlook.live.com/calendar/0/addfromweb?${params.toString()}`;
 }
 
 // =============================================================================
@@ -117,8 +100,6 @@ export function AddToCalendar({
     authorId,
     resourceId,
     title,
-    dtstart,
-    dtend,
     className,
     variant = "default",
 }: AddToCalendarProps) {
@@ -239,38 +220,34 @@ export function AddToCalendar({
                         </div>
                     </button>
 
-                    {/* Event-only: Google Calendar & Outlook deep links */}
-                    {!isCalendar && title && dtstart && (
-                        <>
-                            <div className="my-1 border-t" />
+                    {/* Google Calendar & Outlook feed subscription links */}
+                    <div className="my-1 border-t" />
 
-                            <a
-                                href={googleCalendarUrl(title, dtstart, dtend)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                            >
-                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                                <div className="text-left">
-                                    <p className="font-medium">Google Calendar</p>
-                                    <p className="text-xs text-muted-foreground">Open in browser</p>
-                                </div>
-                            </a>
+                    <a
+                        href={googleCalendarSubscribeUrl(icsUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <div className="text-left">
+                            <p className="font-medium">Google Calendar</p>
+                            <p className="text-xs text-muted-foreground">Subscribe in browser</p>
+                        </div>
+                    </a>
 
-                            <a
-                                href={outlookCalendarUrl(title, dtstart, dtend)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                            >
-                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                                <div className="text-left">
-                                    <p className="font-medium">Outlook</p>
-                                    <p className="text-xs text-muted-foreground">Open in browser</p>
-                                </div>
-                            </a>
-                        </>
-                    )}
+                    <a
+                        href={outlookCalendarSubscribeUrl(icsUrl, title || (isCalendar ? "Calendar" : "Event"))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <div className="text-left">
+                            <p className="font-medium">Outlook</p>
+                            <p className="text-xs text-muted-foreground">Subscribe in browser</p>
+                        </div>
+                    </a>
                 </div>
             </PopoverContent>
         </Popover>
