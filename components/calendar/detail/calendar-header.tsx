@@ -90,8 +90,9 @@ export function CalendarHeader({
             <div className="md:hidden">
                 {/* Image Banner */}
                 <div
-                    className="aspect-video w-full bg-cover bg-center relative"
+                    className="w-full bg-cover bg-center relative"
                     style={{
+                        aspectRatio: HEADER_BANNER.aspectRatio,
                         backgroundImage: heroImageUrl ? `url(${heroImageUrl})` : fallbackGradient,
                         backgroundColor: !heroImageUrl && color ? color : undefined,
                     }}
