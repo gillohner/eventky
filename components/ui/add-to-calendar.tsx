@@ -62,8 +62,9 @@ function toWebcalUrl(httpsUrl: string): string {
  * Uses the `cid` parameter which adds the feed as a subscribed calendar.
  */
 function googleCalendarSubscribeUrl(icsHttpUrl: string): string {
-    // Google Calendar accepts the HTTPS URL directly via `cid`
-    return `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(icsHttpUrl)}`;
+    // Google Calendar requires webcal:// scheme for external feed subscriptions
+    const webcal = icsHttpUrl.replace(/^https?:\/\//, "webcal://");
+    return `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
 }
 
 /**
