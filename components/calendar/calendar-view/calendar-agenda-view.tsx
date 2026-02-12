@@ -94,7 +94,7 @@ export function CalendarAgendaView({
                                     return (
                                         <Link key={event.id} href={eventUrl}>
                                             <Card className={cn(
-                                                "group hover:shadow-lg hover:border-primary/50 transition-all overflow-hidden py-0",
+                                                "group cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all overflow-hidden py-0",
                                                 isPastEvent && "opacity-60"
                                             )}>
                                                 <CardContent className="p-0">

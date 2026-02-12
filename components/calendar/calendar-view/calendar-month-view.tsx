@@ -106,7 +106,7 @@ export function CalendarMonthView({
                                     return (
                                         <Link key={event.id} href={eventUrl}>
                                             <div
-                                                className="text-xs px-2 py-1 rounded truncate hover:shadow-sm transition-shadow"
+                                                className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:shadow-sm transition-shadow"
                                                 style={{
                                                     backgroundColor: event.color ? `${event.color}20` : "#6b728020",
                                                     ...borderStyle,

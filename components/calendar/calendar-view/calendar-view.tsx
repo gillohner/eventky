@@ -147,9 +147,9 @@ export function CalendarView({
                         }}
                     >
                         <TabsList>
-                            <TabsTrigger value="month">Month</TabsTrigger>
-                            <TabsTrigger value="week">Week</TabsTrigger>
-                            <TabsTrigger value="agenda">Agenda</TabsTrigger>
+                            <TabsTrigger value="month" className="cursor-pointer">Month</TabsTrigger>
+                            <TabsTrigger value="week" className="cursor-pointer">Week</TabsTrigger>
+                            <TabsTrigger value="agenda" className="cursor-pointer">Agenda</TabsTrigger>
                         </TabsList>
                     </Tabs>
                 </div>

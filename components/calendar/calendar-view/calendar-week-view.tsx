@@ -82,7 +82,7 @@ export function CalendarWeekView({
                                     return (
                                         <Link key={event.id} href={eventUrl}>
                                             <div
-                                                className="text-xs p-2 rounded hover:shadow-sm transition-shadow"
+                                                className="text-xs p-2 rounded cursor-pointer hover:shadow-sm transition-shadow"
                                                 style={{
                                                     backgroundColor: event.color ? `${event.color}20` : "#6b728020",
                                                     ...borderStyle,
