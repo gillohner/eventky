@@ -88,15 +88,19 @@ Events without `COUNT` or `UNTIL` are marked as indefinite:
 
 ## Timezone Handling
 
-### Display Modes
-- **Event Timezone**: Show times in event's original timezone (if set)
-- **Local Timezone**: Convert all times to user's local timezone
-- **Toggle**: Only shown if event has timezone AND it differs from local
+Events respect timezone information throughout the system:
 
-### Occurrence Generation
-- All occurrences generated in event's original timezone
-- RRULE expansion respects `DTSTARTTZID` for DST transitions
-- Display converted to selected timezone mode
+- **Event Storage**: Times stored in event's original timezone (`dtstart` + `dtstart_tzid`)
+- **Display**: Times shown in user's local timezone by default
+- **Recurring Events**: Wall-clock time preserved across DST transitions
+- **Calendar Views**: Events grouped by date in their event timezone
+
+### Why This Matters
+- A 10:00 AM meeting in New York shows at correct local time for all viewers
+- DST transitions don't shift event times
+- Events appear on the correct day regardless of viewer's timezone
+
+For complete timezone documentation including DST handling, edge cases, and 419 IANA timezone support, see [TIMEZONE_HANDLING.md](TIMEZONE_HANDLING.md)
 
 ## Performance Optimizations
 

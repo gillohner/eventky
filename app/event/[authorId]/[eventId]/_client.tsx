@@ -14,6 +14,7 @@ import { DevJsonView } from "@/components/dev-json-view";
 import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { toast } from "sonner";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
+import { parseIsoInTimezone, parseIsoDateTime } from "@/lib/datetime";
 
 interface EventPageClientProps {
     params: Promise<{
@@ -42,13 +43,20 @@ export default function EventPageClient({ params }: EventPageClientProps) {
         const occurrences = calculateNextOccurrences({
             rrule: event.details.rrule,
             dtstart: event.details.dtstart,
+            dtstartTzid: event.details.dtstart_tzid,
             rdate: event.details.rdate,
             exdate: event.details.exdate,
             maxCount: 50,
         });
 
         const now = new Date();
-        return occurrences.find(occ => new Date(occ) > now) || null;
+        // Parse occurrence in event timezone for accurate comparison
+        return occurrences.find(occ => {
+            const occDate = event.details.dtstart_tzid
+                ? parseIsoInTimezone(occ, event.details.dtstart_tzid)
+                : parseIsoDateTime(occ);
+            return occDate > now;
+        }) || null;
     }, [event, instanceDate]);
 
     // Auto-redirect to next occurrence for recurring events

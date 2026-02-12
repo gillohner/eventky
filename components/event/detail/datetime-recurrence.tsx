@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import {
     parseIsoDateTime,
+    parseIsoInTimezone,
     dateToISOString,
     formatDateTime,
     getLocalTimezone,
@@ -114,6 +115,7 @@ export function DateTimeRecurrence({
         const allOccurrences = calculateNextOccurrences({
             rrule,
             dtstart,
+            dtstartTzid,
             rdate,
             exdate,
             maxCount,
@@ -124,7 +126,10 @@ export function DateTimeRecurrence({
         oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
         return allOccurrences.filter((occ) => {
-            const occDate = new Date(occ);
+            // Parse in event timezone for accurate date comparison
+            const occDate = dtstartTzid
+                ? parseIsoInTimezone(occ, dtstartTzid)
+                : parseIsoDateTime(occ);
             return occDate <= oneYearFromNow;
         });
     }, [rrule, dtstart, rdate, exdate, loadedOccurrences]);
@@ -161,18 +166,21 @@ export function DateTimeRecurrence({
     // Determine the display start date (selected instance or dtstart)
     const displayDtstart = selectedInstance || dtstart;
 
-    // Calculate end time from duration if needed
+    // Calculate end time from duration if needed - respect event timezone
     const calculatedDtend = useMemo(() => {
         if (dtend && !selectedInstance) return dtend;
         if (!duration) return undefined;
         try {
-            const startDate = parseIsoDateTime(displayDtstart);
+            // Parse start date in event timezone for accurate duration calculation
+            const startDate = dtstartTzid
+                ? parseIsoInTimezone(displayDtstart, dtstartTzid)
+                : parseIsoDateTime(displayDtstart);
             const durationMs = parseDuration(duration);
             return dateToISOString(new Date(startDate.getTime() + durationMs));
         } catch {
             return undefined;
         }
-    }, [displayDtstart, dtend, duration, selectedInstance]);
+    }, [displayDtstart, dtend, duration, selectedInstance, dtstartTzid]);
 
     // Format times using the display start date (selected instance or dtstart)
     const formattedStart = useMemo(() => {
@@ -327,6 +335,7 @@ export function DateTimeRecurrence({
                                 authorId={authorId}
                                 eventId={eventId}
                                 navigation={navigation}
+                                dtstartTzid={dtstartTzid}
                             />
                         )}
 
@@ -362,7 +371,11 @@ export function DateTimeRecurrence({
                                 <div className="flex gap-2 pb-3">
                                     {occurrences.map((occ, index) => {
                                         const isSelected = selectedInstance ? occ === selectedInstance : index === 0;
-                                        const isPast = new Date(occ) < new Date();
+                                        // Parse in event timezone for accurate past/future check
+                                        const occDate = dtstartTzid
+                                            ? parseIsoInTimezone(occ, dtstartTzid)
+                                            : parseIsoDateTime(occ);
+                                        const isPast = occDate < new Date();
                                         const userStatus = getUserAttendance(occ);
 
                                         return (
@@ -518,6 +531,7 @@ function OccurrenceStatus({
     authorId,
     eventId,
     navigation,
+    dtstartTzid,
 }: {
     selectedInstance: string;
     occurrences: string[];
@@ -525,13 +539,22 @@ function OccurrenceStatus({
     authorId: string;
     eventId: string;
     navigation: { prev: string | null; next: string | null };
+    dtstartTzid?: string;
 }) {
     const now = new Date();
-    const selectedDate = new Date(selectedInstance);
+    // Parse in event timezone for accurate past/future comparison
+    const selectedDate = dtstartTzid
+        ? parseIsoInTimezone(selectedInstance, dtstartTzid)
+        : parseIsoDateTime(selectedInstance);
     const isPast = selectedDate < now;
 
-    // Find next occurrence
-    const nextOccurrence = occurrences.find(occ => new Date(occ) > now);
+    // Find next occurrence - parse in event timezone
+    const nextOccurrence = occurrences.find(occ => {
+        const occDate = dtstartTzid
+            ? parseIsoInTimezone(occ, dtstartTzid)
+            : parseIsoDateTime(occ);
+        return occDate > now;
+    });
     const isNext = nextOccurrence === selectedInstance;
 
     // Calculate time until/since occurrence

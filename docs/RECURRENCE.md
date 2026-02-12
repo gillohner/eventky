@@ -86,6 +86,15 @@ const hasOccurrencesInRange = calculateNextOccurrences({
 
 **Rationale:** RRULE expansion is complex (RFC 5545). Keeping it frontend-only avoids duplicating logic in both Rust and TypeScript. Optimizations might be added later if performance becomes an issue due to many recurring events.
 
+## DST Handling
+
+Recurring events maintain wall-clock time across DST transitions. For example:
+- Weekly meeting at 10:00 AM stays at 10:00 AM (not 11:00 AM or 9:00 AM)
+- Intervals are added in the event's timezone, not UTC
+- Crossing DST boundaries preserves the local time
+
+See [TIMEZONE_HANDLING.md](TIMEZONE_HANDLING.md) for detailed DST behavior.
+
 ## Key Files
 
 | File                                        | Purpose                           |

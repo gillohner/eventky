@@ -4,13 +4,15 @@
  */
 
 import { addDays, addWeeks, addMonths, addYears, format } from "date-fns";
-import { isoStringToDate } from "./event-utils";
+import { isoStringToDate, parseIsoInTimezone } from "./event-utils";
 
 export interface RecurrenceOptions {
     /** RRULE string */
     rrule: string;
     /** Start date in ISO format */
     dtstart: string;
+    /** Start date timezone (IANA timezone identifier) */
+    dtstartTzid?: string;
     /** Additional dates (RDATE) */
     rdate?: string[];
     /** Excluded dates (EXDATE) */
@@ -31,7 +33,7 @@ export interface RecurrenceOptions {
  * - EXDATE: Excluded dates (exceptions)
  */
 export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
-    const { rrule, dtstart: startDate, rdate, exdate, maxCount: limit = 10, from, until } = options;
+    const { rrule, dtstart: startDate, dtstartTzid, rdate, exdate, maxCount: limit = 10, from, until } = options;
 
     if (!startDate) return [];
 
@@ -45,7 +47,10 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
     );
 
     try {
-        const startDateObj = isoStringToDate(startDate);
+        // Parse start date with timezone awareness if timezone is provided
+        const startDateObj = dtstartTzid
+            ? parseIsoInTimezone(startDate, dtstartTzid)
+            : isoStringToDate(startDate);
         const occurrences: string[] = [];
 
         // Add the start date if not excluded and within the date range
@@ -69,6 +74,7 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
                 const rruleOccurrences = generateRRuleOccurrences(
                     startDateObj,
                     startDate,
+                    dtstartTzid,
                     { ...rules, count: adjustedCount },
                     excludedDates,
                     adjustedCount ?? limit, // Use COUNT if specified, otherwise use limit
@@ -117,11 +123,114 @@ function normalizeDateTime(dateStr: string): string {
 }
 
 /**
+ * Format a Date object to ISO string in a specific timezone
+ * Extracts the wall-clock time components in the given timezone
+ */
+function formatInTimezone(date: Date, timezone: string): string {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    });
+
+    const parts = formatter.formatToParts(date);
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+        parts.find(p => p.type === type)?.value || '';
+
+    const year = get('year');
+    const month = get('month');
+    const day = get('day');
+    let hour = get('hour');
+    const minute = get('minute');
+    const second = get('second');
+
+    // Handle 24:00 edge case (should be 00:00)
+    if (hour === '24') hour = '00';
+
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+}
+
+/**
+ * Add days to a date while maintaining wall-clock time in the specified timezone
+ * This properly handles DST transitions per RFC 5545
+ */
+function addDaysInTimezone(date: Date, days: number, timezone: string): Date {
+    // Get the wall-clock time in the timezone
+    const isoString = formatInTimezone(date, timezone);
+    const parsed = new Date(isoString + 'Z'); // Parse as UTC to get components
+
+    // Add days to the date component
+    parsed.setUTCDate(parsed.getUTCDate() + days);
+
+    // Format back to ISO string and parse in timezone
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getUTCDate()).padStart(2, '0');
+    const time = isoString.split('T')[1];
+    const newIsoString = `${year}-${month}-${day}T${time}`;
+
+    return parseIsoInTimezone(newIsoString, timezone);
+}
+
+/**
+ * Add weeks to a date while maintaining wall-clock time in the specified timezone
+ */
+function addWeeksInTimezone(date: Date, weeks: number, timezone: string): Date {
+    return addDaysInTimezone(date, weeks * 7, timezone);
+}
+
+/**
+ * Add months to a date while maintaining wall-clock time in the specified timezone
+ */
+function addMonthsInTimezone(date: Date, months: number, timezone: string): Date {
+    const isoString = formatInTimezone(date, timezone);
+    const parsed = new Date(isoString + 'Z');
+
+    // Add months
+    parsed.setUTCMonth(parsed.getUTCMonth() + months);
+
+    // Format back to ISO string and parse in timezone
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getUTCDate()).padStart(2, '0');
+    const time = isoString.split('T')[1];
+    const newIsoString = `${year}-${month}-${day}T${time}`;
+
+    return parseIsoInTimezone(newIsoString, timezone);
+}
+
+/**
+ * Add years to a date while maintaining wall-clock time in the specified timezone
+ */
+function addYearsInTimezone(date: Date, years: number, timezone: string): Date {
+    const isoString = formatInTimezone(date, timezone);
+    const parsed = new Date(isoString + 'Z');
+
+    // Add years
+    parsed.setUTCFullYear(parsed.getUTCFullYear() + years);
+
+    // Format back to ISO string and parse in timezone
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getUTCDate()).padStart(2, '0');
+    const time = isoString.split('T')[1];
+    const newIsoString = `${year}-${month}-${day}T${time}`;
+
+    return parseIsoInTimezone(newIsoString, timezone);
+}
+
+/**
  * Generate occurrences based on RRULE
  */
 function generateRRuleOccurrences(
     startDateObj: Date,
     startDateStr: string,
+    timezone: string | undefined,
     rules: ParsedRRule,
     excludedDates: Set<string>,
     maxCount: number,
@@ -135,12 +244,12 @@ function generateRRuleOccurrences(
 
     // Handle MONTHLY with BYSETPOS and BYDAY (e.g., last Thursday of month)
     if (rules.freq === "MONTHLY" && rules.bysetpos && rules.byday) {
-        return generateMonthlyBySetPos(startDateObj, startDateStr, rules, excludedDates, maxIterations, from, until);
+        return generateMonthlyBySetPos(startDateObj, startDateStr, timezone, rules, excludedDates, maxIterations, from, until);
     }
 
     // Handle MONTHLY with BYMONTHDAY (e.g., 21st of each month)
     if (rules.freq === "MONTHLY" && rules.bymonthday) {
-        return generateMonthlyByMonthDay(startDateObj, startDateStr, rules, excludedDates, maxIterations, from, until);
+        return generateMonthlyByMonthDay(startDateObj, startDateStr, timezone, rules, excludedDates, maxIterations, from, until);
     }
 
     // For WEEKLY with BYDAY, we need special handling
@@ -159,7 +268,9 @@ function generateRRuleOccurrences(
                 break;
             }
             if (from && searchDate < from) {
-                searchDate = addDays(searchDate, 1);
+                searchDate = timezone
+                    ? addDaysInTimezone(searchDate, 1, timezone)
+                    : addDays(searchDate, 1);
                 iterations++;
                 continue;
             }
@@ -167,7 +278,9 @@ function generateRRuleOccurrences(
             const currentWeekday = searchDate.getDay();
 
             if (targetWeekdays.includes(currentWeekday)) {
-                const isoString = format(searchDate, "yyyy-MM-dd'T'HH:mm:ss");
+                const isoString = timezone
+                    ? formatInTimezone(searchDate, timezone)
+                    : format(searchDate, "yyyy-MM-dd'T'HH:mm:ss");
                 // Don't add if it's the start date
                 if (isoString !== startDateStr) {
                     // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
@@ -179,10 +292,14 @@ function generateRRuleOccurrences(
                 }
             }
 
-            searchDate = addDays(searchDate, 1);
+            searchDate = timezone
+                ? addDaysInTimezone(searchDate, 1, timezone)
+                : addDays(searchDate, 1);
 
             if (currentWeekday === 6 && rules.interval && rules.interval > 1) {
-                searchDate = addWeeks(searchDate, rules.interval - 1);
+                searchDate = timezone
+                    ? addWeeksInTimezone(searchDate, rules.interval - 1, timezone)
+                    : addWeeks(searchDate, rules.interval - 1);
             }
             iterations++;
         }
@@ -193,21 +310,42 @@ function generateRRuleOccurrences(
     // Standard handling for other frequencies
     let iterations = 0;
     while (generatedCount < maxIterations && iterations < 100) {
-        switch (rules.freq) {
-            case "DAILY":
-                currentDate = addDays(currentDate, rules.interval || 1);
-                break;
-            case "WEEKLY":
-                currentDate = addWeeks(currentDate, rules.interval || 1);
-                break;
-            case "MONTHLY":
-                currentDate = addMonths(currentDate, rules.interval || 1);
-                break;
-            case "YEARLY":
-                currentDate = addYears(currentDate, rules.interval || 1);
-                break;
-            default:
-                return occurrences;
+        // Use timezone-aware functions to maintain wall-clock time across DST (RFC 5545)
+        if (timezone) {
+            switch (rules.freq) {
+                case "DAILY":
+                    currentDate = addDaysInTimezone(currentDate, rules.interval || 1, timezone);
+                    break;
+                case "WEEKLY":
+                    currentDate = addWeeksInTimezone(currentDate, rules.interval || 1, timezone);
+                    break;
+                case "MONTHLY":
+                    currentDate = addMonthsInTimezone(currentDate, rules.interval || 1, timezone);
+                    break;
+                case "YEARLY":
+                    currentDate = addYearsInTimezone(currentDate, rules.interval || 1, timezone);
+                    break;
+                default:
+                    return occurrences;
+            }
+        } else {
+            // No timezone - use standard date-fns functions
+            switch (rules.freq) {
+                case "DAILY":
+                    currentDate = addDays(currentDate, rules.interval || 1);
+                    break;
+                case "WEEKLY":
+                    currentDate = addWeeks(currentDate, rules.interval || 1);
+                    break;
+                case "MONTHLY":
+                    currentDate = addMonths(currentDate, rules.interval || 1);
+                    break;
+                case "YEARLY":
+                    currentDate = addYears(currentDate, rules.interval || 1);
+                    break;
+                default:
+                    return occurrences;
+            }
         }
 
         // Stop if we've passed the until date or before from date
@@ -219,7 +357,9 @@ function generateRRuleOccurrences(
             continue;
         }
 
-        const isoString = format(currentDate, "yyyy-MM-dd'T'HH:mm:ss");
+        const isoString = timezone
+            ? formatInTimezone(currentDate, timezone)
+            : format(currentDate, "yyyy-MM-dd'T'HH:mm:ss");
 
         // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
         // Count all candidates toward maxCount, but only add non-excluded to results
@@ -239,6 +379,7 @@ function generateRRuleOccurrences(
 function generateMonthlyByMonthDay(
     startDateObj: Date,
     startDateStr: string,
+    timezone: string | undefined,
     rules: ParsedRRule,
     excludedDates: Set<string>,
     maxCount: number,
@@ -283,7 +424,9 @@ function generateMonthlyByMonthDay(
                     continue;
                 }
 
-                const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
+                const isoString = timezone
+                    ? formatInTimezone(targetDate, timezone)
+                    : format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
 
                 // Skip if it's the start date (already added in main function)
                 if (isoString !== startDateStr) {
@@ -298,7 +441,9 @@ function generateMonthlyByMonthDay(
             }
         }
 
-        currentMonth = addMonths(currentMonth, rules.interval || 1);
+        currentMonth = timezone
+            ? addMonthsInTimezone(currentMonth, rules.interval || 1, timezone)
+            : addMonths(currentMonth, rules.interval || 1);
         iterations++;
     }
 
@@ -311,6 +456,7 @@ function generateMonthlyByMonthDay(
 function generateMonthlyBySetPos(
     startDateObj: Date,
     startDateStr: string,
+    timezone: string | undefined,
     rules: ParsedRRule,
     excludedDates: Set<string>,
     maxCount: number,
@@ -372,7 +518,9 @@ function generateMonthlyBySetPos(
                     continue;
                 }
 
-                const isoString = format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
+                const isoString = timezone
+                    ? formatInTimezone(targetDate, timezone)
+                    : format(targetDate, "yyyy-MM-dd'T'HH:mm:ss");
 
                 // Skip if it's the start date (already added in main function)
                 if (isoString !== startDateStr) {
@@ -387,7 +535,9 @@ function generateMonthlyBySetPos(
             }
         }
 
-        currentMonth = addMonths(currentMonth, rules.interval || 1);
+        currentMonth = timezone
+            ? addMonthsInTimezone(currentMonth, rules.interval || 1, timezone)
+            : addMonths(currentMonth, rules.interval || 1);
         iterations++;
         if (generatedCount >= maxCount) break;
     }

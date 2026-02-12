@@ -111,6 +111,7 @@ export function RecurrenceFields({
         return calculateNextOccurrences({
             rrule,
             dtstart,
+            dtstartTzid: dtstart_tzid,
             rdate: rdates,
             exdate: [], // Don't filter out excluded dates here - we need to show them greyed out
             maxCount: (count || 104) + rdateCount

@@ -58,6 +58,7 @@ export async function generateMetadata({ params, searchParams }: EventPageProps)
       const occurrences = calculateNextOccurrences({
         rrule: details.rrule!,
         dtstart: details.dtstart,
+        dtstartTzid: details.dtstart_tzid,
         rdate: details.rdate,
         exdate: details.exdate,
         maxCount: 10,
