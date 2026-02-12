@@ -71,6 +71,17 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
                     ? rules.count - 1
                     : undefined;
 
+                // RFC 5545: Respect RRULE UNTIL - use the earlier of RRULE UNTIL and caller's until
+                let effectiveUntil = until;
+                if (rules.until) {
+                    const rruleUntilDate = parseRRuleUntil(rules.until, dtstartTzid);
+                    if (rruleUntilDate) {
+                        effectiveUntil = effectiveUntil
+                            ? (rruleUntilDate < effectiveUntil ? rruleUntilDate : effectiveUntil)
+                            : rruleUntilDate;
+                    }
+                }
+
                 const rruleOccurrences = generateRRuleOccurrences(
                     startDateObj,
                     startDate,
@@ -79,7 +90,7 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
                     excludedDates,
                     adjustedCount ?? limit, // Use COUNT if specified, otherwise use limit
                     from,
-                    until
+                    effectiveUntil
                 );
                 // Merge, avoiding duplicates
                 for (const occ of rruleOccurrences) {
@@ -90,12 +101,19 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
             }
         }
 
-        // Add RDATE entries (additional one-off dates) if not excluded
+        // Add RDATE entries (additional one-off dates) if not excluded and within date range
         for (const additionalDate of rdateArray) {
-            if (additionalDate && !excludedDates.has(normalizeDateTime(additionalDate))) {
-                if (!occurrences.includes(additionalDate)) {
-                    occurrences.push(additionalDate);
-                }
+            if (!additionalDate) continue;
+            if (excludedDates.has(normalizeDateTime(additionalDate))) continue;
+
+            // Filter RDATE by date range
+            const rdateObj = dtstartTzid
+                ? parseIsoInTimezone(additionalDate, dtstartTzid)
+                : isoStringToDate(additionalDate);
+            const rdateInRange = (!from || rdateObj >= from) && (!until || rdateObj <= until);
+
+            if (rdateInRange && !occurrences.includes(additionalDate)) {
+                occurrences.push(additionalDate);
             }
         }
 
@@ -120,6 +138,33 @@ export function calculateNextOccurrences(options: RecurrenceOptions): string[] {
 function normalizeDateTime(dateStr: string): string {
     // Normalize to YYYY-MM-DDTHH:MM:SS format
     return dateStr.slice(0, 19);
+}
+
+/**
+ * Parse RRULE UNTIL value into a Date object
+ * Handles formats: 20260301T090000Z, 20260301T090000, 20260301
+ */
+function parseRRuleUntil(untilStr: string, timezone?: string): Date | undefined {
+    try {
+        let normalized = untilStr;
+        if (/^\d{8}T\d{6}Z?$/.test(normalized)) {
+            // Compact format: 20260301T090000Z -> 2026-03-01T09:00:00
+            normalized = `${normalized.slice(0, 4)}-${normalized.slice(4, 6)}-${normalized.slice(6, 8)}T${normalized.slice(9, 11)}:${normalized.slice(11, 13)}:${normalized.slice(13, 15)}`;
+            if (untilStr.endsWith('Z')) {
+                return new Date(normalized + 'Z');
+            }
+        } else if (/^\d{8}$/.test(normalized)) {
+            // Date only: 20260301 -> 2026-03-01T23:59:59
+            normalized = `${normalized.slice(0, 4)}-${normalized.slice(4, 6)}-${normalized.slice(6, 8)}T23:59:59`;
+        }
+
+        if (timezone && !untilStr.endsWith('Z')) {
+            return parseIsoInTimezone(normalized, timezone);
+        }
+        return isoStringToDate(normalized);
+    } catch {
+        return undefined;
+    }
 }
 
 /**
@@ -240,7 +285,7 @@ function generateRRuleOccurrences(
     const occurrences: string[] = [];
     let currentDate = startDateObj;
     let generatedCount = 0;
-    const maxIterations = rules.count || maxCount;
+    const maxIterations = rules.count ?? maxCount;
 
     // Handle MONTHLY with BYSETPOS and BYDAY (e.g., last Thursday of month)
     if (rules.freq === "MONTHLY" && rules.bysetpos && rules.byday) {
@@ -263,16 +308,9 @@ function generateRRuleOccurrences(
         let iterations = 0;
 
         while (generatedCount < maxIterations && iterations < 1000) {
-            // Stop if we've passed the until date or before from date
+            // Stop if we've passed the until date
             if (until && searchDate > until) {
                 break;
-            }
-            if (from && searchDate < from) {
-                searchDate = timezone
-                    ? addDaysInTimezone(searchDate, 1, timezone)
-                    : addDays(searchDate, 1);
-                iterations++;
-                continue;
             }
 
             const currentWeekday = searchDate.getDay();
@@ -283,10 +321,10 @@ function generateRRuleOccurrences(
                     : format(searchDate, "yyyy-MM-dd'T'HH:mm:ss");
                 // Don't add if it's the start date
                 if (isoString !== startDateStr) {
-                    // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
-                    // Count all candidates toward maxCount, but only add non-excluded to results
+                    // RFC 5545: COUNT counts all candidates regardless of date range
                     generatedCount++;
-                    if (!excludedDates.has(normalizeDateTime(isoString))) {
+                    const inRange = !(from && searchDate < from);
+                    if (inRange && !excludedDates.has(normalizeDateTime(isoString))) {
                         occurrences.push(isoString);
                     }
                 }
@@ -348,23 +386,20 @@ function generateRRuleOccurrences(
             }
         }
 
-        // Stop if we've passed the until date or before from date
+        // Stop if we've passed the until date
         if (until && currentDate > until) {
             break;
-        }
-        if (from && currentDate < from) {
-            iterations++;
-            continue;
         }
 
         const isoString = timezone
             ? formatInTimezone(currentDate, timezone)
             : format(currentDate, "yyyy-MM-dd'T'HH:mm:ss");
 
-        // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
-        // Count all candidates toward maxCount, but only add non-excluded to results
+        // RFC 5545: COUNT counts all candidates regardless of date range filtering
+        // Candidates before 'from' still count toward COUNT but aren't added to results
         generatedCount++;
-        if (!excludedDates.has(normalizeDateTime(isoString))) {
+        const inRange = !(from && currentDate < from);
+        if (inRange && !excludedDates.has(normalizeDateTime(isoString))) {
             occurrences.push(isoString);
         }
         iterations++;
@@ -418,9 +453,8 @@ function generateMonthlyByMonthDay(
 
             // Ensure the day is valid for this month and >= start date
             if (targetDate.getMonth() === currentMonth.getMonth() && targetDate >= startDateObj) {
-                // Check if within from/until range
-                const inRange = (!from || targetDate >= from) && (!until || targetDate <= until);
-                if (!inRange) {
+                // Stop if past until date
+                if (until && targetDate > until) {
                     continue;
                 }
 
@@ -430,10 +464,10 @@ function generateMonthlyByMonthDay(
 
                 // Skip if it's the start date (already added in main function)
                 if (isoString !== startDateStr) {
-                    // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
-                    // Count all candidates toward maxCount, but only add non-excluded to results
+                    // RFC 5545: COUNT counts all candidates regardless of date range
                     generatedCount++;
-                    if (!excludedDates.has(normalizeDateTime(isoString))) {
+                    const inRange = !from || targetDate >= from;
+                    if (inRange && !excludedDates.has(normalizeDateTime(isoString))) {
                         occurrences.push(isoString);
                     }
                     if (generatedCount >= maxCount) break;
@@ -512,9 +546,8 @@ function generateMonthlyBySetPos(
             }
 
             if (targetDate && targetDate >= startDateObj) {
-                // Check if within from/until range
-                const inRange = (!from || targetDate >= from) && (!until || targetDate <= until);
-                if (!inRange) {
+                // Stop if past until date
+                if (until && targetDate > until) {
                     continue;
                 }
 
@@ -524,10 +557,10 @@ function generateMonthlyBySetPos(
 
                 // Skip if it's the start date (already added in main function)
                 if (isoString !== startDateStr) {
-                    // RFC 5545: COUNT specifies candidates BEFORE EXDATE filtering
-                    // Count all candidates toward maxCount, but only add non-excluded to results
+                    // RFC 5545: COUNT counts all candidates regardless of date range
                     generatedCount++;
-                    if (!excludedDates.has(normalizeDateTime(isoString))) {
+                    const inRange = !from || targetDate >= from;
+                    if (inRange && !excludedDates.has(normalizeDateTime(isoString))) {
                         occurrences.push(isoString);
                     }
                     if (generatedCount >= maxCount) break;
