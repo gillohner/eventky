@@ -27,6 +27,10 @@ export interface CalendarEvent {
     dtstart: string;
     dtend?: string;
     duration?: string;
+    /** Timezone for dtstart (IANA timezone identifier like "America/New_York") */
+    dtstartTzid?: string;
+    /** Timezone for dtend (IANA timezone identifier) */
+    dtendTzid?: string;
     description?: string;
     image?: string;
     color: string;

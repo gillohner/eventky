@@ -1,6 +1,6 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { Calendar, Users, Repeat, Plus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
+import { parseIsoInTimezone, parseIsoDateTime, getLocalTimezone, formatDateTime } from "@/lib/datetime";
 
 import type { CalendarAgendaViewProps } from "@/types";
 
@@ -26,13 +27,20 @@ export function CalendarAgendaView({
 }: CalendarAgendaViewProps) {
 
 
-    // Group events by date
+    // Group events by date - use event timezone for accurate day grouping
+    const localTimezone = getLocalTimezone();
     const eventsByDate = events.reduce((acc, event) => {
-        const date = format(parseISO(event.dtstart), "yyyy-MM-dd");
-        if (!acc[date]) {
-            acc[date] = [];
+        // Parse in event timezone (or local if not specified)
+        const eventDate = event.dtstartTzid
+            ? parseIsoInTimezone(event.dtstart, event.dtstartTzid)
+            : parseIsoDateTime(event.dtstart);
+
+        const dateKey = format(eventDate, "yyyy-MM-dd");
+
+        if (!acc[dateKey]) {
+            acc[dateKey] = [];
         }
-        acc[date].push(event);
+        acc[dateKey].push(event);
         return acc;
     }, {} as Record<string, typeof events>);
 
@@ -55,7 +63,7 @@ export function CalendarAgendaView({
             <div className="space-y-6 pr-4 pb-4">
                 {sortedDates.map((date) => {
                     const dateEvents = eventsByDate[date];
-                    const dateObj = parseISO(date);
+                    const dateObj = parseIsoDateTime(date);
 
                     return (
                         <div key={date}>
@@ -77,8 +85,11 @@ export function CalendarAgendaView({
                                     const eventUrl = `/event/${event.authorId}/${event.eventId}${instanceParam}`;
                                     const imageUrl = event.image ? getPubkyImageUrl(event.image, "main") : null;
 
-                                    // Check if event is in the past
-                                    const isPastEvent = new Date(event.dtstart) < new Date();
+                                    // Check if event is in the past - use event timezone for accurate comparison
+                                    const eventDate = event.dtstartTzid
+                                        ? parseIsoInTimezone(event.dtstart, event.dtstartTzid)
+                                        : parseIsoDateTime(event.dtstart);
+                                    const isPastEvent = eventDate < new Date();
 
                                     return (
                                         <Link key={event.id} href={eventUrl}>
@@ -104,10 +115,15 @@ export function CalendarAgendaView({
                                                                     <Calendar className="h-8 w-8 text-primary/40" />
                                                                 </div>
                                                             )}
-                                                            {/* Time overlay */}
+                                                            {/* Time overlay - display in local timezone */}
                                                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-2 py-1">
                                                                 <div className="text-xs font-medium text-white text-center">
-                                                                    {format(parseISO(event.dtstart), "HH:mm")}
+                                                                    {formatDateTime(
+                                                                        event.dtstart,
+                                                                        localTimezone,
+                                                                        event.dtstartTzid,
+                                                                        { includeYear: false, includeWeekday: false, compact: true }
+                                                                    ).time}
                                                                 </div>
                                                             </div>
                                                             {/* Recurring indicator */}

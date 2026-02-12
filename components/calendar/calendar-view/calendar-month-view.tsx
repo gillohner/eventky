@@ -1,8 +1,9 @@
 "use client";
 
-import { format, isSameMonth, isToday, startOfWeek, endOfWeek, eachDayOfInterval, parseISO } from "date-fns";
+import { format, isSameMonth, isToday, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { parseIsoInTimezone, parseIsoDateTime, getLocalTimezone } from "@/lib/datetime";
 import type { CalendarMonthViewProps } from "@/types";
 
 /**
@@ -23,13 +24,21 @@ export function CalendarMonthView({
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    // Group events by date
+    // Group events by date - use event timezone for accurate day grouping
+    const localTimezone = getLocalTimezone();
     const eventsByDate = events.reduce((acc, event) => {
-        const date = format(parseISO(event.dtstart), "yyyy-MM-dd");
-        if (!acc[date]) {
-            acc[date] = [];
+        // Parse in event timezone (or local if not specified) to get correct day
+        const eventDate = event.dtstartTzid
+            ? parseIsoInTimezone(event.dtstart, event.dtstartTzid)
+            : parseIsoDateTime(event.dtstart);
+
+        // Format in local timezone for calendar display
+        const dateKey = format(eventDate, "yyyy-MM-dd");
+
+        if (!acc[dateKey]) {
+            acc[dateKey] = [];
         }
-        acc[date].push(event);
+        acc[dateKey].push(event);
         return acc;
     }, {} as Record<string, typeof events>);
 

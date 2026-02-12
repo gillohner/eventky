@@ -23,6 +23,7 @@ import {
     subDays,
 } from "date-fns";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
+import { parseIsoInTimezone, parseIsoDateTime } from "@/lib/datetime";
 import type {
     CalendarViewMode,
     CalendarEvent,
@@ -245,6 +246,7 @@ export function useCalendarView(
                 const occurrenceDates = calculateNextOccurrences({
                     rrule: event.rrule,
                     dtstart: event.dtstart,
+                    dtstartTzid: event.dtstart_tzid,
                     rdate: event.rdate,
                     exdate: event.exdate,
                     maxCount: 1000, // Allow up to 1000 occurrences for 1 year display
@@ -253,8 +255,10 @@ export function useCalendarView(
                 });
 
                 occurrenceDates.forEach((occurrenceDate: string) => {
-                    // Filter by date range
-                    const occurrenceTime = new Date(occurrenceDate);
+                    // Filter by date range - parse in event timezone for accurate comparison
+                    const occurrenceTime = event.dtstart_tzid
+                        ? parseIsoInTimezone(occurrenceDate, event.dtstart_tzid)
+                        : parseIsoDateTime(occurrenceDate);
                     if (occurrenceTime < dateRange.start || occurrenceTime > dateRange.end) {
                         return;
                     }
@@ -265,6 +269,8 @@ export function useCalendarView(
                         dtstart: occurrenceDate,
                         dtend: event.dtend,
                         duration: event.duration,
+                        dtstartTzid: event.dtstart_tzid,
+                        dtendTzid: event.dtend_tzid,
                         description: event.description,
                         image: event.image_uri,
                         color: primaryCalendar.color,
@@ -280,8 +286,10 @@ export function useCalendarView(
                     });
                 });
             } else {
-                // Single event - filter by date range
-                const eventTime = new Date(event.dtstart);
+                // Single event - filter by date range - parse in event timezone for accurate comparison
+                const eventTime = event.dtstart_tzid
+                    ? parseIsoInTimezone(event.dtstart, event.dtstart_tzid)
+                    : parseIsoDateTime(event.dtstart);
                 if (eventTime < dateRange.start || eventTime > dateRange.end) {
                     return;
                 }
@@ -292,6 +300,8 @@ export function useCalendarView(
                     dtstart: event.dtstart,
                     dtend: event.dtend,
                     duration: event.duration,
+                    dtstartTzid: event.dtstart_tzid,
+                    dtendTzid: event.dtend_tzid,
                     description: event.description,
                     image: event.image_uri,
                     color: primaryCalendar.color,

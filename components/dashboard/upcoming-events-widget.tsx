@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { format, parseISO, addDays, startOfDay } from "date-fns";
+import { format, addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 import { CalendarDays, TrendingUp } from "lucide-react";
 import { DashboardWidget } from "@/components/dashboard/dashboard-widget";
 import { useEventsStream } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
+import { parseIsoInTimezone, parseIsoDateTime } from "@/lib/datetime";
 
 interface UpcomingEventsWidgetProps {
     daysAhead?: number;
@@ -27,17 +28,27 @@ export function UpcomingEventsWidget({ daysAhead = 7, maxItems = 5 }: UpcomingEv
         end_date: Math.floor(endDate.getTime() / 1000) * 1000000,
     });
 
-    // Filter and sort upcoming events
+    // Filter and sort upcoming events - use event timezone for accurate comparison
     const upcomingEvents = useMemo(() => {
         if (!events) return [];
 
         return events
             .filter((event) => {
-                const eventDate = parseISO(event.dtstart);
+                // Parse in event timezone for accurate date range comparison
+                const eventDate = event.dtstart_tzid
+                    ? parseIsoInTimezone(event.dtstart, event.dtstart_tzid)
+                    : parseIsoDateTime(event.dtstart);
                 return eventDate >= now && eventDate <= endDate;
             })
             .sort((a, b) => {
-                return new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime();
+                // Parse both in their respective timezones for accurate sorting
+                const dateA = a.dtstart_tzid
+                    ? parseIsoInTimezone(a.dtstart, a.dtstart_tzid)
+                    : parseIsoDateTime(a.dtstart);
+                const dateB = b.dtstart_tzid
+                    ? parseIsoInTimezone(b.dtstart, b.dtstart_tzid)
+                    : parseIsoDateTime(b.dtstart);
+                return dateA.getTime() - dateB.getTime();
             })
             .slice(0, maxItems);
     }, [events, now, endDate, maxItems]);
@@ -72,7 +83,10 @@ export function UpcomingEventsWidget({ daysAhead = 7, maxItems = 5 }: UpcomingEv
         >
             <div className="space-y-2">
                 {upcomingEvents.map((event) => {
-                    const startDate = parseISO(event.dtstart);
+                    // Parse in event timezone for accurate display
+                    const startDate = event.dtstart_tzid
+                        ? parseIsoInTimezone(event.dtstart, event.dtstart_tzid)
+                        : parseIsoDateTime(event.dtstart);
 
                     return (
                         <Link

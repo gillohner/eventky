@@ -79,6 +79,7 @@ export default function EventsPage() {
                 const occurrences = calculateNextOccurrences({
                     rrule: event.rrule,
                     dtstart: event.dtstart,
+                    dtstartTzid: event.dtstart_tzid,
                     rdate: event.rdate,
                     exdate: event.exdate,
                     maxCount: 1, // We only need to know if there's at least one occurrence

@@ -243,6 +243,7 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
 // Components should gradually migrate to import from @/lib/datetime directly
 export {
     parseIsoDateTime as isoStringToDate,
+    parseIsoInTimezone,
     dateToISOString,
     formatDateInTimezone,
 } from "@/lib/datetime";

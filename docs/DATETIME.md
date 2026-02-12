@@ -37,3 +37,13 @@ Basic RRULE support:
 - `EXDATE`: Excluded dates
 
 No per-instance overrides (out of scope).
+
+## Detailed Timezone Handling
+
+For comprehensive timezone documentation including:
+- DST transition handling
+- Timezone-aware date arithmetic
+- Edge cases (Lord Howe, Chatham Islands, etc.)
+- Complete IANA timezone coverage (419 timezones)
+
+See [TIMEZONE_HANDLING.md](TIMEZONE_HANDLING.md)

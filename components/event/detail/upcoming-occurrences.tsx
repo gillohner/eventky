@@ -8,7 +8,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Repeat, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import Link from "next/link";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
-import { parseRRuleToLabel, formatOccurrenceDate } from "@/lib/datetime";
+import { parseRRuleToLabel, formatOccurrenceDate, parseIsoInTimezone, parseIsoDateTime } from "@/lib/datetime";
 import { OccurrenceCard } from "@/components/event/shared";
 
 interface UpcomingOccurrencesProps {
@@ -54,6 +54,7 @@ export function UpcomingOccurrences({
         return calculateNextOccurrences({
             rrule,
             dtstart,
+            dtstartTzid,
             rdate,
             exdate,
             maxCount: maxOccurrences,
@@ -152,7 +153,11 @@ export function UpcomingOccurrences({
                         <div className="flex gap-2 pb-2">
                             {occurrences.map((occ, index) => {
                                 const isSelected = selectedInstance ? occ === selectedInstance : index === 0;
-                                const isPast = new Date(occ) < new Date();
+                                // Parse in event timezone for accurate past/future check
+                                const occDate = dtstartTzid
+                                    ? parseIsoInTimezone(occ, dtstartTzid)
+                                    : parseIsoDateTime(occ);
+                                const isPast = occDate < new Date();
 
                                 return (
                                     <Link

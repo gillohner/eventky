@@ -1,9 +1,10 @@
 "use client";
 
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, isSameDay } from "date-fns";
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { parseIsoInTimezone, parseIsoDateTime, getLocalTimezone, formatDateTime } from "@/lib/datetime";
 import type { CalendarWeekViewProps } from "@/types";
 
 /**
@@ -20,11 +21,16 @@ export function CalendarWeekView({
     const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
     const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-    // Group events by day
+    // Group events by day - use event timezone for accurate day matching
+    const localTimezone = getLocalTimezone();
     const eventsByDay = weekDays.map((day) => {
-        const dayEvents = events.filter((event) =>
-            isSameDay(parseISO(event.dtstart), day)
-        );
+        const dayEvents = events.filter((event) => {
+            // Parse in event timezone (or local if not specified)
+            const eventDate = event.dtstartTzid
+                ? parseIsoInTimezone(event.dtstart, event.dtstartTzid)
+                : parseIsoDateTime(event.dtstart);
+            return isSameDay(eventDate, day);
+        });
         return { day, events: dayEvents };
     });
 
@@ -82,9 +88,14 @@ export function CalendarWeekView({
                                                     ...borderStyle,
                                                 }}
                                             >
-                                                {/* Time */}
+                                                {/* Time - display in local timezone */}
                                                 <div className="font-medium mb-1">
-                                                    {format(parseISO(event.dtstart), "HH:mm")}
+                                                    {formatDateTime(
+                                                        event.dtstart,
+                                                        localTimezone,
+                                                        event.dtstartTzid,
+                                                        { includeYear: false, includeWeekday: false, compact: true }
+                                                    ).time}
                                                 </div>
 
                                                 {/* Title */}

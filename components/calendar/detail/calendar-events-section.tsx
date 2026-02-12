@@ -66,6 +66,7 @@ export function CalendarEventsSection({
                 const occurrenceDates = calculateNextOccurrences({
                     rrule: details.rrule,
                     dtstart: details.dtstart,
+                    dtstartTzid: details.dtstart_tzid,
                     rdate: details.rdate,
                     exdate: details.exdate,
                     maxCount: maxOccurrencesPerEvent,

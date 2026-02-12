@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import {
     parseIsoDateTime,
+    parseIsoInTimezone,
     dateToISOString,
     formatDateTime,
     getLocalTimezone,
@@ -98,36 +99,28 @@ export function DateTimeRecurrence({
 }: DateTimeRecurrenceProps) {
     const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("event");
     const [loadedOccurrences, setLoadedOccurrences] = useState(maxOccurrences);
-
+    const [canScroll, setCanScroll] = useState(false);
 
     const isRecurring = Boolean(rrule);
     const isInfinite = rrule ? isIndefiniteRecurrence(rrule) : false;
     const localTimezone = getLocalTimezone();
     const displayTimezone = timezoneMode === "local" ? localTimezone : (dtstartTzid || localTimezone);
 
-    // Calculate occurrences for recurring events - generate up to 1 year ahead
+    // Calculate occurrences for recurring events
     const occurrences = useMemo(() => {
         if (!rrule) return [];
 
-        // For recurring events, calculate occurrences for up to 1 year ahead or 1000 occurrences max
+        // Calculate occurrences up to loadedOccurrences count (max 1000)
         const maxCount = Math.min(loadedOccurrences, 1000);
-        const allOccurrences = calculateNextOccurrences({
+        return calculateNextOccurrences({
             rrule,
             dtstart,
+            dtstartTzid,
             rdate,
             exdate,
             maxCount,
         });
-
-        // Filter to only show occurrences within the next year
-        const oneYearFromNow = new Date();
-        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-        return allOccurrences.filter((occ) => {
-            const occDate = new Date(occ);
-            return occDate <= oneYearFromNow;
-        });
-    }, [rrule, dtstart, rdate, exdate, loadedOccurrences]);
+    }, [rrule, dtstart, dtstartTzid, rdate, exdate, loadedOccurrences]);
 
     // Build a map of user's attendance per instance
     const userAttendanceMap = useMemo(() => {
@@ -161,18 +154,21 @@ export function DateTimeRecurrence({
     // Determine the display start date (selected instance or dtstart)
     const displayDtstart = selectedInstance || dtstart;
 
-    // Calculate end time from duration if needed
+    // Calculate end time from duration if needed - respect event timezone
     const calculatedDtend = useMemo(() => {
         if (dtend && !selectedInstance) return dtend;
         if (!duration) return undefined;
         try {
-            const startDate = parseIsoDateTime(displayDtstart);
+            // Parse start date in event timezone for accurate duration calculation
+            const startDate = dtstartTzid
+                ? parseIsoInTimezone(displayDtstart, dtstartTzid)
+                : parseIsoDateTime(displayDtstart);
             const durationMs = parseDuration(duration);
             return dateToISOString(new Date(startDate.getTime() + durationMs));
         } catch {
             return undefined;
         }
-    }, [displayDtstart, dtend, duration, selectedInstance]);
+    }, [displayDtstart, dtend, duration, selectedInstance, dtstartTzid]);
 
     // Format times using the display start date (selected instance or dtstart)
     const formattedStart = useMemo(() => {
@@ -211,15 +207,25 @@ export function DateTimeRecurrence({
     }, [occurrences, selectedInstance]);
 
     // Auto-load more occurrences if selected instance is near the end or not found
-    // Using useLayoutEffect to avoid cascading renders since this updates during render phase
     useEffect(() => {
-        if (!rrule || !selectedInstance) return;
+        if (!rrule || !selectedInstance) {
+            setCanScroll(false);
+            return;
+        }
 
         if (selectedIndex === -1 || selectedIndex >= occurrences.length - 5) {
+            // Disable scrolling while auto-loading
+            setCanScroll(false);
             // Use setTimeout to defer the state update to avoid cascading renders
             const timeoutId = setTimeout(() => {
-                setLoadedOccurrences((prev) => Math.min(prev + 50, 500));
+                setLoadedOccurrences((prev) => Math.min(prev + 50, 1000));
             }, 0);
+            return () => clearTimeout(timeoutId);
+        } else {
+            // We found the selected instance - enable scrolling after a short delay
+            const timeoutId = setTimeout(() => {
+                setCanScroll(true);
+            }, 150);
             return () => clearTimeout(timeoutId);
         }
     }, [rrule, selectedInstance, selectedIndex, occurrences.length]);
@@ -327,6 +333,7 @@ export function DateTimeRecurrence({
                                 authorId={authorId}
                                 eventId={eventId}
                                 navigation={navigation}
+                                dtstartTzid={dtstartTzid}
                             />
                         )}
 
@@ -346,7 +353,7 @@ export function DateTimeRecurrence({
                                                 <TooltipContent>
                                                     <p>This event repeats indefinitely</p>
                                                     <p className="text-xs text-muted-foreground mt-1">
-                                                        Limited to 1 year from today
+                                                        Use Load More to view additional occurrences
                                                     </p>
                                                 </TooltipContent>
                                             </Tooltip>
@@ -362,7 +369,11 @@ export function DateTimeRecurrence({
                                 <div className="flex gap-2 pb-3">
                                     {occurrences.map((occ, index) => {
                                         const isSelected = selectedInstance ? occ === selectedInstance : index === 0;
-                                        const isPast = new Date(occ) < new Date();
+                                        // Parse in event timezone for accurate past/future check
+                                        const occDate = dtstartTzid
+                                            ? parseIsoInTimezone(occ, dtstartTzid)
+                                            : parseIsoDateTime(occ);
+                                        const isPast = occDate < new Date();
                                         const userStatus = getUserAttendance(occ);
 
                                         return (
@@ -375,13 +386,14 @@ export function DateTimeRecurrence({
                                                 isPast={isPast}
                                                 userStatus={userStatus}
                                                 href={`/event/${authorId}/${eventId}?instance=${encodeURIComponent(occ)}`}
+                                                canScroll={canScroll}
                                             />
                                         );
                                     })}
                                 </div>
                                 <ScrollBar orientation="horizontal" />
                             </ScrollArea>
-                            {/* Load More Button */}
+                            {/* Load More Button - Show when we have more occurrences to load */}
                             {loadedOccurrences < 1000 && occurrences.length >= loadedOccurrences && (
                                 <Button
                                     variant="outline"
@@ -412,6 +424,7 @@ function OccurrenceChip({
     isPast,
     userStatus,
     href,
+    canScroll,
 }: {
     date: string;
     timezone: string;
@@ -420,19 +433,20 @@ function OccurrenceChip({
     isPast: boolean;
     userStatus?: string;
     href: string;
+    canScroll?: boolean;
 }) {
     const chipRef = useRef<HTMLAnchorElement>(null);
 
-    // Scroll into view when selected
+    // Scroll into view when selected and allowed to scroll
     useEffect(() => {
-        if (isSelected && chipRef.current) {
+        if (isSelected && canScroll && chipRef.current) {
             chipRef.current.scrollIntoView({
                 behavior: 'smooth',
                 block: 'nearest',
                 inline: 'center'
             });
         }
-    }, [isSelected]);
+    }, [isSelected, canScroll]);
 
     const formatted = useMemo(() => {
         return formatDateTime(date, timezone, eventTimezone, {
@@ -518,6 +532,7 @@ function OccurrenceStatus({
     authorId,
     eventId,
     navigation,
+    dtstartTzid,
 }: {
     selectedInstance: string;
     occurrences: string[];
@@ -525,13 +540,22 @@ function OccurrenceStatus({
     authorId: string;
     eventId: string;
     navigation: { prev: string | null; next: string | null };
+    dtstartTzid?: string;
 }) {
     const now = new Date();
-    const selectedDate = new Date(selectedInstance);
+    // Parse in event timezone for accurate past/future comparison
+    const selectedDate = dtstartTzid
+        ? parseIsoInTimezone(selectedInstance, dtstartTzid)
+        : parseIsoDateTime(selectedInstance);
     const isPast = selectedDate < now;
 
-    // Find next occurrence
-    const nextOccurrence = occurrences.find(occ => new Date(occ) > now);
+    // Find next occurrence - parse in event timezone
+    const nextOccurrence = occurrences.find(occ => {
+        const occDate = dtstartTzid
+            ? parseIsoInTimezone(occ, dtstartTzid)
+            : parseIsoDateTime(occ);
+        return occDate > now;
+    });
     const isNext = nextOccurrence === selectedInstance;
 
     // Calculate time until/since occurrence
