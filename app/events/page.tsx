@@ -28,31 +28,13 @@ export default function EventsPage() {
         const author = searchParams.get("author");
         const start_date = searchParams.get("start_date");
         const end_date = searchParams.get("end_date");
-        const preset = searchParams.get("preset") as EventStreamFilterValues["preset"];
-
-        // Default to "upcoming" preset if no filters specified
-        const defaultPreset: EventStreamFilterValues["preset"] = "upcoming";
-        let defaultStartDate: number | undefined = undefined;
-        let defaultEndDate: number | undefined = undefined;
-
-        if (!start_date && !end_date && !preset) {
-            // Default: upcoming events (today to 1 year ahead)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            defaultStartDate = today.getTime() * 1000;
-
-            const oneYearAhead = new Date(today);
-            oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
-            defaultEndDate = oneYearAhead.getTime() * 1000;
-        }
 
         return {
-            preset: preset || defaultPreset,
             tags: tags ? tags.split(",") : undefined,
             status: status || undefined,
             author: author || undefined,
-            start_date: start_date ? parseInt(start_date) : defaultStartDate,
-            end_date: end_date ? parseInt(end_date) : defaultEndDate,
+            start_date: start_date ? parseInt(start_date) : undefined,
+            end_date: end_date ? parseInt(end_date) : undefined,
         };
     });
 
@@ -193,9 +175,6 @@ export default function EventsPage() {
     useEffect(() => {
         const params = new URLSearchParams();
 
-        if (filters.preset && filters.preset !== "upcoming") {
-            params.set("preset", filters.preset);
-        }
         if (filters.tags && filters.tags.length > 0) {
             params.set("tags", filters.tags.join(","));
         }
@@ -301,13 +280,11 @@ export default function EventsPage() {
                         calendars={calendars}
                         externalDateRange={filters.start_date || filters.end_date ? {
                             start: filters.start_date ? new Date(filters.start_date / 1000) : (() => {
-                                // For past events filter (no start_date), use a far past date
                                 const farPast = new Date();
                                 farPast.setFullYear(farPast.getFullYear() - 10);
                                 return farPast;
                             })(),
                             end: filters.end_date ? new Date(filters.end_date / 1000) : (() => {
-                                // Default to 1 year ahead if no end date
                                 const oneYear = filters.start_date ? new Date(filters.start_date / 1000) : new Date();
                                 oneYear.setFullYear(oneYear.getFullYear() + 1);
                                 return oneYear;

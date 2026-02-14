@@ -199,7 +199,7 @@ export function CalendarAgendaView({
                             className="w-full"
                         >
                             <Plus className="h-4 w-4 mr-2" />
-                            Load next year of events
+                            Load more events
                         </Button>
                     </div>
                 )}
