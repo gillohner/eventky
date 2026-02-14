@@ -93,7 +93,15 @@ export interface NexusEventResponse {
 }
 
 /**
- * Event stream item (lighter weight, no tags/attendees)
+ * Lightweight tag info included in stream responses
+ */
+export interface NexusStreamTagInfo {
+    label: string;
+    taggers_count: number;
+}
+
+/**
+ * Event stream item (includes inline tags from stream query)
  */
 export interface NexusEventStreamItem {
     id: string;
@@ -124,6 +132,8 @@ export interface NexusEventStreamItem {
     locations?: string;
     x_pubky_calendar_uris?: string[];
     x_pubky_rsvp_access?: string;
+    /** Tags aggregated in the stream query */
+    tags?: NexusStreamTagInfo[];
 }
 
 /**
@@ -156,7 +166,7 @@ export interface NexusCalendarResponse {
 }
 
 /**
- * Calendar stream item (lighter weight)
+ * Calendar stream item (includes inline tags from stream query)
  */
 export interface NexusCalendarStreamItem {
     id: string;
@@ -173,6 +183,8 @@ export interface NexusCalendarStreamItem {
     created?: number;
     sequence?: number;
     last_modified?: number;
+    /** Tags aggregated in the stream query */
+    tags?: NexusStreamTagInfo[];
 }
 
 // =============================================================================
@@ -295,9 +307,7 @@ export interface EventStreamParams {
     status?: string;
     start_date?: number;
     end_date?: number;
-    author?: string;
-    timezone?: string;
-    rsvp_access?: string;
+    authors?: string;
     tags?: string[];
 }
 

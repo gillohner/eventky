@@ -28,7 +28,7 @@ type MockPubkyAppEvent = {
     dtend_tzid?: string
     description?: string
     status?: string
-    location?: string
+    locations?: string
     sequence?: number
     created?: number
     last_modified?: number
@@ -111,7 +111,10 @@ function createMockPubkyAppEvent(): MockPubkyAppEvent {
         dtend_tzid: 'America/New_York',
         description: 'Test event description',
         status: 'CONFIRMED',
-        location: 'Test Location',
+        locations: JSON.stringify([
+            { name: 'Conference Hall', location_type: 'PHYSICAL', structured_data: 'https://www.openstreetmap.org/?mlat=40.7128&mlon=-74.0060' },
+            { name: 'Jitsi Meeting', location_type: 'ONLINE', structured_data: 'https://meet.jit.si/test-event-room' },
+        ]),
         sequence: 1,
         created: TEST_TIMESTAMP,
         last_modified: TEST_TIMESTAMP + 50,
@@ -134,7 +137,10 @@ function createMockCachedEvent(): CachedEvent {
             dtend_tzid: 'America/New_York',
             description: 'Test event description',
             status: 'CONFIRMED',
-            location: 'Test Location',
+            locations: JSON.stringify([
+                { name: 'Conference Hall', location_type: 'PHYSICAL', structured_data: 'https://www.openstreetmap.org/?mlat=40.7128&mlon=-74.0060' },
+                { name: 'Jitsi Meeting', location_type: 'ONLINE', structured_data: 'https://meet.jit.si/test-event-room' },
+            ]),
             sequence: 1,
             created: TEST_TIMESTAMP,
             last_modified: TEST_TIMESTAMP + 50,

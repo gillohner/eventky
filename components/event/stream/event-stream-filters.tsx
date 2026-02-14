@@ -20,7 +20,7 @@ const EVENT_STATUSES = getValidEventStatuses().map((status) => ({
 export interface EventStreamFilterValues {
     tags?: string[];
     status?: string;
-    author?: string;
+    authors?: string[];
     start_date?: number;
     end_date?: number;
 }
@@ -33,7 +33,7 @@ interface EventStreamFiltersProps {
 
 export function EventStreamFilters({ filters, onFiltersChange, popularTags = [] }: EventStreamFiltersProps) {
     // Lookup author user data
-    const authorIds = filters.author ? [filters.author] : [];
+    const authorIds = filters.authors || [];
     const { data: authorUsers } = useUsersByIds(authorIds);
 
     const selectedAuthors: SelectedUser[] = authorUsers?.map((user) => ({
@@ -46,7 +46,7 @@ export function EventStreamFilters({ filters, onFiltersChange, popularTags = [] 
     const hasActiveFilters =
         !!filters.tags?.length ||
         !!filters.status ||
-        !!filters.author ||
+        !!filters.authors?.length ||
         !!filters.start_date ||
         !!filters.end_date;
 
@@ -75,8 +75,7 @@ export function EventStreamFilters({ filters, onFiltersChange, popularTags = [] 
                         </Label>
                         <UserSearch
                             selectedUsers={selectedAuthors}
-                            onSelectionChange={(users) => onFiltersChange({ ...filters, author: users.length > 0 ? users[0].id : undefined })}
-                            maxSelections={1}
+                            onSelectionChange={(users) => onFiltersChange({ ...filters, authors: users.length > 0 ? users.map(u => u.id) : undefined })}
                             label=""
                             placeholder="Search by name or user ID..."
                             description=""

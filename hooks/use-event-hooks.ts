@@ -234,8 +234,7 @@ export interface UseEventsStreamOptions {
     status?: string;
     start_date?: number;
     end_date?: number;
-    author?: string;
-    timezone?: string;
+    authors?: string[];
     tags?: string[];
 }
 

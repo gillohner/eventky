@@ -73,7 +73,10 @@ function createMockNexusEvent(overrides?: Partial<NexusEventResponse['details']>
             dtend_tzid: 'America/New_York',
             description: 'Test event description',
             status: 'CONFIRMED',
-            location: 'Test Location',
+            locations: JSON.stringify([
+                { name: 'Conference Hall', location_type: 'PHYSICAL', structured_data: 'https://www.openstreetmap.org/?mlat=40.7128&mlon=-74.0060' },
+                { name: 'Jitsi Meeting', location_type: 'ONLINE', structured_data: 'https://meet.jit.si/test-event-room' },
+            ]),
             sequence: 1,
             created: TEST_TIMESTAMP,
             last_modified: TEST_TIMESTAMP + 50,
@@ -335,7 +338,7 @@ describe('useEventsStream', () => {
             limit: 10,
             skip: 5,
             status: 'CONFIRMED',
-            author: TEST_AUTHOR_ID,
+            authors: [TEST_AUTHOR_ID],
             tags: ['tech', 'meetup'],
         }
 
@@ -356,7 +359,6 @@ describe('useEventsStream', () => {
         const params = {
             start_date: 1704067200,
             end_date: 1704153600,
-            timezone: 'America/New_York',
         }
 
         renderHook(

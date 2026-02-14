@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { useCalendarsStream } from "@/hooks/use-calendar-hooks";
 import { useEventsStream } from "@/hooks/use-event-hooks";
 import { useDebugView } from "@/hooks";
@@ -16,7 +15,6 @@ import { Calendar, Tag } from "lucide-react";
 import Link from "next/link";
 import { getPubkyImageUrl } from "@/lib/pubky/utils";
 import Image from "next/image";
-import { fetchCalendarViewsBatch } from "@/lib/nexus/calendars";
 
 export default function CalendarsPage() {
     const searchParams = useSearchParams();
@@ -40,22 +38,7 @@ export default function CalendarsPage() {
     const { data: events, isLoading: eventsLoading } = useEventsStream({ limit: 1000 });
     const { debugEnabled, showRawData, toggleRawData } = useDebugView();
 
-    // Fetch calendar views with tags for all calendars
-    const { data: calendarViews } = useQuery({
-        queryKey: ['calendar-views', calendars?.map(c => c.id).join(',')],
-        queryFn: async () => {
-            if (!calendars || calendars.length === 0) return new Map();
-            return fetchCalendarViewsBatch(
-                calendars.map(c => ({ author: c.author, id: c.id })),
-                20, // limitTags
-                5   // limitTaggers
-            );
-        },
-        enabled: !!calendars && calendars.length > 0,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    });
-
-    // Filter calendars based on search and author
+    // Filter calendars based on search, author, and tags (using inline tags from stream)
     const filteredCalendars = useMemo(() => {
         if (!calendars) return calendars;
 
@@ -76,13 +59,12 @@ export default function CalendarsPage() {
             }
 
             // Tags filter - calendar must have at least one matching tag
-            if (filters.tags && filters.tags.length > 0 && calendarViews) {
-                const viewKey = `${calendar.author}/${calendar.id}`;
-                const view = calendarViews.get(viewKey);
-                if (!view || !view.tags || view.tags.length === 0) {
+            if (filters.tags && filters.tags.length > 0) {
+                const calendarTags = calendar.tags || [];
+                if (calendarTags.length === 0) {
                     return false;
                 }
-                const calendarTagLabels = view.tags.map((t: { label: string }) => t.label);
+                const calendarTagLabels = calendarTags.map((t) => t.label);
                 const hasMatchingTag = filters.tags.some(filterTag =>
                     calendarTagLabels.includes(filterTag)
                 );
@@ -93,7 +75,7 @@ export default function CalendarsPage() {
 
             return true;
         });
-    }, [calendars, filters, calendarViews]);
+    }, [calendars, filters]);
 
     // Group calendars by author for stats
     const calendarsByAuthor = useMemo(() => {
@@ -125,27 +107,22 @@ export default function CalendarsPage() {
         return counts;
     }, [events]);
 
-    // Extract popular tags from all calendar views
+    // Extract popular tags from stream data (tags are included in each calendar by the stream query)
     const popularTags = useMemo(() => {
-        if (!calendarViews || !filteredCalendars) return [];
+        if (!filteredCalendars) return [];
         const tagCounts = new Map<string, number>();
 
         filteredCalendars.forEach((calendar) => {
-            const viewKey = `${calendar.author}/${calendar.id}`;
-            const view = calendarViews.get(viewKey);
-            if (view?.tags) {
-                view.tags.forEach((tag: { label: string }) => {
-                    tagCounts.set(tag.label, (tagCounts.get(tag.label) || 0) + 1);
-                });
-            }
+            calendar.tags?.forEach((tag) => {
+                tagCounts.set(tag.label, (tagCounts.get(tag.label) || 0) + 1);
+            });
         });
 
-        // Convert to array and sort by count
         return Array.from(tagCounts.entries())
             .map(([label, count]) => ({ label, count }))
             .sort((a, b) => b.count - a.count)
-            .slice(0, 20); // Top 20 tags
-    }, [calendarViews, filteredCalendars]);
+            .slice(0, 20);
+    }, [filteredCalendars]);
 
     const isLoading = calendarsLoading || eventsLoading;
 
@@ -227,8 +204,7 @@ export default function CalendarsPage() {
                             const eventCount = eventCountByCalendar.get(calendar.id) || 0;
                             const imageUrl = calendar.image_uri ? getPubkyImageUrl(calendar.image_uri, "main") : null;
                             const authorCalendars = calendarsByAuthor.get(calendar.author) || [];
-                            const viewKey = `${calendar.author}/${calendar.id}`;
-                            const calendarTags = calendarViews?.get(viewKey)?.tags || [];
+                            const calendarTags = calendar.tags || [];
 
                             return (
                                 <Link key={calendar.id} href={`/calendar/${calendar.author}/${calendar.id}`}>
@@ -300,7 +276,7 @@ export default function CalendarsPage() {
                                                 {calendarTags.length > 0 && (
                                                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                                                         <Tag className="h-3 w-3 text-muted-foreground" />
-                                                        {calendarTags.slice(0, 5).map((tag: { label: string }, idx: number) => (
+                                                        {calendarTags.slice(0, 5).map((tag, idx) => (
                                                             <Badge
                                                                 key={idx}
                                                                 variant="outline"
