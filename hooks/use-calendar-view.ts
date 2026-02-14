@@ -1,6 +1,6 @@
 /**
  * Calendar View Hook
- * 
+ *
  * State management for calendar view components with:
  * - View mode switching (month/week/agenda)
  * - Date navigation (previous/next/today)
@@ -20,7 +20,7 @@ import {
     addWeeks,
     subWeeks,
     addDays,
-    subDays,
+    startOfDay,
 } from "date-fns";
 import { calculateNextOccurrences } from "@/lib/pubky/rrule-utils";
 import { parseIsoInTimezone, parseIsoDateTime } from "@/lib/datetime";
@@ -101,7 +101,7 @@ export interface UseCalendarViewResult {
 
 /**
  * Calendar view state management hook
- * 
+ *
  * @example
  * ```tsx
  * const {
@@ -132,47 +132,46 @@ export function useCalendarView(
     const [selectedCalendars, setSelectedCalendars] = useState<string[]>(
         initialSelectedCalendars ?? []
     );
-    const [agendaYearsToShow, setAgendaYearsToShow] = useState(1); // Start with 1 year
+    const [agendaYearsToShow, setAgendaYearsToShow] = useState(1);
 
     // Reset agenda years when changing to/from agenda view
     const setViewModeWithReset = useCallback((mode: CalendarViewMode) => {
         setViewMode(mode);
         if (mode === "agenda") {
-            setAgendaYearsToShow(1); // Reset to 1 year when entering agenda view
+            setAgendaYearsToShow(1);
         }
     }, []);
 
-    // Calculate date range based on view mode or use external range
+    // Calculate date range based on view mode
+    // externalDateRange only applies to agenda view; month/week always use their own calculation
     const dateRange = useMemo(() => {
-        // If external date range is provided (from API filters), use it
-        if (externalDateRange) {
-            return externalDateRange;
-        }
-
-        // Otherwise calculate based on view mode
-        let start: Date;
-        let end: Date;
-
         switch (viewMode) {
-            case "month":
-                start = startOfWeek(startOfMonth(currentDate));
-                end = endOfWeek(endOfMonth(currentDate));
-                break;
-            case "week":
-                start = startOfWeek(currentDate);
-                end = endOfWeek(currentDate);
-                break;
-            case "agenda":
-                // For agenda view, show events based on current date navigation
-                start = currentDate;
-                end = addDays(start, 365 * agendaYearsToShow); // Show N years ahead from start
-                break;
-            default:
-                start = startOfMonth(currentDate);
-                end = endOfMonth(currentDate);
+            case "month": {
+                const start = startOfWeek(startOfMonth(currentDate));
+                const end = endOfWeek(endOfMonth(currentDate));
+                return { start, end };
+            }
+            case "week": {
+                const start = startOfWeek(currentDate);
+                const end = endOfWeek(currentDate);
+                return { start, end };
+            }
+            case "agenda": {
+                // For agenda, use external date range if provided
+                if (externalDateRange) {
+                    return externalDateRange;
+                }
+                // Use start of day so earlier-today events are always included
+                const start = startOfDay(currentDate);
+                const end = addDays(start, 365 * agendaYearsToShow);
+                return { start, end };
+            }
+            default: {
+                const start = startOfMonth(currentDate);
+                const end = endOfMonth(currentDate);
+                return { start, end };
+            }
         }
-
-        return { start, end };
     }, [currentDate, viewMode, externalDateRange, agendaYearsToShow]);
 
     // Transform events to calendar events with occurrences
@@ -330,7 +329,8 @@ export function useCalendarView(
                 setCurrentDate((prev) => addWeeks(prev, 1));
                 break;
             case "agenda":
-                setCurrentDate((prev) => addDays(prev, 30));
+                // Navigate to start of next month
+                setCurrentDate((prev) => startOfMonth(addMonths(prev, 1)));
                 break;
         }
     }, [viewMode]);
@@ -344,7 +344,8 @@ export function useCalendarView(
                 setCurrentDate((prev) => subWeeks(prev, 1));
                 break;
             case "agenda":
-                setCurrentDate((prev) => subDays(prev, 30));
+                // Navigate to start of previous month
+                setCurrentDate((prev) => startOfMonth(subMonths(prev, 1)));
                 break;
         }
     }, [viewMode]);
@@ -378,8 +379,8 @@ export function useCalendarView(
         }
     }, [viewMode]);
 
-    // Check if we can load more (max 3 years)
-    const canLoadMore = viewMode === "agenda" && agendaYearsToShow < 3;
+    // Check if we can load more (max 10 years)
+    const canLoadMore = viewMode === "agenda" && agendaYearsToShow < 10;
 
     return {
         currentDate,
