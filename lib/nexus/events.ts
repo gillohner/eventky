@@ -58,16 +58,22 @@ export async function fetchEventsStream(params?: {
   status?: string;
   start_date?: number;
   end_date?: number;
-  author?: string;
-  timezone?: string;
+  authors?: string[];
   tags?: string[];
 }): Promise<NexusEventStreamItem[]> {
   try {
-    // Convert tags array to comma-separated string for API (same pattern as posts)
-    // Only include tags if array is not empty
-    const apiParams = params?.tags && params.tags.length > 0
-      ? { ...params, tags: params.tags.join(',') }
-      : { ...params, tags: undefined };
+    // Convert arrays to comma-separated strings for API
+    const apiParams: Record<string, unknown> = { ...params };
+    if (params?.tags && params.tags.length > 0) {
+      apiParams.tags = params.tags.join(',');
+    } else {
+      delete apiParams.tags;
+    }
+    if (params?.authors && params.authors.length > 0) {
+      apiParams.authors = params.authors.join(',');
+    } else {
+      delete apiParams.authors;
+    }
 
     const response = await nexusClient.get<NexusEventStreamItem[]>(
       "/v0/stream/events",

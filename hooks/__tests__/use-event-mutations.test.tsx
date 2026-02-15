@@ -16,6 +16,7 @@ import {
     useUpdateEvent,
     useDeleteEvent,
 } from '../use-event-mutations'
+import type { PubkyAppEvent } from '@eventky/pubky-app-specs'
 import type { CachedEvent } from '@/types/nexus'
 
 // Mock PubkyAppEvent type - the real one is a WASM class with methods
@@ -28,15 +29,14 @@ type MockPubkyAppEvent = {
     dtend_tzid?: string
     description?: string
     status?: string
-    location?: string
+    locations?: string
     sequence?: number
     created?: number
     last_modified?: number
 }
 
 // Helper to cast mock event to expected type for mutation calls
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asEvent = (event: MockPubkyAppEvent): any => event
+const asEvent = (event: MockPubkyAppEvent) => event as unknown as PubkyAppEvent
 
 // =============================================================================
 // Mock Setup
@@ -111,7 +111,10 @@ function createMockPubkyAppEvent(): MockPubkyAppEvent {
         dtend_tzid: 'America/New_York',
         description: 'Test event description',
         status: 'CONFIRMED',
-        location: 'Test Location',
+        locations: JSON.stringify([
+            { name: 'Conference Hall', location_type: 'PHYSICAL', structured_data: 'https://www.openstreetmap.org/?mlat=40.7128&mlon=-74.0060' },
+            { name: 'Jitsi Meeting', location_type: 'ONLINE', structured_data: 'https://meet.jit.si/test-event-room' },
+        ]),
         sequence: 1,
         created: TEST_TIMESTAMP,
         last_modified: TEST_TIMESTAMP + 50,
@@ -134,7 +137,10 @@ function createMockCachedEvent(): CachedEvent {
             dtend_tzid: 'America/New_York',
             description: 'Test event description',
             status: 'CONFIRMED',
-            location: 'Test Location',
+            locations: JSON.stringify([
+                { name: 'Conference Hall', location_type: 'PHYSICAL', structured_data: 'https://www.openstreetmap.org/?mlat=40.7128&mlon=-74.0060' },
+                { name: 'Jitsi Meeting', location_type: 'ONLINE', structured_data: 'https://meet.jit.si/test-event-room' },
+            ]),
             sequence: 1,
             created: TEST_TIMESTAMP,
             last_modified: TEST_TIMESTAMP + 50,

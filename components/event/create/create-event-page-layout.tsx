@@ -143,9 +143,7 @@ export function CreateEventPageLayout({
       // Initialize recurrence state from event data
       initializeRecurrenceFromEvent(formData);
     }
-    // form.reset is stable and doesn't need to be in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingEvent, mode, initializeRecurrenceFromEvent]);
+  }, [existingEvent, mode, initializeRecurrenceFromEvent, form]);
 
   // Set timezone from calendar when creating event from calendar page
   useEffect(() => {
@@ -170,9 +168,7 @@ export function CreateEventPageLayout({
       setFormData(value as EventFormData, eventIdKey);
     });
     return () => subscription.unsubscribe();
-    // form.watch is stable and doesn't need to be in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, authorId, eventId, setFormData]);
+  }, [mode, authorId, eventId, setFormData, form]);
 
   // Check authentication
   if (!isAuthenticated) {

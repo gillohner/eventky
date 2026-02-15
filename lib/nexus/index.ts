@@ -5,7 +5,7 @@
 
 export { nexusClient, isAxiosError, getErrorMessage } from "./client";
 export { fetchEventFromNexus, fetchEventsStream } from "./events";
-export { fetchCalendarFromNexus, fetchCalendarsStream, fetchCalendarViewsBatch } from "./calendars";
+export { fetchCalendarFromNexus, fetchCalendarsStream } from "./calendars";
 export {
     searchUsersByName,
     searchUsersById,
