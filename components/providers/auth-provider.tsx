@@ -12,23 +12,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isRestoringSession = useAuthStore((state) => state.isRestoringSession);
   const session = useAuthStore((state) => state.session);
   const sessionExport = useAuthStore((state) => state.sessionExport);
+  const setIsRestoringSession = useAuthStore((state) => state.setIsRestoringSession);
+  const restoreSessionFromExport = useAuthStore((state) => state.restoreSessionFromExport);
 
   // Attempt to restore a persisted session snapshot once hydration completes
   useEffect(() => {
     if (!isHydrated) return;
     if (session) {
       // Session already live; ensure we are not stuck in restoring state
-      if (isRestoringSession) authStore.setIsRestoringSession(false);
+      if (isRestoringSession) setIsRestoringSession(false);
       return;
     }
     if (!sessionExport) {
       // Nothing to restore; clear any restoring flag
-      if (isRestoringSession) authStore.setIsRestoringSession(false);
+      if (isRestoringSession) setIsRestoringSession(false);
       return;
     }
-    authStore.restoreSessionFromExport();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHydrated, session, sessionExport]);
+    restoreSessionFromExport();
+  }, [isHydrated, session, sessionExport, isRestoringSession, setIsRestoringSession, restoreSessionFromExport]);
 
   // Show loading state during hydration or session restoration
   if (!isHydrated || isRestoringSession) {

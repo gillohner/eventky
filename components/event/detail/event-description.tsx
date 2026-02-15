@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
@@ -243,12 +244,14 @@ function AttachmentPreview({ uri }: { uri: string }) {
                 rel="noopener noreferrer"
                 className="block rounded-lg overflow-hidden border hover:border-primary transition-colors"
             >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                     src={uri}
                     alt={fileName}
+                    width={96}
+                    height={96}
                     className="w-24 h-24 object-cover"
                     loading="lazy"
+                    unoptimized
                 />
             </a>
         );

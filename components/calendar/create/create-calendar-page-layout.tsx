@@ -99,8 +99,7 @@ export function CreateCalendarPageLayout({
         if (mode === "edit" && existingCalendar) {
             form.reset(calendarToFormData(existingCalendar));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [existingCalendar, mode]);
+    }, [existingCalendar, mode, form]);
 
     // Use mutation hooks for optimistic caching
     const createCalendar = useCreateCalendar({

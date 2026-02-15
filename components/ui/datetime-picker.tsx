@@ -136,7 +136,7 @@ export function DateTimePicker({
     modal = false,
     ...props
 }: DateTimePickerProps & CalendarProps) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpenRaw] = useState(false);
     const [monthYearPicker, setMonthYearPicker] = useState<'month' | 'year' | false>(false);
     const initDate = useMemo(() => {
         if (value) return new TZDate(value, timezone);
@@ -148,6 +148,16 @@ export function DateTimePicker({
 
     const [month, setMonth] = useState<Date>(initDate);
     const [date, setDate] = useState<Date>(initDate);
+
+    // Reset picker state when opening
+    const setOpen = useCallback((nextOpen: boolean) => {
+        if (nextOpen) {
+            setDate(initDate);
+            setMonth(initDate);
+            setMonthYearPicker(false);
+        }
+        setOpenRaw(nextOpen);
+    }, [initDate]);
 
     const endMonth = useMemo(() => {
         return setYear(month, getYear(month) + 1);
@@ -172,7 +182,7 @@ export function DateTimePicker({
     const onSubmit = useCallback(() => {
         onChange(new Date(date));
         setOpen(false);
-    }, [date, onChange]);
+    }, [date, onChange, setOpen]);
 
     const onMonthYearChanged = useCallback(
         (d: Date, mode: 'month' | 'year') => {
@@ -191,15 +201,6 @@ export function DateTimePicker({
     const onPrevMonth = useCallback(() => {
         setMonth(subMonths(month, 1));
     }, [month]);
-
-    useEffect(() => {
-        if (open) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setDate(initDate);
-            setMonth(initDate);
-            setMonthYearPicker(false);
-        }
-    }, [open, initDate]);
 
     const displayValue = useMemo(() => {
         if (!open && !value) return value;
@@ -323,9 +324,7 @@ export function DateTimePicker({
                     ></div>
                     <MonthYearPicker
                         value={month}
-                        // Upstream types are not necessarily correct
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        mode={monthYearPicker as any}
+                        mode={monthYearPicker || 'month'}
                         onChange={onMonthYearChanged}
                         minDate={minDate}
                         maxDate={maxDate}
@@ -482,9 +481,15 @@ function TimePicker({
     const [minute, setMinute] = useState(value.getMinutes());
     const [second, setSecond] = useState(value.getSeconds());
 
+    const onChangeRef = useRef(onChange);
+    const valueRef = useRef(value);
     useEffect(() => {
-        onChange(setHours(setMinutes(setSeconds(value, second), minute), hour));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        onChangeRef.current = onChange;
+        valueRef.current = value;
+    }, [onChange, value]);
+
+    useEffect(() => {
+        onChangeRef.current(setHours(setMinutes(setSeconds(valueRef.current, second), minute), hour));
     }, [hour, minute, second]);
 
     const hours: TimeOption[] = useMemo(
@@ -703,14 +708,3 @@ const TimeItem = ({
     );
 };
 
-interface BuildTimeOptions {
-    value: Date;
-    hour: number;
-    minute: number;
-    second: number;
-}
-
-function buildTime(options: BuildTimeOptions) {
-    const { value, hour, minute, second } = options;
-    return setHours(setMinutes(setSeconds(value, second), minute), hour);
-}

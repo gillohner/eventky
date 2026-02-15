@@ -97,8 +97,7 @@ export function truncateDescription(text: string | undefined | null, maxLength =
 export function formatMetaDate(
     dtstart: string,
     dtend?: string | null,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tzid?: string | null,
+    tzid?: string | null,
 ): string {
     try {
         // The datetime string represents wall-clock time in the given timezone.
@@ -155,6 +154,10 @@ export function formatMetaDate(
                 const endTime = timeFormatter.format(fakeUtcEnd);
                 formatted = `${formatted} – ${endTime}`;
             }
+        }
+
+        if (tzid) {
+            formatted = `${formatted} (${tzid})`;
         }
 
         return formatted;

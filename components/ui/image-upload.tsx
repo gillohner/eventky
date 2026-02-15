@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,19 @@ export function ImageUpload({
     const [dragActive, setDragActive] = useState(false);
     const [imageKey, setImageKey] = useState(0);
     const [imageLoadError, setImageLoadError] = useState(false);
+    const retryCountRef = useRef(0);
+
+    const handleImageError = useCallback(() => {
+        if (retryCountRef.current < 3) {
+            retryCountRef.current += 1;
+            const retry = retryCountRef.current;
+            setTimeout(() => {
+                setImageKey(prev => prev + 1);
+            }, 1000 * retry);
+        } else {
+            setImageLoadError(true);
+        }
+    }, []);
     const [cropperOpen, setCropperOpen] = useState(false);
     const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -231,29 +245,20 @@ export function ImageUpload({
                         </div>
                     ) : (
                         <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Image
                                 key={imageKey}
-                                src={getPubkyImageUrl(value, "main")}
+                                src={getPubkyImageUrl(value, "main") + (retryCountRef.current > 0 ? `?retry=${retryCountRef.current}` : '')}
                                 alt="Uploaded image"
+                                width={1200}
+                                height={500}
                                 className={`${aspectClass} w-full object-cover`}
                                 style={{ aspectRatio: HEADER_BANNER.aspectRatio }}
                                 onLoad={() => {
                                     setImageLoadError(false);
+                                    retryCountRef.current = 0;
                                 }}
-                                onError={(e) => {
-                                    const img = e.currentTarget;
-                                    const retryCount = parseInt(img.dataset.retryCount || "0");
-
-                                    if (retryCount < 3) {
-                                        img.dataset.retryCount = String(retryCount + 1);
-                                        setTimeout(() => {
-                                            img.src = getPubkyImageUrl(value, "main") + `?retry=${retryCount + 1}`;
-                                        }, 1000 * (retryCount + 1));
-                                    } else {
-                                        setImageLoadError(true);
-                                    }
-                                }}
+                                onError={handleImageError}
+                                unoptimized
                             />
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                 <Button

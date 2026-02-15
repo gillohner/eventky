@@ -80,7 +80,6 @@ export async function GET(request: NextRequest) {
                 {imageUrl ? (
                     /* Event image as full-bleed background */
                     <div style={{ position: "absolute", inset: 0, display: "flex" }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={imageUrl}
                             alt=""

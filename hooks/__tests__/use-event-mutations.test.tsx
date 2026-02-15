@@ -16,6 +16,7 @@ import {
     useUpdateEvent,
     useDeleteEvent,
 } from '../use-event-mutations'
+import type { PubkyAppEvent } from '@eventky/pubky-app-specs'
 import type { CachedEvent } from '@/types/nexus'
 
 // Mock PubkyAppEvent type - the real one is a WASM class with methods
@@ -35,8 +36,7 @@ type MockPubkyAppEvent = {
 }
 
 // Helper to cast mock event to expected type for mutation calls
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asEvent = (event: MockPubkyAppEvent): any => event
+const asEvent = (event: MockPubkyAppEvent) => event as unknown as PubkyAppEvent
 
 // =============================================================================
 // Mock Setup

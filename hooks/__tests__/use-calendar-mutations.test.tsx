@@ -16,6 +16,7 @@ import {
     useUpdateCalendar,
     useDeleteCalendar,
 } from '../use-calendar-mutations'
+import type { PubkyAppCalendar } from '@eventky/pubky-app-specs'
 import type { CachedCalendar } from '@/types/nexus'
 
 // Mock PubkyAppCalendar type - the real one is a WASM class with methods
@@ -29,8 +30,7 @@ type MockPubkyAppCalendar = {
 }
 
 // Helper to cast mock calendar to expected type for mutation calls
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asCalendar = (calendar: MockPubkyAppCalendar): any => calendar
+const asCalendar = (calendar: MockPubkyAppCalendar) => calendar as unknown as PubkyAppCalendar
 
 // =============================================================================
 // Mock Setup
