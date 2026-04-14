@@ -6,6 +6,7 @@ import {
     Calendar,
     CalendarDays,
     Home,
+    Info,
     LogIn,
     LogOut,
     User,
@@ -50,6 +51,11 @@ const navItems = [
         title: "Events",
         url: "/events",
         icon: CalendarDays,
+    },
+    {
+        title: "About",
+        url: "/about",
+        icon: Info,
     },
 ]
 
