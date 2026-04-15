@@ -40,38 +40,39 @@ const services: {
     description: string;
 }[] = [
     {
-        name: "/help",
+        name: "help",
         kind: "command",
         icon: HelpCircle,
-        description: "Configurable help message with optional command list.",
+        description:
+            "Configurable help message with optional auto-generated command list. Typically mounted at /help.",
     },
     {
-        name: "/hello",
+        name: "simple_response",
         kind: "command",
         icon: MessageSquare,
         description:
-            "Canned response template — reuse it for any static command your community needs.",
+            "Canned-response template — mount it under any feature key to create a static command (the Dezentralschweiz profile uses it for /hello).",
     },
     {
-        name: "/links",
+        name: "links",
         kind: "flow",
         icon: Link2,
         description:
-            "Multi-step categorized link menu with inline keyboard navigation.",
+            "Multi-step categorized link menu with inline keyboard navigation. Typically mounted at /links.",
     },
     {
-        name: "/meetups",
+        name: "meetups",
         kind: "flow",
         icon: CalendarDays,
         description:
-            "Upcoming events pulled from Pubky calendars with day, week, 2-week and 30-day views.",
+            "Upcoming events pulled from Pubky calendars with day, week, 2-week and 30-day views. Typically mounted at /meetups.",
     },
     {
-        name: "/meetup_erstellen",
+        name: "event_creator",
         kind: "flow",
         icon: CalendarPlus,
         description:
-            "Multi-step event creation wizard that publishes to Pubky with admin approval. Requires Pubky.",
+            "Multi-step event-creation wizard that publishes to Pubky with admin approval. The Dezentralschweiz profile mounts it at /meetup_erstellen. Requires Pubky.",
     },
     {
         name: "new_member",
@@ -281,8 +282,8 @@ export default function AboutLoombotPage() {
                         </p>
                         <p>
                             Pubky integration is optional. Without it, Loombot works as a
-                            plain Telegram community bot. With it, services like{" "}
-                            <code>/meetup_erstellen</code> can publish events to Pubky
+                            plain Telegram community bot. With it, services like the{" "}
+                            <code>event_creator</code> flow can publish events to Pubky
                             calendars on{" "}
                             <a
                                 href="https://eventky.app"
@@ -301,9 +302,12 @@ export default function AboutLoombotPage() {
                 <div className="space-y-6">
                     <div className="text-center space-y-2">
                         <h2 className="text-2xl font-semibold">Shipped services</h2>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
                             All services can be enabled, disabled, or customized per chat
-                            by admins via <code>/config</code>.
+                            by admins via <code>/config</code>. Command names and UI
+                            language (<code>en</code> / <code>de</code>) are
+                            operator-configurable — each operator picks the feature key
+                            that becomes the slash command in their instance.
                         </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -436,8 +440,8 @@ export default function AboutLoombotPage() {
                     </div>
                     <div className="text-sm text-muted-foreground space-y-3">
                         <p>
-                            Only needed for services that publish to Pubky (e.g.{" "}
-                            <code>/meetup_erstellen</code>). The bot works fine without
+                            Only needed for services that publish to Pubky (e.g. the{" "}
+                            <code>event_creator</code> flow). The bot works fine without
                             this — the feature simply stays disabled until you provide a
                             keypair.
                         </p>
