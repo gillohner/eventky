@@ -10,7 +10,7 @@ import { useUsersByIds, type SelectedUser } from "@/hooks/use-user-search";
 import { X, User } from "lucide-react";
 import { DateRangeFilter } from "@/components/event/stream/filters/date-range-filter";
 import { TagsFilter } from "@/components/event/stream/filters/tags-filter";
-import { getValidEventStatuses } from "@eventky/pubky-app-specs";
+import { getValidEventStatuses } from "@/lib/pubky/validation";
 
 const EVENT_STATUSES = getValidEventStatuses().map((status) => ({
     value: status,

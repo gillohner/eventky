@@ -21,6 +21,7 @@ import { Trash2, MapPin, Video, Search, X, ExternalLink } from "lucide-react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { MapPreview } from "@/components/ui/map-preview";
+import { searchOsm } from "@/lib/nexus/mapky-osm";
 
 // Validation constants from pubky-app-specs
 const MAX_NAME_LENGTH = 500;
@@ -29,7 +30,7 @@ const MAX_LOCATIONS = 5;
 
 // Nominatim types
 interface NominatimResult {
-    place_id: number;
+    place_id?: number;
     osm_type: string;
     osm_id: number;
     display_name: string;
@@ -150,26 +151,22 @@ function LocationCard({
 
         setIsSearching(true);
         try {
-            // Use Nominatim with proper rate limiting
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?` +
-                new URLSearchParams({
-                    q: query,
-                    format: "json",
-                    addressdetails: "1",
-                    limit: "5",
-                }),
-                {
-                    headers: {
-                        "User-Agent": "Eventky/1.0 (https://eventky.app)",
-                    },
-                }
-            );
-            const data = await response.json();
-            setSearchResults(data);
+            const data = await searchOsm(query);
+            const mapped = data
+                .filter((item) => item.osm_type && item.osm_id)
+                .map((item, idx) => ({
+                    place_id: idx,
+                    osm_type: item.osm_type as string,
+                    osm_id: item.osm_id as number,
+                    display_name: item.display_name,
+                    lat: item.lat || "0",
+                    lon: item.lon || "0",
+                    type: "",
+                }));
+            setSearchResults(mapped);
             setShowResults(true);
         } catch (error) {
-            console.error("Nominatim search error:", error);
+            console.error("OSM search error:", error);
             setSearchResults([]);
         } finally {
             setIsSearching(false);
@@ -381,8 +378,8 @@ function LocationCard({
                                         {showResults && searchResults.length > 0 && (
                                             <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-[200px] overflow-y-auto p-1">
                                                 {searchResults.map((result, resultIndex) => (
-                                                    <button
-                                                        key={result.place_id}
+                                                        <button
+                                                        key={`${result.osm_type}-${result.osm_id}-${resultIndex}`}
                                                         ref={(el) => {
                                                             itemRefs.current[resultIndex] = el;
                                                         }}
@@ -406,7 +403,7 @@ function LocationCard({
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Search powered by OpenStreetMap Nominatim
+                                        Search powered by Nexus Mapky OSM proxy
                                     </p>
                                 </div>
                             );

@@ -46,6 +46,18 @@ export interface NexusUserView {
     };
 }
 
+function buildQueryParams(skip?: number, limit?: number): URLSearchParams {
+    const params = new URLSearchParams();
+    if (skip !== undefined) params.append("skip", String(skip));
+    if (limit !== undefined) params.append("limit", String(limit));
+    return params;
+}
+
+function appendQuery(path: string, params: URLSearchParams): string {
+    const query = params.toString();
+    return query ? `${path}?${query}` : path;
+}
+
 /**
  * Search users by username prefix
  * @param prefix - Username prefix to search for
@@ -59,11 +71,10 @@ export async function searchUsersByName(
     limit?: number
 ): Promise<UserSearchResponse> {
     try {
-        const params = new URLSearchParams();
-        if (skip !== undefined) params.append("skip", skip.toString());
-        if (limit !== undefined) params.append("limit", limit.toString());
-
-        const url = `/v0/search/users/by_name/${encodeURIComponent(prefix)}${params.toString() ? `?${params.toString()}` : ""}`;
+        const url = appendQuery(
+            `/v0/search/users/by_name/${encodeURIComponent(prefix)}`,
+            buildQueryParams(skip, limit)
+        );
 
         const response = await nexusClient.get<UserSearchResponse>(url);
         return response.data || [];
@@ -99,11 +110,10 @@ export async function searchUsersById(
     }
 
     try {
-        const params = new URLSearchParams();
-        if (skip !== undefined) params.append("skip", skip.toString());
-        if (limit !== undefined) params.append("limit", limit.toString());
-
-        const url = `/v0/search/users/by_id/${encodeURIComponent(prefix)}${params.toString() ? `?${params.toString()}` : ""}`;
+        const url = appendQuery(
+            `/v0/search/users/by_id/${encodeURIComponent(prefix)}`,
+            buildQueryParams(skip, limit)
+        );
 
         const response = await nexusClient.get<UserSearchResponse>(url);
         return response.data || [];
@@ -134,11 +144,14 @@ export async function fetchUserFromNexus(
         const params = new URLSearchParams();
         if (viewerId) params.append("viewer_id", viewerId);
 
-        const url = `/v0/user/${userId}${params.toString() ? `?${params.toString()}` : ""}`;
+        const url = appendQuery(`/v0/user/${encodeURIComponent(userId)}`, params);
 
         const response = await nexusClient.get<NexusUserView>(url);
         return response.data || null;
     } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 404) {
+            return null;
+        }
         console.error("Error fetching user from Nexus:", {
             userId,
             error: getErrorMessage(error),
@@ -167,7 +180,7 @@ export async function fetchUsersByIds(
             { user_ids: userIds }
         );
         // Extract just the details from each UserView
-        return (response.data || []).map(view => view.details);
+        return (response.data || []).map((view) => view.details);
     } catch (error) {
         console.error("Error fetching users by IDs:", {
             userIds,

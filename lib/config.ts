@@ -126,7 +126,10 @@ function getEnvironment(): PubkyEnvironment {
         return env;
     }
 
-    // Default to staging
+    // Default to testnet in local development, staging otherwise.
+    if (process.env.NODE_ENV === "development") {
+        return "testnet";
+    }
     return "staging";
 }
 

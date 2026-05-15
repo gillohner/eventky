@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/ui/user-search";
 import { useUsersByIds, type SelectedUser } from "@/hooks/use-user-search";
 import { Settings2, User } from "lucide-react";
-import { getValidEventStatuses } from "@eventky/pubky-app-specs";
+import { getValidEventStatuses } from "@/lib/pubky/validation";
 
 const EVENT_STATUSES = getValidEventStatuses().map((status) => ({
     value: status,

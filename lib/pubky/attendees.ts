@@ -2,11 +2,11 @@
  * Pubky Homeserver - Attendee/RSVP operations
  *
  * Functions for managing RSVP/attendance records on Pubky Homeserver
- * Uses PubkySpecsBuilder from pubky-app-specs to create properly hashed IDs
+ * Uses EventkySpecsBuilder from eventky-app-specs to create properly hashed IDs
  */
 
 import { Session } from "@synonymdev/pubky";
-import { PubkySpecsBuilder, eventUriBuilder } from "@eventky/pubky-app-specs";
+import { EventkySpecsBuilder, eventkyEventUriBuilder } from "@eventky/pubky-app-specs";
 import { isNotFoundError } from "./session-utils";
 
 /**
@@ -51,11 +51,11 @@ export async function saveAttendee(
     }
 
     // Build the event URI that this RSVP is for
-    const eventUri = eventUriBuilder(eventAuthorId, eventId);
+    const eventUri = eventkyEventUriBuilder(eventAuthorId, eventId);
 
-    // Use PubkySpecsBuilder to create the attendee with proper ID hashing
-    const builder = new PubkySpecsBuilder(userId);
-    const attendeeResult = builder.createAttendee(normalizedPartstat, eventUri, recurrenceId || null);
+    // Use EventkySpecsBuilder to create the attendee with proper ID hashing
+    const builder = new EventkySpecsBuilder(userId);
+    const attendeeResult = builder.createAttendee(eventUri, normalizedPartstat, recurrenceId || null);
 
     // Get the attendee path and ID from the meta
     const attendeePath = attendeeResult.meta.path as `/pub/${string}`;
@@ -105,11 +105,11 @@ export async function deleteAttendee(
     }
 
     // Build the event URI to generate the same attendee ID
-    const eventUri = eventUriBuilder(eventAuthorId, eventId);
+    const eventUri = eventkyEventUriBuilder(eventAuthorId, eventId);
 
-    // Use PubkySpecsBuilder to get the correct attendee ID (same hash as creation)
-    const builder = new PubkySpecsBuilder(userId);
-    const attendeeResult = builder.createAttendee("NEEDS-ACTION", eventUri);
+    // Use EventkySpecsBuilder to get the correct attendee ID (same hash as creation)
+    const builder = new EventkySpecsBuilder(userId);
+    const attendeeResult = builder.createAttendee(eventUri, "NEEDS-ACTION");
 
     // Get the attendee path from the meta
     const attendeePath = attendeeResult.meta.path as `/pub/${string}`;
@@ -144,8 +144,8 @@ export function getAttendeeIdForEvent(
     eventAuthorId: string,
     eventId: string
 ): string {
-    const eventUri = eventUriBuilder(eventAuthorId, eventId);
-    const builder = new PubkySpecsBuilder(userId);
-    const attendeeResult = builder.createAttendee("NEEDS-ACTION", eventUri);
+    const eventUri = eventkyEventUriBuilder(eventAuthorId, eventId);
+    const builder = new EventkySpecsBuilder(userId);
+    const attendeeResult = builder.createAttendee(eventUri, "NEEDS-ACTION");
     return attendeeResult.meta.id;
 }

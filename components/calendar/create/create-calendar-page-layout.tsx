@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BasicInfoFields } from "@/components/calendar/create/basic-info";
 import { SettingsFields } from "@/components/calendar/create/settings";
-import { PubkySpecsBuilder, PubkyAppCalendar, parse_uri } from "@eventky/pubky-app-specs";
+import { EventkySpecsBuilder, PubkyAppCalendar, parse_uri } from "@eventky/pubky-app-specs";
 import { useCreateCalendar, useUpdateCalendar } from "@/hooks/use-calendar-mutations";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { NexusCalendarResponse } from "@/lib/nexus/calendars";
@@ -149,19 +149,20 @@ export function CreateCalendarPageLayout({
             });
         } else {
             // Create calendar using WASM builder
-            const builder = new PubkySpecsBuilder(auth.publicKey);
-            const calendarResult = builder.createCalendar(
-                data.name,
-                data.timezone,
-                data.color || null,
-                data.image_uri || null,
-                data.description || null,
-                data.url || null,
-                authors
-            );
+            const builder = new EventkySpecsBuilder(auth.publicKey);
+            const calendarResult = builder.createCalendar(data.name, data.timezone);
+            const calendarJson = {
+                ...calendarResult.calendar.toJson(),
+                color: data.color || null,
+                image_uri: data.image_uri || null,
+                description: data.description || null,
+                url: data.url || null,
+                x_pubky_authors: authors,
+            };
+            const calendar = PubkyAppCalendar.fromJson(calendarJson);
 
             createCalendar.mutate({
-                calendar: calendarResult.calendar,
+                calendar,
                 calendarId: calendarResult.meta.id,
             });
         }

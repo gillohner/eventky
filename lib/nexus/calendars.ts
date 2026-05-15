@@ -26,8 +26,8 @@ export async function fetchCalendarFromNexus(
         if (limitTags) params.append("limit_tags", limitTags.toString());
         if (limitTaggers) params.append("limit_taggers", limitTaggers.toString());
 
-        const url = `/v0/calendar/${authorId}/${calendarId}${params.toString() ? `?${params.toString()}` : ""
-            }`;
+        const queryString = params.toString();
+        const url = `/v0/eventky/calendar/${authorId}/${calendarId}${queryString ? `?${queryString}` : ""}`;
 
         const response = await nexusClient.get<NexusCalendarResponse>(url);
         return response.data || null;
@@ -57,7 +57,7 @@ export async function fetchCalendarsStream(params?: {
 }): Promise<NexusCalendarStreamItem[]> {
     try {
         const response = await nexusClient.get<NexusCalendarStreamItem[]>(
-            "/v0/stream/calendars",
+            "/v0/eventky/stream/calendars",
             { params }
         );
         return response.data;

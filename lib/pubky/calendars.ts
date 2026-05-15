@@ -1,5 +1,5 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
-import { PubkyAppCalendar, calendarUriBuilder } from "@eventky/pubky-app-specs";
+import { PubkyAppCalendar, eventkyCalendarUriBuilder } from "@eventky/pubky-app-specs";
 import { config } from "@/lib/config";
 import { isNotFoundError } from "./session-utils";
 
@@ -12,7 +12,7 @@ export async function getCalendar(
 ): Promise<PubkyAppCalendar | null> {
     try {
         const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
-        const url = calendarUriBuilder(authorId, calendarId);
+        const url = eventkyCalendarUriBuilder(authorId, calendarId);
         const data = await pubky.publicStorage.getJson(url as Address);
 
         if (!data || typeof data !== "object") {
@@ -42,8 +42,8 @@ export async function saveCalendar(
             throw new Error("Invalid session: No storage available. Please sign in again.");
         }
 
-        // Use calendarUriBuilder to construct the full URI, then extract the path
-        const calendarUri = calendarUriBuilder(userId, calendarId);
+        // Use eventkyCalendarUriBuilder to construct the full URI, then extract the path
+        const calendarUri = eventkyCalendarUriBuilder(userId, calendarId);
         // Convert pubky://userId/path to /path
         const calendarPath = calendarUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 
@@ -74,7 +74,7 @@ export async function deleteCalendar(
         throw new Error("Invalid session: No storage available. Please sign in again.");
     }
 
-    const calendarUri = calendarUriBuilder(userId, calendarId);
+    const calendarUri = eventkyCalendarUriBuilder(userId, calendarId);
     const calendarPath = calendarUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 
     try {

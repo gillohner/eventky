@@ -10,12 +10,10 @@ import { config } from "@/lib/config";
  * Create an axios instance configured for the Nexus API
  */
 function createNexusClient(): AxiosInstance {
+  const isBrowser = typeof window !== "undefined";
   const client = axios.create({
-    baseURL: config.gateway.url,
+    baseURL: isBrowser ? "/api/nexus" : config.gateway.url,
     timeout: 10000,
-    headers: {
-      "Content-Type": "application/json",
-    },
   });
 
   // Add response interceptor for error handling
@@ -28,7 +26,10 @@ function createNexusClient(): AxiosInstance {
       const isSearchEndpoint = error.config?.url?.includes('/search/');
       const isCalendarEndpoint = error.config?.url?.includes('/calendar/');
       const isEventEndpoint = error.config?.url?.includes('/event/');
-      const shouldLog = !is404 || (!isSearchEndpoint && !isCalendarEndpoint && !isEventEndpoint);
+      const isUserEndpoint = error.config?.url?.includes('/user/');
+      const shouldLog =
+        !is404 ||
+        (!isSearchEndpoint && !isCalendarEndpoint && !isEventEndpoint && !isUserEndpoint);
 
       if (error.response && shouldLog) {
         // Server responded with error status

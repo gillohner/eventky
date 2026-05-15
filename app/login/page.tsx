@@ -12,6 +12,12 @@ import { Pubky, Session, AuthToken, Keypair, PublicKey } from "@synonymdev/pubky
 import { PubkyAuthWidget } from "@/components/ui/pubky-auth-widget";
 import { config } from "@/lib/config";
 import { ingestUserIntoNexus } from "@/lib/nexus/ingest";
+import {
+    migrateOwnTagsToEventkyNamespace,
+    migrateOwnEventOsmUris,
+    needsOwnTagNamespaceMigration,
+    needsOwnEventOsmUriMigration,
+} from "@/lib/pubky/osm-migration";
 
 interface LoginPageProps {
     searchParams: Promise<{
@@ -33,6 +39,55 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
     const [isHydrated, setIsHydrated] = useState(false);
     const [authMethod, setAuthMethod] = useState<"recovery" | "qr">("qr");
     const [isSigningUp, setIsSigningUp] = useState(false);
+
+    const maybeRunDataMigration = async (session: Session, publicKey: string) => {
+        try {
+            const migrationKey = `eventky:migrations:data-namespace:v1:${publicKey}`;
+            if (localStorage.getItem(migrationKey) === "done") {
+                return;
+            }
+
+            const dismissKey = `eventky:migrations:data-namespace:v1:dismissed:${publicKey}`;
+            const dismissedAt = Number(localStorage.getItem(dismissKey) || "0");
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            if (dismissedAt > 0 && Date.now() - dismissedAt < oneDayMs) {
+                return;
+            }
+
+            const [needsLocationMigration, needsTagNamespaceMigration] = await Promise.all([
+                needsOwnEventOsmUriMigration(session),
+                needsOwnTagNamespaceMigration(session),
+            ]);
+
+            if (!needsLocationMigration && !needsTagNamespaceMigration) {
+                localStorage.setItem(migrationKey, "done");
+                return;
+            }
+
+            const shouldRun = window.confirm(
+                "Eventky found old data that can be migrated now: canonical OpenStreetMap location URLs and legacy /pub/pubky.app/tags into /pub/eventky.app/tags. Run migration now?"
+            );
+            if (!shouldRun) {
+                localStorage.setItem(dismissKey, String(Date.now()));
+                return;
+            }
+
+            const [locationResult, tagResult] = await Promise.all([
+                migrateOwnEventOsmUris(session),
+                migrateOwnTagsToEventkyNamespace(session, publicKey),
+            ]);
+
+            localStorage.setItem(migrationKey, "done");
+            if (locationResult.updated > 0 || tagResult.migrated > 0) {
+                toast.success(`Migration complete: ${locationResult.updated} event(s) and ${tagResult.migrated} tag(s) updated.`);
+            } else {
+                toast.success("Migration complete: no updates needed.");
+            }
+        } catch (error) {
+            console.error("Data migration failed:", error);
+            toast.error("Data migration failed. You can run it later by signing in again.");
+        }
+    };
 
     // Handle hydration
     useEffect(() => {
@@ -63,6 +118,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             if (session) {
                 // Ingest user into Nexus
                 await ingestUserIntoNexus(publicKey);
+
+                void maybeRunDataMigration(session, publicKey);
 
                 // QR auth: Session persists in memory during browser session
                 // Cannot be stored in localStorage (not serializable)
@@ -170,6 +227,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             // Ingest user into Nexus to start monitoring this homeserver
             await ingestUserIntoNexus(publicKey);
 
+            void maybeRunDataMigration(session, publicKey);
+
             // Sign in with the new account
             signin(publicKey, keypair, session);
 
@@ -211,6 +270,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
 
             // Ingest user into Nexus to start monitoring this homeserver
             await ingestUserIntoNexus(publicKey);
+
+            void maybeRunDataMigration(session, publicKey);
 
             // Sign in with the restored credentials
             // The useProfile hook will automatically fetch the profile after signin
@@ -351,7 +412,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                                             ) : (
                                                 <div>
                                                     <p className="text-sm font-medium text-foreground">Click to upload recovery file</p>
-                                                    <p className="text-xs text-muted-foreground mt-1">Or drag and drop your .pubky file</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">Or drag and drop your .pkarr file</p>
                                                 </div>
                                             )}
                                         </div>

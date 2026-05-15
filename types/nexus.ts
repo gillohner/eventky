@@ -43,10 +43,14 @@ export interface NexusLocation {
     name: string;
     /** Additional details or instructions */
     description?: string;
-    /** PHYSICAL or ONLINE */
+    /** PHYSICAL or ONLINE (legacy UI shape) */
     location_type: 'PHYSICAL' | 'ONLINE';
     /** URI reference - OSM URL for physical, meeting URL for online */
     structured_data?: string;
+    /** Canonical app-specs shape (optional for migration compatibility) */
+    label?: string;
+    kind?: 'PHYSICAL' | 'VIRTUAL';
+    uri?: string;
 }
 
 /**
