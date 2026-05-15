@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPreview } from "@/components/ui/map-preview";
 import type { NexusLocation } from "@/types/nexus";
 import { normalizeLocations, parseOpenStreetMapReference, toLegacyLocation } from "@/lib/locations";
-import { lookupOsm } from "@/lib/nexus/mapky-osm";
+import { fetchMapkyPlaceDetail, lookupOsm } from "@/lib/nexus/mapky-osm";
 import {
     MapPin,
     Video,
@@ -18,24 +18,10 @@ import {
 } from "lucide-react";
 
 interface LocationDisplayProps {
-    /** Serialized locations JSON string from Nexus */
-    locations?: string;
+    /** Locations from Nexus (serialized JSON or already-parsed array) */
+    locations?: unknown;
     /** Additional CSS classes */
     className?: string;
-}
-
-/** BTCMap element response */
-interface BTCMapElement {
-    id: string;
-    osm_json: {
-        type: string;
-        id: number;
-        lat?: number;
-        lon?: number;
-        center?: { lat: number; lon: number };
-        tags?: Record<string, string>;
-    };
-    tags: Record<string, string>;
 }
 
 /** Payment methods parsed from BTCMap tags */
@@ -71,31 +57,38 @@ async function fetchCoordsFromOsm(
 }
 
 /**
- * Fetch BTCMap data for an OSM element
- * Returns the OSM tags which contain payment info
+ * Fetch BTC flags from Mapky place endpoint
  */
 async function fetchBTCMapData(
     osmType: string,
     osmId: number
 ): Promise<{ tags: Record<string, string>; lat?: number; lon?: number } | null> {
     try {
-        // BTCMap API uses format like "node:1573053883"
-        const response = await fetch(
-            `https://api.btcmap.org/v2/elements/${osmType}:${osmId}`
-        );
-        if (!response.ok) {
-            // Element not found in BTCMap
+        const place = await fetchMapkyPlaceDetail(osmType, osmId);
+        if (!place || !place.accepts_bitcoin) {
             return null;
         }
-        const data: BTCMapElement = await response.json();
-        // Payment tags are in osm_json.tags, not the top-level tags
+
+        const tags: Record<string, string> = {};
+        if (place.btc_onchain) {
+            tags["payment:onchain"] = "yes";
+            tags["payment:bitcoin"] = "yes";
+            tags["currency:XBT"] = "yes";
+        }
+        if (place.btc_lightning) {
+            tags["payment:lightning"] = "yes";
+        }
+        if (place.btc_lightning_contactless) {
+            tags["payment:lightning_contactless"] = "yes";
+        }
+
         return {
-            tags: data.osm_json?.tags || {},
-            lat: data.osm_json?.lat ?? data.osm_json?.center?.lat,
-            lon: data.osm_json?.lon ?? data.osm_json?.center?.lon,
+            tags,
+            lat: place.lat,
+            lon: place.lon,
         };
     } catch {
-        // Not in BTCMap
+        // Not in Mapky BTC cache or lookup failed
         return null;
     }
 }
@@ -348,15 +341,20 @@ function LocationItem({
  * Shows all locations with map links, BTC payment info, and map preview
  */
 export function LocationDisplay({ locations, className }: LocationDisplayProps) {
-    // Parse locations JSON
+    // Parse locations from either JSON string or already-parsed array/object
     const parsedLocations: NexusLocation[] = (() => {
         if (!locations) return [];
-        try {
-            const parsed = JSON.parse(locations);
-            return normalizeLocations(parsed).map(toLegacyLocation);
-        } catch {
-            return [];
+
+        if (typeof locations === "string") {
+            try {
+                const parsed = JSON.parse(locations);
+                return normalizeLocations(parsed).map(toLegacyLocation);
+            } catch {
+                return [];
+            }
         }
+
+        return normalizeLocations(locations).map(toLegacyLocation);
     })();
 
     // Don't render if no locations
