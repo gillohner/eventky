@@ -13,18 +13,27 @@ async function proxy(req: NextRequest, path: string[]) {
   const hasBody = method !== "GET" && method !== "HEAD";
   const body = hasBody ? await req.arrayBuffer() : undefined;
 
-  const upstreamRes = await fetch(upstream, {
-    method,
-    headers,
-    body,
-  });
+  try {
+    const upstreamRes = await fetch(upstream, {
+      method,
+      headers,
+      body,
+    });
 
-  const resHeaders = new Headers(upstreamRes.headers);
-  resHeaders.delete("content-encoding");
-  return new NextResponse(upstreamRes.body, {
-    status: upstreamRes.status,
-    headers: resHeaders,
-  });
+    const resHeaders = new Headers(upstreamRes.headers);
+    resHeaders.delete("content-encoding");
+
+    return new NextResponse(upstreamRes.body, {
+      status: upstreamRes.status,
+      headers: resHeaders,
+    });
+  } catch (error) {
+    console.error("Nexus proxy request failed", { upstream: upstream.toString(), error });
+    return NextResponse.json(
+      { error: "Nexus gateway unavailable" },
+      { status: 502 }
+    );
+  }
 }
 
 export async function GET(

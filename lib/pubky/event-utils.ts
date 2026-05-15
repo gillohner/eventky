@@ -11,7 +11,7 @@
 import { EventFormData } from "@/stores/event-form-store";
 import { PubkyAppEvent } from "@eventky/pubky-app-specs";
 import { NexusEventResponse } from "@/lib/nexus/events";
-import { canonicalizeLocationUris, normalizeLocations } from "@/lib/locations";
+import { canonicalizeLocationUris, normalizeLocations, toLegacyLocation } from "@/lib/locations";
 
 /**
  * Normalize format strings between WASM spec values and MIME types.
@@ -216,24 +216,14 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
             // Nexus API returns serialized JSON string
             try {
             const parsed = JSON.parse(eventDetails.locations);
-            locations = normalizeLocations(parsed).map((loc) => ({
-                name: loc.label,
-                location_type: loc.kind === "VIRTUAL" ? "ONLINE" : "PHYSICAL",
-                description: loc.description,
-                structured_data: loc.uri,
-            }));
+            locations = normalizeLocations(parsed).map(toLegacyLocation);
         } catch {
                 // Invalid JSON, ignore
             }
         } else if (Array.isArray(eventDetails.locations)) {
             // WASM returns array directly - map to our types
             // (WASM Location.location_type is string, we need "PHYSICAL" | "ONLINE")
-            locations = normalizeLocations(eventDetails.locations).map((loc) => ({
-                name: loc.label,
-                location_type: loc.kind === "VIRTUAL" ? "ONLINE" : "PHYSICAL",
-                description: loc.description,
-                structured_data: loc.uri,
-            }));
+            locations = normalizeLocations(eventDetails.locations).map(toLegacyLocation);
         }
     }
 
