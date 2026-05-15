@@ -11,6 +11,7 @@
 import { EventFormData } from "@/stores/event-form-store";
 import { PubkyAppEvent } from "@eventky/pubky-app-specs";
 import { NexusEventResponse } from "@/lib/nexus/events";
+import { canonicalizeLocationUris, normalizeLocations } from "@/lib/locations";
 
 /**
  * Normalize format strings between WASM spec values and MIME types.
@@ -33,6 +34,17 @@ function toWasmFormat(format: string): string {
         case "text/markdown": return "markdown";
         default: return format; // Already WASM format or unknown
     }
+}
+
+function toCanonicalLocations(locations: EventFormData["locations"]) {
+    if (!locations || locations.length === 0) return null;
+    const normalized = locations.map((loc) => ({
+        label: loc.name,
+        description: loc.description,
+        kind: (loc.location_type === "ONLINE" ? "VIRTUAL" : "PHYSICAL") as "VIRTUAL" | "PHYSICAL",
+        uri: loc.structured_data,
+    }));
+    return canonicalizeLocationUris(normalized);
 }
 
 /**
@@ -176,7 +188,7 @@ export function formDataToEventData(
             }
             : null,
         // RFC 9073 structured locations
-        locations: data.locations && data.locations.length > 0 ? data.locations : null,
+        locations: toCanonicalLocations(data.locations),
         x_pubky_calendar_uris: data.x_pubky_calendar_uris || null,
         x_pubky_rsvp_access: data.x_pubky_rsvp_access || null,
     };
@@ -188,6 +200,7 @@ export function formDataToEventData(
 export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): EventFormData {
     // Extract event details if NexusEventResponse
     const eventDetails = 'details' in event ? event.details : event;
+    const rsvpAccess = (eventDetails as unknown as { x_pubky_rsvp_access?: string }).x_pubky_rsvp_access;
 
     // Convert styled_description using robust recursive parser
     // Handles: JSON strings (Nexus), WASM objects, double-encoded data, 
@@ -202,18 +215,24 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
         if (typeof eventDetails.locations === 'string') {
             // Nexus API returns serialized JSON string
             try {
-                locations = JSON.parse(eventDetails.locations);
-            } catch {
+            const parsed = JSON.parse(eventDetails.locations);
+            locations = normalizeLocations(parsed).map((loc) => ({
+                name: loc.label,
+                location_type: loc.kind === "VIRTUAL" ? "ONLINE" : "PHYSICAL",
+                description: loc.description,
+                structured_data: loc.uri,
+            }));
+        } catch {
                 // Invalid JSON, ignore
             }
         } else if (Array.isArray(eventDetails.locations)) {
             // WASM returns array directly - map to our types
             // (WASM Location.location_type is string, we need "PHYSICAL" | "ONLINE")
-            locations = eventDetails.locations.map(loc => ({
-                name: loc.name,
-                location_type: loc.location_type as "PHYSICAL" | "ONLINE",
+            locations = normalizeLocations(eventDetails.locations).map((loc) => ({
+                name: loc.label,
+                location_type: loc.kind === "VIRTUAL" ? "ONLINE" : "PHYSICAL",
                 description: loc.description,
-                structured_data: loc.structured_data,
+                structured_data: loc.uri,
             }));
         }
     }
@@ -235,7 +254,7 @@ export function eventToFormData(event: PubkyAppEvent | NexusEventResponse): Even
         styled_description: styledDescription,
         locations,
         x_pubky_calendar_uris: eventDetails.x_pubky_calendar_uris || undefined,
-        x_pubky_rsvp_access: eventDetails.x_pubky_rsvp_access || undefined,
+        x_pubky_rsvp_access: rsvpAccess || undefined,
     };
 }
 

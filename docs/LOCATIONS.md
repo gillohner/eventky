@@ -36,9 +36,10 @@ Two modes:
 1. **Simple**: Just a name (e.g., "My backyard")
 2. **Full**: Nominatim search → name + OSM URL
 
-### Nominatim Search
+### OSM Search
 
 - 1-second debounce (rate limit compliance)
+- Search/lookup requests are proxied through Nexus Mapky endpoints (`/v0/mapky/osm/search` and `/v0/mapky/osm/lookup`)
 - Returns OSM node/way/relation
 - `structured_data` stores the OSM URL: `https://www.openstreetmap.org/node/1573053883`
 

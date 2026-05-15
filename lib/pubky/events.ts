@@ -1,5 +1,5 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
-import { PubkyAppEvent, eventUriBuilder } from "@eventky/pubky-app-specs";
+import { PubkyAppEvent, eventkyEventUriBuilder } from "@eventky/pubky-app-specs";
 import { config } from "@/lib/config";
 import { isNotFoundError } from "./session-utils";
 
@@ -12,7 +12,7 @@ export async function getEvent(
 ): Promise<PubkyAppEvent | null> {
   try {
     const pubky = config.env === "testnet" ? Pubky.testnet() : new Pubky();
-    const url = eventUriBuilder(authorId, eventId);
+    const url = eventkyEventUriBuilder(authorId, eventId);
     const data = await pubky.publicStorage.getJson(url as Address);
 
     if (!data || typeof data !== "object") {
@@ -41,7 +41,7 @@ export async function deleteEvent(
     throw new Error("Invalid session: No storage available. Please sign in again.");
   }
 
-  const eventUri = eventUriBuilder(userId, eventId);
+  const eventUri = eventkyEventUriBuilder(userId, eventId);
   const eventPath = eventUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 
   try {
@@ -74,8 +74,8 @@ export async function saveEvent(
       throw new Error("Invalid session: No storage available. Please sign in again.");
     }
 
-    // Use eventUriBuilder to construct the full URI, then extract the path
-    const eventUri = eventUriBuilder(userId, eventId);
+    // Use eventkyEventUriBuilder to construct the full URI, then extract the path
+    const eventUri = eventkyEventUriBuilder(userId, eventId);
     // Convert pubky://userId/path to /path
     const eventPath = eventUri.replace(`pubky://${userId}`, "") as `/pub/${string}`;
 

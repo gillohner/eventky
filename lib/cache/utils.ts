@@ -11,7 +11,7 @@
  */
 
 import type { PubkyAppEvent, PubkyAppCalendar, StyledDescription } from "@eventky/pubky-app-specs";
-import { eventUriBuilder, calendarUriBuilder } from "@eventky/pubky-app-specs";
+import { eventkyEventUriBuilder, eventkyCalendarUriBuilder } from "@eventky/pubky-app-specs";
 import type { NexusEventResponse } from "@/lib/nexus/events";
 import type { NexusCalendarResponse } from "@/lib/nexus/calendars";
 
@@ -129,10 +129,12 @@ export function pubkyEventToNexusFormat(
     // Get current timestamp for indexed_at (local writes aren't indexed yet)
     const now = Date.now();
 
+    const rsvpAccess = (event as unknown as { x_pubky_rsvp_access?: string | null }).x_pubky_rsvp_access;
+
     return {
         details: {
             id: eventId,
-            uri: eventUriBuilder(authorId, eventId),
+            uri: eventkyEventUriBuilder(authorId, eventId),
             author: authorId,
             indexed_at: now, // Local timestamp, will be updated when Nexus indexes
             uid: event.uid,
@@ -157,8 +159,9 @@ export function pubkyEventToNexusFormat(
             styled_description: event.styled_description
                 ? convertStyledDescription(event.styled_description)
                 : undefined,
+            locations: event.locations ? JSON.stringify(event.locations) : undefined,
             x_pubky_calendar_uris: event.x_pubky_calendar_uris ?? undefined,
-            x_pubky_rsvp_access: event.x_pubky_rsvp_access ?? undefined,
+            x_pubky_rsvp_access: rsvpAccess ?? undefined,
         },
         // Tags and attendees are empty for local writes (populated by Nexus)
         tags: [],
@@ -179,7 +182,7 @@ export function pubkyCalendarToNexusFormat(
     return {
         details: {
             id: calendarId,
-            uri: calendarUriBuilder(authorId, calendarId),
+            uri: eventkyCalendarUriBuilder(authorId, calendarId),
             author: authorId,
             indexed_at: now,
             name: calendar.name,

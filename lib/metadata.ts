@@ -5,6 +5,7 @@
 
 import { config } from "@/lib/config";
 import type { NexusEventDetails, NexusCalendarDetails, NexusLocation } from "@/types/nexus";
+import { normalizeLocations, toLegacyLocation } from "@/lib/locations";
 
 /**
  * Get the public-facing app URL for absolute metadata URLs.
@@ -172,7 +173,8 @@ export function formatMetaDate(
 export function getPrimaryLocation(locationsJson: string | undefined | null): NexusLocation | null {
     if (!locationsJson) return null;
     try {
-        const locations: NexusLocation[] = JSON.parse(locationsJson);
+        const parsed = JSON.parse(locationsJson);
+        const locations = normalizeLocations(parsed).map(toLegacyLocation);
         // Prefer physical locations, then take the first
         return locations.find(l => l.location_type === "PHYSICAL") || locations[0] || null;
     } catch {

@@ -1,11 +1,15 @@
 import { Session } from "@synonymdev/pubky";
-import { PubkySpecsBuilder, eventUriBuilder, calendarUriBuilder } from "@eventky/pubky-app-specs";
+import {
+  EventkySpecsBuilder,
+  eventkyEventUriBuilder,
+  eventkyCalendarUriBuilder,
+} from "@eventky/pubky-app-specs";
 import { isNotFoundError } from "./session-utils";
 
 /**
  * Create a tag on an event
  * Requires an authenticated Session
- * Tags are stored at /pub/pubky.app/tags/<tag_id>
+ * Tags are stored at /pub/eventky.app/tags/<tag_id>
  * where tag_id is derived from hash of uri:label
  */
 export async function addTagToEvent(
@@ -21,10 +25,10 @@ export async function addTagToEvent(
     }
 
     // Build the event URI that we're tagging
-    const eventUri = eventUriBuilder(eventAuthorId, eventId);
+    const eventUri = eventkyEventUriBuilder(eventAuthorId, eventId);
 
-    // Use PubkySpecsBuilder to create the tag with proper ID hashing
-    const builder = new PubkySpecsBuilder(userId);
+    // Use EventkySpecsBuilder to create the tag with proper ID hashing
+    const builder = new EventkySpecsBuilder(userId);
     const tagResult = builder.createTag(eventUri, label);
 
     // Get the tag path from the meta
@@ -66,10 +70,10 @@ export async function removeTagFromEvent(
   }
 
   // Build the event URI that we're untagging
-  const eventUri = eventUriBuilder(eventAuthorId, eventId);
+  const eventUri = eventkyEventUriBuilder(eventAuthorId, eventId);
 
-  // Use PubkySpecsBuilder to get the correct tag ID (same hash as creation)
-  const builder = new PubkySpecsBuilder(userId);
+  // Use EventkySpecsBuilder to get the correct tag ID (same hash as creation)
+  const builder = new EventkySpecsBuilder(userId);
   const tagResult = builder.createTag(eventUri, label);
 
   // Get the tag path from the meta
@@ -101,7 +105,7 @@ export async function removeTagFromEvent(
 /**
  * Create a tag on a calendar
  * Requires an authenticated Session
- * Tags are stored at /pub/pubky.app/tags/<tag_id>
+ * Tags are stored at /pub/eventky.app/tags/<tag_id>
  * where tag_id is derived from hash of uri:label
  */
 export async function addTagToCalendar(
@@ -117,10 +121,10 @@ export async function addTagToCalendar(
     }
 
     // Build the calendar URI that we're tagging
-    const calendarUri = calendarUriBuilder(calendarAuthorId, calendarId);
+    const calendarUri = eventkyCalendarUriBuilder(calendarAuthorId, calendarId);
 
-    // Use PubkySpecsBuilder to create the tag with proper ID hashing
-    const builder = new PubkySpecsBuilder(userId);
+    // Use EventkySpecsBuilder to create the tag with proper ID hashing
+    const builder = new EventkySpecsBuilder(userId);
     const tagResult = builder.createTag(calendarUri, label);
 
     // Get the tag path from the meta
@@ -162,10 +166,10 @@ export async function removeTagFromCalendar(
   }
 
   // Build the calendar URI that we're untagging
-  const calendarUri = calendarUriBuilder(calendarAuthorId, calendarId);
+  const calendarUri = eventkyCalendarUriBuilder(calendarAuthorId, calendarId);
 
-  // Use PubkySpecsBuilder to get the correct tag ID (same hash as creation)
-  const builder = new PubkySpecsBuilder(userId);
+  // Use EventkySpecsBuilder to get the correct tag ID (same hash as creation)
+  const builder = new EventkySpecsBuilder(userId);
   const tagResult = builder.createTag(calendarUri, label);
 
   // Get the tag path from the meta

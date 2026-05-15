@@ -9,6 +9,7 @@
  */
 
 import type { NexusEventResponse, NexusEventDetails } from "@/types/nexus";
+import { normalizeLocations } from "@/lib/locations";
 
 // =============================================================================
 // Types
@@ -163,19 +164,20 @@ function buildVEvent(details: NexusEventDetails): string[] {
             const locs = typeof details.locations === "string"
                 ? JSON.parse(details.locations)
                 : details.locations;
+            const normalized = normalizeLocations(locs);
 
-            if (Array.isArray(locs) && locs.length > 0) {
+            if (normalized.length > 0) {
                 // Primary location as LOCATION property
-                const primary = locs[0];
+                const primary = normalized[0];
                 const locationParts: string[] = [];
-                if (primary.name) locationParts.push(primary.name);
+                if (primary.label) locationParts.push(primary.label);
                 if (primary.description) locationParts.push(primary.description);
                 lines.push(prop("LOCATION", escapeText(locationParts.join(" - "))));
 
                 // Online locations as URL or X-ONLINE-MEETING
-                for (const loc of locs) {
-                    if (loc.location_type === "ONLINE" && loc.structured_data) {
-                        lines.push(prop("X-ONLINE-MEETING", loc.structured_data));
+                for (const loc of normalized) {
+                    if (loc.kind === "VIRTUAL" && loc.uri) {
+                        lines.push(prop("X-ONLINE-MEETING", loc.uri));
                     }
                 }
             }

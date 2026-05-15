@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPreview } from "@/components/ui/map-preview";
 import type { NexusLocation } from "@/types/nexus";
+import { normalizeLocations, parseOpenStreetMapReference, toLegacyLocation } from "@/lib/locations";
+import { lookupOsm } from "@/lib/nexus/mapky-osm";
 import {
     MapPin,
     Video,
@@ -45,16 +47,6 @@ interface PaymentMethods {
 }
 
 /**
- * Parse OSM URL to extract osm_type and osm_id
- * Example: https://www.openstreetmap.org/node/1573053883
- */
-function parseOsmUrl(url: string): { osmType: string; osmId: number } | null {
-    const match = url.match(/openstreetmap\.org\/(node|way|relation)\/(\d+)/);
-    if (!match) return null;
-    return { osmType: match[1], osmId: parseInt(match[2], 10) };
-}
-
-/**
  * Extract coordinates from OSM URL by fetching from Nominatim
  */
 async function fetchCoordsFromOsm(
@@ -62,16 +54,11 @@ async function fetchCoordsFromOsm(
     osmId: number
 ): Promise<{ lat: number; lon: number } | null> {
     try {
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/lookup?osm_ids=${osmType[0].toUpperCase()}${osmId}&format=json`,
-            {
-                headers: {
-                    "User-Agent": "Eventky/1.0 (https://eventky.app)",
-                },
-            }
-        );
-        const data = await response.json();
+        const prefix = osmType[0]?.toUpperCase();
+        if (!prefix) return null;
+        const data = await lookupOsm(`${prefix}${osmId}`);
         if (data && data[0]) {
+            if (!data[0].lat || !data[0].lon) return null;
             return {
                 lat: parseFloat(data[0].lat),
                 lon: parseFloat(data[0].lon),
@@ -175,22 +162,28 @@ function LocationItem({
     const isPhysical = location.location_type === "PHYSICAL";
     const isOnline = location.location_type === "ONLINE";
 
-    // Derive osmInfo from structured_data (no state needed)
+    // Derive OSM reference from structured_data (no state needed)
     const osmInfo = useMemo(() => {
         if (!isPhysical || !location.structured_data) return null;
-        return parseOsmUrl(location.structured_data);
+        return parseOpenStreetMapReference(location.structured_data);
     }, [isPhysical, location.structured_data]);
 
     // Fetch coordinates and BTCMap data for physical locations with structured_data
     useEffect(() => {
         if (!osmInfo) return;
 
-        // Fetch coordinates
+        if (osmInfo.kind === "coords") {
+            setCoords({ lat: osmInfo.lat, lon: osmInfo.lon });
+            setPaymentMethods(null);
+            return;
+        }
+
+        // Fetch coordinates from OSM ref
         fetchCoordsFromOsm(osmInfo.osmType, osmInfo.osmId).then((result) => {
             if (result) setCoords(result);
         });
 
-        // Fetch BTCMap data
+        // Fetch BTCMap data for OSM refs
         fetchBTCMapData(osmInfo.osmType, osmInfo.osmId)
             .then((btcmapData) => {
                 if (btcmapData) {
@@ -303,7 +296,7 @@ function LocationItem({
             )}
 
             {/* Bitcoin Payment Methods */}
-            {paymentMethods && osmInfo && (
+            {paymentMethods && osmInfo?.kind === "osm-ref" && (
                 <div className="pl-11 flex items-center gap-3">
                     <a
                         href={buildBTCMapUrl(osmInfo.osmType, osmInfo.osmId)}
@@ -360,7 +353,7 @@ export function LocationDisplay({ locations, className }: LocationDisplayProps) 
         if (!locations) return [];
         try {
             const parsed = JSON.parse(locations);
-            return Array.isArray(parsed) ? parsed : [];
+            return normalizeLocations(parsed).map(toLegacyLocation);
         } catch {
             return [];
         }

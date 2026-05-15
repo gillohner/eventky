@@ -28,9 +28,8 @@ export async function fetchEventFromNexus(
     if (limitTaggers) params.append("limit_taggers", limitTaggers.toString());
     if (limitAttendees) params.append("limit_attendees", limitAttendees.toString());
 
-    const url = `/v0/event/${authorId}/${eventId}${params.toString() ? `?${params.toString()}` : ""
-      }`;
-
+    const queryString = params.toString();
+    const url = `/v0/eventky/event/${authorId}/${eventId}${queryString ? `?${queryString}` : ""}`;
     const response = await nexusClient.get<NexusEventResponse>(url);
     return response.data || null;
   } catch (error) {
@@ -76,7 +75,7 @@ export async function fetchEventsStream(params?: {
     }
 
     const response = await nexusClient.get<NexusEventStreamItem[]>(
-      "/v0/stream/events",
+      "/v0/eventky/stream/events",
       { params: apiParams }
     );
     return response.data;
