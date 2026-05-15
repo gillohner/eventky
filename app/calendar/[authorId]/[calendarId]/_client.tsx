@@ -3,7 +3,6 @@
 import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQueries } from "@tanstack/react-query";
-import { parse_uri } from "@eventky/pubky-app-specs";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { useDeleteCalendar } from "@/hooks/use-calendar-mutations";
 import { useAddCalendarTagMutation, useRemoveCalendarTagMutation } from "@/hooks/use-calendar-tag-mutation";
@@ -14,12 +13,13 @@ import { SyncBadge } from "@/components/ui/sync-status-indicator";
 import { DevJsonView } from "@/components/dev-json-view";
 import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { Button } from "@/components/ui/button";
-import { calendarUriBuilder } from "@eventky/pubky-app-specs";
+import { eventkyCalendarUriBuilder } from "@eventky/pubky-app-specs";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { fetchEventFromNexus } from "@/lib/nexus";
 import { queryKeys } from "@/lib/cache";
 import type { NexusEventResponse } from "@/lib/nexus/events";
+import { parseEventkyUri } from "@/lib/pubky/uri";
 
 interface CalendarPageClientProps {
     params: Promise<{
@@ -44,7 +44,7 @@ export default function CalendarPageClient({ params }: CalendarPageClientProps) 
     } = useCalendar(authorId, calendarId);
 
     // Build calendar URI
-    const calendarUri = calendar?.details.uri || calendarUriBuilder(authorId, calendarId);
+    const calendarUri = calendar?.details.uri || eventkyCalendarUriBuilder(authorId, calendarId);
 
     // Parse event URIs to get author and event IDs
     const eventQueries = useMemo(() => {
@@ -54,10 +54,10 @@ export default function CalendarPageClient({ params }: CalendarPageClientProps) 
         return events
             .map((uri) => {
                 try {
-                    const parsed = parse_uri(uri);
+                    const parsed = parseEventkyUri(uri);
                     return {
-                        authorId: parsed.user_id,
-                        eventId: parsed.resource_id || "",
+                        authorId: parsed.userId,
+                        eventId: parsed.resourceId || "",
                     };
                 } catch (error) {
                     console.error("Failed to parse event URI:", uri, error);

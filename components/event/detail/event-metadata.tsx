@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { parse_uri } from "@eventky/pubky-app-specs";
+import { parseEventkyUri } from "@/lib/pubky/uri";
 import { useCalendar } from "@/hooks/use-calendar-hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -266,11 +266,11 @@ function parseCalendarUri(uri: string): {
     authorId?: string;
     calendarId?: string;
 } {
-    // Parse pubky://authorId/pub/eventky.app/calendars/calendarId using pubky-app-specs
+    // Parse pubky://authorId/pub/eventky.app/calendars/calendarId
     try {
-        const parsed = parse_uri(uri);
-        if (parsed.resource === "calendars" && parsed.resource_id) {
-            return { authorId: parsed.user_id, calendarId: parsed.resource_id };
+        const parsed = parseEventkyUri(uri);
+        if (parsed.resource === "calendars" && parsed.resourceId) {
+            return { authorId: parsed.userId, calendarId: parsed.resourceId };
         }
     } catch {
         // Fall through to return empty

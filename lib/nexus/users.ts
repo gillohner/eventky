@@ -139,6 +139,9 @@ export async function fetchUserFromNexus(
         const response = await nexusClient.get<NexusUserView>(url);
         return response.data || null;
     } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 404) {
+            return null;
+        }
         console.error("Error fetching user from Nexus:", {
             userId,
             error: getErrorMessage(error),
