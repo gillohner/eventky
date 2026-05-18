@@ -100,11 +100,13 @@ async function listOwnEventPaths(session: Session): Promise<string[]> {
 export interface OSMUriMigrationResult {
   inspected: number;
   updated: number;
+  failed: number;
 }
 
 export interface TagNamespaceMigrationResult {
   inspected: number;
   migrated: number;
+  failed: number;
 }
 
 export async function needsOwnTagNamespaceMigration(
@@ -139,6 +141,7 @@ export async function migrateOwnTagsToEventkyNamespace(
 
   let inspected = 0;
   let migrated = 0;
+  let failed = 0;
 
   for (const oldPath of oldTagPaths) {
     const tagJson = await safeGetJsonObject(session, oldPath as `/pub/${string}`);
@@ -160,10 +163,11 @@ export async function migrateOwnTagsToEventkyNamespace(
       migrated += 1;
     } catch (error) {
       console.warn("Tag migration failed for record", { path: oldPath, error });
+      failed += 1;
     }
   }
 
-  return { inspected, migrated };
+  return { inspected, migrated, failed };
 }
 
 export async function needsOwnEventOsmUriMigration(
@@ -193,6 +197,7 @@ export async function migrateOwnEventOsmUris(session: Session): Promise<OSMUriMi
   const paths = await listOwnEventPaths(session);
   let inspected = 0;
   let updated = 0;
+  let failed = 0;
 
   for (const path of paths) {
     const eventJson = await safeGetJsonObject(session, path as `/pub/${string}`);
@@ -207,8 +212,9 @@ export async function migrateOwnEventOsmUris(session: Session): Promise<OSMUriMi
       updated += 1;
     } catch (error) {
       console.warn("Event location migration failed for record", { path, error });
+      failed += 1;
     }
   }
 
-  return { inspected, updated };
+  return { inspected, updated, failed };
 }

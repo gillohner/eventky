@@ -77,11 +77,23 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
                 migrateOwnTagsToEventkyNamespace(session, publicKey),
             ]);
 
-            localStorage.setItem(migrationKey, "done");
+            const [stillNeedsLocations, stillNeedsTags] = await Promise.all([
+                needsOwnEventOsmUriMigration(session, 200),
+                needsOwnTagNamespaceMigration(session, 200),
+            ]);
+            const hasFailures = locationResult.failed > 0 || tagResult.failed > 0;
+            const isFullyDone = !stillNeedsLocations && !stillNeedsTags && !hasFailures;
+
+            if (isFullyDone) {
+                localStorage.setItem(migrationKey, "done");
+            }
+
             if (locationResult.updated > 0 || tagResult.migrated > 0) {
                 toast.success(`Migration complete: ${locationResult.updated} event(s) and ${tagResult.migrated} tag(s) updated.`);
-            } else {
+            } else if (isFullyDone) {
                 toast.success("Migration complete: no updates needed.");
+            } else {
+                toast.warning("Migration partially complete. Eventky will retry on next login.");
             }
         } catch (error) {
             console.error("Data migration failed:", error);

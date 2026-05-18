@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { config } from "@/lib/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPreview } from "@/components/ui/map-preview";
 import type { NexusLocation } from "@/types/nexus";
@@ -135,8 +136,27 @@ function buildAppleMapsUrl(lat: number, lon: number, name: string): string {
 /**
  * Build BTCMap merchant URL
  */
-function buildBTCMapUrl(osmType: string, osmId: number): string {
-    return `https://btcmap.org/merchant/${osmType}:${osmId}`;
+function getMapkyBaseUrl(): string {
+    if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_MAPKY_APP_URL) {
+        return process.env.NEXT_PUBLIC_MAPKY_APP_URL;
+    }
+
+    if (config.env === "testnet") return "http://localhost:5173";
+    if (config.env === "production") return "https://mapky.pubky.app";
+    return "https://mapky.staging.pubky.app";
+}
+
+function buildMapkyUrl(locationUri: string | undefined, osmInfo: ReturnType<typeof parseOpenStreetMapReference>): string {
+    const baseUrl = getMapkyBaseUrl();
+    if (osmInfo?.kind === "osm-ref") {
+        return `${baseUrl}/place/${osmInfo.osmType}/${osmInfo.osmId}`;
+    }
+
+    if (locationUri) {
+        return `${baseUrl}/?q=${encodeURIComponent(locationUri)}`;
+    }
+
+    return baseUrl;
 }
 
 /**
@@ -254,12 +274,25 @@ function LocationItem({
                             <ExternalLink className="h-3 w-3" />
                         </a>
                     )}
+
+                    {/* Mapky */}
+                    <a
+                        href={buildMapkyUrl(location.structured_data, osmInfo)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <Map className="h-3.5 w-3.5" />
+                        Open in Mapky
+                        <ExternalLink className="h-3 w-3" />
+                    </a>
                 </div>
             )}
 
             {/* Physical Location: OSM link only (no coords yet) */}
-            {isPhysical && !coords && location.structured_data && (
-                <div className="pl-11">
+            {isPhysical && !coords && (
+                <div className="pl-11 flex flex-wrap gap-2">
+                    {location.structured_data && (
                     <a
                         href={location.structured_data}
                         target="_blank"
@@ -268,6 +301,17 @@ function LocationItem({
                     >
                         <Map className="h-3.5 w-3.5" />
                         View on OpenStreetMap
+                        <ExternalLink className="h-3 w-3" />
+                    </a>
+                    )}
+                    <a
+                        href={buildMapkyUrl(location.structured_data, osmInfo)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    >
+                        <Map className="h-3.5 w-3.5" />
+                        Open in Mapky
                         <ExternalLink className="h-3 w-3" />
                     </a>
                 </div>
@@ -291,12 +335,7 @@ function LocationItem({
             {/* Bitcoin Payment Methods */}
             {paymentMethods && osmInfo?.kind === "osm-ref" && (
                 <div className="pl-11 flex items-center gap-3">
-                    <a
-                        href={buildBTCMapUrl(osmInfo.osmType, osmInfo.osmId)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-amber-500/10 rounded-md hover:bg-amber-500/20 transition-colors"
-                    >
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-amber-500/10 rounded-md">
                         <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
                             Bitcoin Accepted
                         </span>
@@ -317,8 +356,7 @@ function LocationItem({
                                 </span>
                             )}
                         </div>
-                        <ExternalLink className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                    </a>
+                    </div>
                 </div>
             )}
 
