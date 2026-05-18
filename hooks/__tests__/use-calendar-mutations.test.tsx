@@ -16,7 +16,7 @@ import {
     useUpdateCalendar,
     useDeleteCalendar,
 } from '../use-calendar-mutations'
-import type { PubkyAppCalendar } from '@eventky/pubky-app-specs'
+import type { PubkyAppCalendar } from 'eventky-app-specs'
 import type { CachedCalendar } from '@/types/nexus'
 
 // Mock PubkyAppCalendar type - the real one is a WASM class with methods

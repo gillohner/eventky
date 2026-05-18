@@ -3,7 +3,7 @@ import {
   EventkySpecsBuilder,
   eventkyEventUriBuilder,
   eventkyCalendarUriBuilder,
-} from "@eventky/pubky-app-specs";
+} from "eventky-app-specs";
 import { isNotFoundError } from "./session-utils";
 
 /**

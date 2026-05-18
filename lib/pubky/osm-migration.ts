@@ -1,5 +1,5 @@
 import { Session } from "@synonymdev/pubky";
-import { EventkySpecsBuilder } from "@eventky/pubky-app-specs";
+import { EventkySpecsBuilder } from "eventky-app-specs";
 
 import { canonicalizeLocationUris, normalizeLocations } from "@/lib/locations";
 

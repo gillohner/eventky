@@ -16,7 +16,7 @@ import {
     useUpdateEvent,
     useDeleteEvent,
 } from '../use-event-mutations'
-import type { PubkyAppEvent } from '@eventky/pubky-app-specs'
+import type { PubkyAppEvent } from 'eventky-app-specs'
 import type { CachedEvent } from '@/types/nexus'
 
 // Mock PubkyAppEvent type - the real one is a WASM class with methods

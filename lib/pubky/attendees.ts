@@ -6,7 +6,7 @@
  */
 
 import { Session } from "@synonymdev/pubky";
-import { EventkySpecsBuilder, eventkyEventUriBuilder } from "@eventky/pubky-app-specs";
+import { EventkySpecsBuilder, eventkyEventUriBuilder } from "eventky-app-specs";
 import { isNotFoundError } from "./session-utils";
 
 /**

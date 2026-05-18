@@ -1,5 +1,5 @@
 import { Pubky, Address, Session } from "@synonymdev/pubky";
-import { PubkyAppEvent, eventkyEventUriBuilder } from "@eventky/pubky-app-specs";
+import { PubkyAppEvent, eventkyEventUriBuilder } from "eventky-app-specs";
 import { config } from "@/lib/config";
 import { isNotFoundError } from "./session-utils";
 

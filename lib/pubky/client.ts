@@ -1,5 +1,5 @@
 import { Pubky, Client, Keypair, Session, Address, PublicKey } from "@synonymdev/pubky";
-import { PubkyAppUser, userUriBuilder } from "@eventky/pubky-app-specs";
+import { PubkyAppUser, userUriBuilder } from "eventky-app-specs";
 import { config, isTestnet } from "@/lib/config";
 
 export class PubkyClient {

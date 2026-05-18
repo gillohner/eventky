@@ -13,7 +13,7 @@ import { SyncBadge } from "@/components/ui/sync-status-indicator";
 import { DevJsonView } from "@/components/dev-json-view";
 import { DebugViewToggle } from "@/components/ui/debug-view-toggle";
 import { Button } from "@/components/ui/button";
-import { eventkyCalendarUriBuilder } from "@eventky/pubky-app-specs";
+import { eventkyCalendarUriBuilder } from "eventky-app-specs";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { fetchEventFromNexus } from "@/lib/nexus";
