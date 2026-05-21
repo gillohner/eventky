@@ -1,0 +1,59 @@
+name: Eventky Deploy VPS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: eventky-vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Setup SSH key
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy Eventky on VPS
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" 'bash -se' <<'EOF'
+          set -euo pipefail
+          cd /home/eventky/apps/eventky
+          git fetch origin
+          git reset --hard origin/main
+          npm install
+          npm run build
+          sudo systemctl restart eventky.service
+          sudo systemctl is-active --quiet eventky.service
+          EOF
+
+      - name: Health checks
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            app_code=$(curl -sS -o /dev/null -w "%{http_code}" https://eventky.app || echo 000)
+            nexus_code=$(curl -sS -o /dev/null -w "%{http_code}" https://nexus.eventky.app/v0/eventky/health || echo 000)
+            echo "attempt $i: eventky=$app_code nexus_eventky=$nexus_code"
+            if [ "$app_code" = "200" ] && [ "$nexus_code" = "200" ]; then
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1

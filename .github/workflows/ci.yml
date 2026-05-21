@@ -1,0 +1,40 @@
+name: Eventky CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Validate published eventky-app-specs dependency
+        run: |
+          if grep -q '"eventky-app-specs"\s*:\s*"file:' package.json; then
+            echo "::error::eventky-app-specs must use a published package version, not file: dependency"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test:run
+
+      - name: Run production build
+        run: npm run build
