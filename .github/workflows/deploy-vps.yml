@@ -35,9 +35,13 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" 'bash -se' <<'EOF'
           set -euo pipefail
-          sudo -u eventky bash -lc 'cd /home/eventky/apps/eventky && git fetch origin && git reset --hard origin/main && npm install && npm run build'
+          sudo -u eventky bash -lc 'cd /home/eventky/apps/eventky && git fetch origin && git reset --hard origin/main && npm ci && npm run build'
           sudo systemctl restart eventky.service
-          sudo systemctl is-active --quiet eventky.service
+          if ! sudo systemctl is-active --quiet eventky.service; then
+            sudo systemctl status eventky.service --no-pager || true
+            sudo journalctl -u eventky.service -n 200 --no-pager || true
+            exit 1
+          fi
           EOF
 
       - name: Health checks
