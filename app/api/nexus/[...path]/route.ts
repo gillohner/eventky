@@ -8,6 +8,8 @@ async function proxy(req: NextRequest, path: string[]) {
 
   const headers = new Headers(req.headers);
   headers.delete("host");
+  headers.delete("connection");
+  headers.delete("content-length");
 
   const method = req.method.toUpperCase();
   const hasBody = method !== "GET" && method !== "HEAD";
